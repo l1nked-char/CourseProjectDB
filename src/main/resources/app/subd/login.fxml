@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<VBox alignment="CENTER" spacing="20.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="app.subd.LoginController">
+    <padding>
+        <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
+    </padding>
+    <Label text="Система управления отелем">
+        <font>
+            <Font name="System Bold" size="18.0" />
+        </font>
+    </Label>
+    <VBox spacing="10.0">
+        <Label text="Логин:" />
+        <TextField fx:id="usernameField" promptText="Введите логин" />
+        <Label text="Пароль:" />
+        <PasswordField fx:id="passwordField" promptText="Введите пароль" />
+    </VBox>
+    <Button fx:id="loginButton" mnemonicParsing="false" onAction="#handleLogin" text="Войти" />
+    <Label fx:id="errorLabel" textFill="RED" />
+</VBox>

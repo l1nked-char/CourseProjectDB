@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="app.subd.owner_panels.OwnerController">
+    <top>
+        <MenuBar>
+            <Menu text="Система">
+                <MenuItem text="Выход" onAction="#handleLogout" />
+            </Menu>
+            <Menu text="Финансы">
+                <MenuItem text="Отчеты по доходам" onAction="#showRevenueReports" />
+            </Menu>
+            <Menu text="Аналитика">
+                <MenuItem text="Статистика отеля" onAction="#showHotelStats" />
+            </Menu>
+        </MenuBar>
+    </top>
+    <center>
+        <TabPane fx:id="mainTabPane">
+            <Tab text="Обзор">
+                <Label text="Панель владельца - финансы и аналитика" />
+            </Tab>
+        </TabPane>
+    </center>
+    <bottom>
+        <Label fx:id="statusLabel" text="Владелец" />
+    </bottom>
+</BorderPane>

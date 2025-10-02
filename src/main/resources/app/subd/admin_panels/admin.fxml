@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/11.0.1"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="app.subd.admin_panels.AdminController"
+            prefWidth="1000"
+            prefHeight="700">
+
+    <top>
+        <MenuBar>
+            <Menu text="Система">
+                <MenuItem text="Выход" onAction="#handleLogout" />
+            </Menu>
+            <Menu text="Пользователи">
+                <MenuItem text="Управление пользователями" onAction="#showUserManagement" />
+            </Menu>
+            <Menu text="Отчеты">
+                <MenuItem text="Общая статистика" onAction="#showGeneralStats" />
+            </Menu>
+        </MenuBar>
+    </top>
+
+    <center>
+        <TabPane fx:id="mainTabPane" BorderPane.alignment="CENTER">
+            <Tab text="Общая информация">
+                <VBox spacing="10" style="-fx-padding: 20;">
+                    <Label text="Панель администратора - все функции доступны"
+                           style="-fx-font-size: 16; -fx-font-weight: bold;"/>
+                    <Label text="Для работы с пользователями выберите пункт меню 'Пользователи → Управление пользователями'"/>
+                    <Label text="Текущий пользователь: администратор"/>
+                </VBox>
+            </Tab>
+        </TabPane>
+    </center>
+
+    <bottom>
+        <Label fx:id="statusLabel" text="Администратор"
+               style="-fx-padding: 5; -fx-border-color: lightgray; -fx-border-width: 1 0 0 0;"/>
+    </bottom>
+</BorderPane>

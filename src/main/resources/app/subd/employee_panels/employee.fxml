@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="app.subd.employee_panels.EmployeeController">
+    <top>
+        <MenuBar>
+            <Menu text="Система">
+                <MenuItem text="Выход" onAction="#handleLogout" />
+            </Menu>
+            <Menu text="Бронирования">
+                <MenuItem text="Новое бронирование" onAction="#showNewBooking" />
+                <MenuItem text="Текущие бронирования" onAction="#showCurrentBookings" />
+            </Menu>
+            <Menu text="Клиенты">
+                <MenuItem text="Регистрация клиента" onAction="#showClientRegistration" />
+            </Menu>
+        </MenuBar>
+    </top>
+    <center>
+        <TabPane fx:id="mainTabPane">
+            <Tab text="Рабочий стол">
+                <Label text="Панель сотрудника - управление бронированиями" />
+            </Tab>
+        </TabPane>
+    </center>
+    <bottom>
+        <Label fx:id="statusLabel" text="Сотрудник" />
+    </bottom>
+</BorderPane>
