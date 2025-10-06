@@ -40,21 +40,29 @@
                   prefWidth="250"
                   GridPane.rowIndex="1" GridPane.columnIndex="1"/>
 
+        <Label text="Отель:"
+               style="-fx-font-weight: bold; -fx-text-fill: #34495e;"
+               GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+        <ComboBox fx:id="hotelComboBox"
+                  style="-fx-background-radius: 4; -fx-border-radius: 4; -fx-border-color: #bdc3c7; -fx-padding: 5;"
+                  prefWidth="250"
+                  GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+
         <!-- Новый пароль -->
         <Label text="Новый пароль:"
                style="-fx-font-weight: bold; -fx-text-fill: #34495e;"
-               GridPane.rowIndex="2" GridPane.columnIndex="0"/>
-        <PasswordField fx:id="newPasswordField"
+               GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+        <PasswordField fx:id="passwordField"
                        style="-fx-background-radius: 4; -fx-border-radius: 4; -fx-border-color: #bdc3c7; -fx-padding: 5;"
-                       GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                       GridPane.rowIndex="3" GridPane.columnIndex="1"/>
 
         <!-- Подтверждение пароля -->
         <Label text="Повторите пароль:"
                style="-fx-font-weight: bold; -fx-text-fill: #34495e;"
-               GridPane.rowIndex="3" GridPane.columnIndex="0"/>
-        <PasswordField fx:id="passwordRepeated"
+               GridPane.rowIndex="4" GridPane.columnIndex="0"/>
+        <PasswordField fx:id="confirmPasswordField"
                        style="-fx-background-radius: 4; -fx-border-radius: 4; -fx-border-color: #bdc3c7; -fx-padding: 5;"
-                       GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+                       GridPane.rowIndex="4" GridPane.columnIndex="1"/>
     </GridPane>
 
     <Label fx:id="statusLabel"
@@ -67,7 +75,7 @@
                 onAction="#handleCancel"
                 style="-fx-background-color: #95a5a6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 4; -fx-padding: 8 15;"
                 minWidth="80"/>
-        <Button fx:id="saveButton"
+        <Button fx:id="button"
                 text="Сохранить изменения"
                 onAction="#handleSaveUser"
                 style="-fx-background-color: #3498db; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 4; -fx-padding: 8 15;"

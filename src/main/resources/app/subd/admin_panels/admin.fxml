@@ -17,6 +17,9 @@
             <Menu text="Пользователи">
                 <MenuItem text="Управление пользователями" onAction="#showUserManagement" />
             </Menu>
+            <Menu text="Таблицы">
+                <MenuItem text="Управление отелями" onAction="#showHotelManagement" />
+            </Menu>
             <Menu text="Отчеты">
                 <MenuItem text="Общая статистика" onAction="#showGeneralStats" />
             </Menu>

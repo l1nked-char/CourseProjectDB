@@ -11,6 +11,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 import java.sql.Connection;
@@ -18,12 +19,14 @@ import java.sql.ResultSet;
 
 import static app.subd.MessageController.*;
 
-public class UserManagementController {
+public class UserManagementController extends BaseFormUserManagement {
 
     @FXML private TableView<User> usersTable;
     @FXML private TableColumn<User, Integer> idColumn;
     @FXML private TableColumn<User, String> usernameColumn;
     @FXML private TableColumn<User, String> roleColumn;
+    @FXML private TableColumn<User, String> hotelColumn;
+    @FXML private TableColumn<User, Boolean> userLockedColumn;
     @FXML private Label statusLabel;
 
     private final ObservableList<User> usersList = FXCollections.observableArrayList();
@@ -31,6 +34,9 @@ public class UserManagementController {
     @FXML
     public void initialize() {
         setupTableColumns();
+        hotelComboBox = new ComboBox<>();
+        super.setupHotelComboBox();
+        super.loadHotels();
         loadUsers();
     }
 
@@ -38,6 +44,8 @@ public class UserManagementController {
         idColumn.setCellValueFactory(new PropertyValueFactory<>("id"));
         usernameColumn.setCellValueFactory(new PropertyValueFactory<>("username"));
         roleColumn.setCellValueFactory(new PropertyValueFactory<>("role"));
+        hotelColumn.setCellValueFactory(new PropertyValueFactory<>("hotelInfo"));
+        userLockedColumn.setCellValueFactory(new PropertyValueFactory<>("userLocked"));
         usersTable.setItems(usersList);
     }
 
@@ -49,10 +57,15 @@ public class UserManagementController {
             ResultSet rs = Database_functions.callFunction(connection, "get_all_users");
 
             while (rs.next()) {
+                int id = rs.getInt("hotel_id");
+                String hotelInfo = hotelInfoMap.get(id);
+
                 usersList.add(new User(
                         rs.getInt("user_id"),
                         rs.getString("username"),
-                        rs.getString("role_name")
+                        rs.getString("role_name"),
+                        hotelInfo,
+                        rs.getBoolean("user_locked")
                 ));
             }
 
@@ -73,11 +86,9 @@ public class UserManagementController {
         }
 
         try {
-            // Открываем форму редактирования пользователя
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/app/subd/admin_panels/edit_user.fxml"));
             Parent root = loader.load();
 
-            // Передаем выбранного пользователя в контроллер редактирования
             EditUserController controller = loader.getController();
             controller.setUser(selectedUser);
             controller.setParentController(this);
@@ -87,10 +98,32 @@ public class UserManagementController {
             stage.setMinWidth(400);
             stage.setMinHeight(550);
             stage.setScene(new Scene(root, 400, 550));
-            stage.show();
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.showAndWait();
 
         } catch (Exception e) {
             showError(statusLabel, "Ошибка открытия формы редактирования: " + e.getMessage());
+        }
+    }
+
+    @FXML
+    private void handleActivationUser()
+    {
+        Connection connection = Session.getConnection();
+        User selectedUser = usersTable.getSelectionModel().getSelectedItem();
+
+        if (selectedUser == null) {
+            showError(statusLabel, "Выберите пользователя из таблицы ниже");
+            return;
+        }
+
+        try {
+            String func_name = !selectedUser.getUserLocked() ? "ban_user" : "unban_user";
+            Database_functions.callFunction(connection, func_name, selectedUser.getUsername());
+
+            handleRefresh();
+        } catch (Exception e) {
+            showError(statusLabel, "Ошибка деактивации пользователя: " + e.getMessage());
         }
     }
 
@@ -100,7 +133,6 @@ public class UserManagementController {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/app/subd/admin_panels/add_user.fxml"));
             Parent root = loader.load();
 
-            // Передаем ссылку на этот контроллер для обновления списка
             AddUserController controller = loader.getController();
             controller.setParentController(this);
 
@@ -109,10 +141,12 @@ public class UserManagementController {
             stage.setMinWidth(400);
             stage.setMinHeight(550);
             stage.setScene(new Scene(root, 400, 550));
-            stage.show();
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.showAndWait();
 
         } catch (Exception e) {
-            showError(statusLabel, "Ошибка открытия формы: " + e.getMessage());
+            showError(statusLabel, "Ошибка открытия формы!");
+            e.printStackTrace();
         }
     }
 

@@ -6,11 +6,15 @@ public class User {
     private final IntegerProperty id;
     private final StringProperty username;
     private final StringProperty role;
+    private final StringProperty hotelInfo;
+    private final BooleanProperty userLocked;
 
-    public User(int id, String username, String role) {
+    public User(int id, String username, String role, String hotelInfo, Boolean userLocked) {
         this.id = new SimpleIntegerProperty(id);
         this.username = new SimpleStringProperty(username);
         this.role = new SimpleStringProperty(role);
+        this.hotelInfo = new SimpleStringProperty(hotelInfo);
+        this.userLocked = new SimpleBooleanProperty(userLocked);
     }
 
     // Getters and setters
@@ -25,4 +29,12 @@ public class User {
     public String getRole() { return role.get(); }
     public void setRole(String value) { role.set(value); }
     public StringProperty roleProperty() { return role; }
+
+    public String getHotelInfo() { return hotelInfo.get(); }
+    public void setHotelInfo(String value) { hotelInfo.set(value); }
+    public StringProperty hotelInfoProperty() { return hotelInfo; }
+
+    public boolean getUserLocked() { return userLocked.get(); }
+    public void setUserLocked(boolean value) { userLocked.set(value); }
+    public BooleanProperty userLockedProperty() { return userLocked; }
 }

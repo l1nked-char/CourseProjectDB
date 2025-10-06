@@ -76,7 +76,7 @@
                 onAction="#handleCancel"
                 style="-fx-background-color: #95a5a6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 4; -fx-padding: 8 15;"
                 minWidth="80"/>
-        <Button fx:id="createButton"
+        <Button fx:id="button"
                 text="Создать пользователя"
                 onAction="#handleCreateUser"
                 style="-fx-background-color: #3498db; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 4; -fx-padding: 8 15;"

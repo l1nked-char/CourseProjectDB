@@ -10,14 +10,26 @@ import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.stage.Stage;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class AdminController {
 
     @FXML private TabPane mainTabPane;
     @FXML private Label statusLabel;
 
+    private Map<String, String> tableConfigs = new HashMap<>();
+
     @FXML
     public void initialize() {
         statusLabel.setText("Администратор: " + Session.getUsername());
+        initializeTableConfigs();
+    }
+
+    private void initializeTableConfigs() {
+        // Конфигурация для каждой таблицы: название -> путь к FXML
+        tableConfigs.put("Отели", "/app/subd/tables/hotel_management.fxml");
+        tableConfigs.put("Пользователи", "/app/subd/admin_panels/user_management.fxml");
     }
 
     @FXML
@@ -41,36 +53,66 @@ public class AdminController {
     }
 
     @FXML
-    private void showUserManagement() {
+    private void openTableTab(String tableName) {
         try {
-            // Проверяем, не открыта ли уже вкладка
+
             for (Tab tab : mainTabPane.getTabs()) {
-                if ("Управление пользователями".equals(tab.getText())) {
+                if (tableName.equals(tab.getText())) {
                     mainTabPane.getSelectionModel().select(tab);
                     return;
                 }
             }
 
-            // Загружаем форму управления пользователями
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/app/subd/admin_panels/user_management.fxml"));
-            Parent userManagementContent = loader.load();
+            String fxmlPath = tableConfigs.get(tableName);
+            if (fxmlPath == null) {
+                statusLabel.setText("Конфигурация для таблицы '" + tableName + "' не найдена");
+                return;
+            }
 
-            Tab userTab = new Tab("Управление пользователями");
-            userTab.setContent(userManagementContent);
-            userTab.setClosable(true);
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
+            Parent tableContent = loader.load();
 
-            mainTabPane.getTabs().add(userTab);
-            mainTabPane.getSelectionModel().select(userTab);
+            Tab tableTab = new Tab(tableName);
+            tableTab.setContent(tableContent);
+            tableTab.setClosable(true);
+
+            mainTabPane.getTabs().add(tableTab);
+            mainTabPane.getSelectionModel().select(tableTab);
+            statusLabel.setText("Открыта таблица: " + tableName);
 
         } catch (Exception e) {
             e.printStackTrace();
-            statusLabel.setText("Ошибка загрузки формы управления пользователями");
+            statusLabel.setText("Ошибка загрузки таблицы '" + tableName + "'");
         }
+    }
+
+    @FXML
+    private void showUserManagement() {
+        openTableTab("Пользователи");
+    }
+
+    @FXML
+    private void showHotelManagement() {
+        openTableTab("Отели");
+    }
+
+    @FXML
+    private void showRoomManagement() {
+        openTableTab("Номера");
+    }
+
+    @FXML
+    private void showBookingManagement() {
+        openTableTab("Бронирования");
+    }
+
+    @FXML
+    private void showServiceManagement() {
+        openTableTab("Услуги");
     }
 
     @FXML
     private void showGeneralStats() {
         System.out.println("Общая статистика");
-        // Здесь можно добавить загрузку другой формы
     }
 }

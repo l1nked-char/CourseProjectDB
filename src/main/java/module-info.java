@@ -8,15 +8,17 @@ module app.subd {
     requires java.sql;
     requires java.desktop;
 
-    opens app.subd to javafx.fxml;
+    opens app.subd to javafx.fxml, org.controlsfx.controls;
     opens app.subd.admin_panels to javafx.fxml;
     opens app.subd.owner_panels to javafx.fxml;
     opens app.subd.employee_panels to javafx.fxml;
     opens app.subd.models;
+    opens app.subd.tables;
 
     exports app.subd;
     exports app.subd.admin_panels;
     exports app.subd.owner_panels;
     exports app.subd.employee_panels;
     exports app.subd.models;
+    exports app.subd.tables;
 }
