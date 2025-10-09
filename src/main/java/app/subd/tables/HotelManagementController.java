@@ -7,11 +7,8 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 import java.sql.Connection;
@@ -58,17 +55,9 @@ public class HotelManagementController extends BaseTableController<Hotel> {
     protected void handleAdd() {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/app/subd/tables/add_hotel.fxml"));
-            Parent root = loader.load();
-
+            Stage stage = showForm("Добавление отеля", loader);
             AddHotelController controller = loader.getController();
             controller.setParentController(this);
-
-            Stage stage = new Stage();
-            stage.setTitle("Добавление отеля");
-            stage.setMinWidth(400);
-            stage.setMinHeight(300);
-            stage.setScene(new Scene(root, 400, 300));
-            stage.initModality(Modality.APPLICATION_MODAL);
             stage.showAndWait();
 
         } catch (Exception e) {
@@ -86,42 +75,14 @@ public class HotelManagementController extends BaseTableController<Hotel> {
 
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/app/subd/tables/edit_hotel.fxml"));
-            Parent root = loader.load();
-
+            Stage stage = showForm("Редактирование отеля: ID " + selected.getId(), loader);
             EditHotelController controller = loader.getController();
             controller.setHotel(selected);
             controller.setParentController(this);
-
-            Stage stage = new Stage();
-            stage.setTitle("Редактирование отеля: ID " + selected.getId());
-            stage.setMinWidth(400);
-            stage.setMinHeight(300);
-            stage.setScene(new Scene(root, 400, 300));
-            stage.initModality(Modality.APPLICATION_MODAL);
             stage.showAndWait();
 
         } catch (Exception e) {
             showError(statusLabel, "Ошибка открытия формы редактирования отеля: " + e.getMessage());
-        }
-    }
-
-    @Override
-    protected void handleDelete() {
-        Hotel selected = tableView.getSelectionModel().getSelectedItem();
-        if (selected == null) {
-            showError(statusLabel, "Выберите отель для удаления");
-            return;
-        }
-
-        try {
-            Connection connection = Session.getConnection();
-            Database_functions.callFunction(connection, "delete_hotel", selected.getId());
-
-            showSuccess(statusLabel, "Отель успешно удален");
-            handleRefresh();
-
-        } catch (Exception e) {
-            showError(statusLabel, "Ошибка удаления отеля: " + e.getMessage());
         }
     }
 }

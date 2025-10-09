@@ -4,26 +4,67 @@ import app.subd.Database_functions;
 import app.subd.Session;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 
 import java.sql.Connection;
 
 import static app.subd.MessageController.*;
 
-public class AddHotelController extends BaseHotelFormController {
+public class AddHotelController {
 
     @FXML private Button saveButton;
     @FXML private Button cancelButton;
+    @FXML protected TextField addressField;
+    @FXML protected ComboBox<String> cityComboBox;
+    @FXML protected Label statusLabel;
 
-    private HotelManagementController parentController;
+    private HotelManagementController parent;
 
-    public void setParentController(HotelManagementController parentController) {
-        this.parentController = parentController;
+    protected void setParentController(HotelManagementController parent)
+    {
+        this.parent = parent;
     }
 
-    @Override
+    public void initialize() {
+        try {
+            AllDictionaries.initialiseCitiesMaps();
+
+            cityComboBox.getItems().setAll(AllDictionaries.getCitiesIdMap().keySet());
+
+        } catch (Exception e) {
+            showError(statusLabel, "Ошибка загрузки списка городов: " + e.getMessage());
+        }
+        setupEventListeners();
+    }
+
     protected Button getSaveButton() {
         return saveButton;
+    }
+
+    private void setupEventListeners() {
+        addressField.textProperty().addListener((observable, oldValue, newValue) -> validateForm());
+        cityComboBox.valueProperty().addListener((observable, oldValue, newValue) -> validateForm());
+    }
+
+    protected void validateForm() {
+        String address = addressField.getText().trim();
+        String city = cityComboBox.getValue();
+
+        boolean isValid = !address.isEmpty() &&
+                city != null &&
+                !city.isEmpty();
+
+        getSaveButton().setDisable(!isValid);
+
+        if (address.isEmpty())
+            showError(statusLabel, "Введите адрес отеля");
+        else if (city == null || city.isEmpty())
+            showError(statusLabel, "Выберите город из списка");
+        else
+            clearStatus(statusLabel);
     }
 
     @FXML
@@ -37,18 +78,16 @@ public class AddHotelController extends BaseHotelFormController {
         }
 
         try {
-            int cityId = cityIdMap.get(cityName);
+            int cityId = AllDictionaries.getCitiesIdMap().get(cityName);
             Connection connection = Session.getConnection();
 
             Database_functions.callFunction(connection, "add_new_hotel", cityId, address);
 
+            clearForm();
+
             showSuccess(statusLabel, "Отель успешно добавлен");
 
-            if (parentController != null) {
-                parentController.handleRefresh();
-            }
-
-            clearForm();
+            parent.handleRefresh();
 
         } catch (Exception e) {
             showError(statusLabel, "Ошибка добавления отеля: " + e.getMessage());

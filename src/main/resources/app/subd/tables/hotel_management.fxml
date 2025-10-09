@@ -19,7 +19,6 @@
         <Button fx:id="refreshButton" mnemonicParsing="false" text="Обновить" />
         <Button fx:id="addButton" mnemonicParsing="false" text="Добавить" />
         <Button fx:id="editButton" mnemonicParsing="false" text="Редактировать" />
-        <Button fx:id="deleteButton" mnemonicParsing="false" text="Удалить" />
     </ToolBar>
 
     <TableView fx:id="tableView" VBox.vgrow="ALWAYS">

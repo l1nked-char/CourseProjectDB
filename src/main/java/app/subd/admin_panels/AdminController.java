@@ -18,7 +18,7 @@ public class AdminController {
     @FXML private TabPane mainTabPane;
     @FXML private Label statusLabel;
 
-    private Map<String, String> tableConfigs = new HashMap<>();
+    private final Map<String, String> tableConfigs = new HashMap<>();
 
     @FXML
     public void initialize() {
@@ -27,7 +27,6 @@ public class AdminController {
     }
 
     private void initializeTableConfigs() {
-        // Конфигурация для каждой таблицы: название -> путь к FXML
         tableConfigs.put("Отели", "/app/subd/tables/hotel_management.fxml");
         tableConfigs.put("Пользователи", "/app/subd/admin_panels/user_management.fxml");
     }

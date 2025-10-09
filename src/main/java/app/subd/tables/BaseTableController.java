@@ -2,9 +2,14 @@ package app.subd.tables;
 
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableView;
 import javafx.scene.control.Button;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
 
 import static app.subd.MessageController.*;
 
@@ -15,13 +20,11 @@ public abstract class BaseTableController<T> {
     @FXML protected Button refreshButton;
     @FXML protected Button addButton;
     @FXML protected Button editButton;
-    @FXML protected Button deleteButton;
 
     protected abstract ObservableList<T> loadData() throws Exception;
     protected abstract void setupTableColumns();
     protected abstract void handleAdd();
     protected abstract void handleEdit();
-    protected abstract void handleDelete();
 
     @FXML
     public void initialize() {
@@ -36,9 +39,6 @@ public abstract class BaseTableController<T> {
         }
         if (editButton != null) {
             editButton.setOnAction(e -> handleEdit());
-        }
-        if (deleteButton != null) {
-            deleteButton.setOnAction(e -> handleDelete());
         }
         if (refreshButton != null) {
             refreshButton.setOnAction(e -> handleRefresh());
@@ -56,12 +56,17 @@ public abstract class BaseTableController<T> {
         }
     }
 
-    protected void showForm(String fxmlPath, String title, Object controllerConfig) {
-        try {
-            // Здесь будет логика открытия форм для добавления/редактирования
-            // Аналогично тому как сделано в UserManagementController
-        } catch (Exception e) {
-            showError(statusLabel, "Ошибка открытия формы: " + e.getMessage());
-        }
+    protected Stage showForm(String title, FXMLLoader loader) throws Exception
+    {
+        Parent root = loader.load();
+
+        Stage stage = new Stage();
+        stage.setTitle(title);
+        stage.setMinHeight(300);
+        stage.setMinWidth(400);
+        stage.setScene(new Scene(root, 400, 300));
+        stage.initModality(Modality.APPLICATION_MODAL);
+
+        return stage;
     }
 }

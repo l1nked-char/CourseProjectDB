@@ -7,6 +7,8 @@ module app.subd {
     requires net.synedra.validatorfx;
     requires java.sql;
     requires java.desktop;
+    requires javafx.base;
+    requires javafx.graphics;
 
     opens app.subd to javafx.fxml, org.controlsfx.controls;
     opens app.subd.admin_panels to javafx.fxml;

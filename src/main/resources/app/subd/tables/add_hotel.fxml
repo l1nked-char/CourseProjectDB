@@ -19,16 +19,15 @@
 
     <GridPane hgap="10.0" vgap="10.0">
         <columnConstraints>
-            <ColumnConstraints minWidth="100.0" prefWidth="100.0" />
-            <ColumnConstraints minWidth="200.0" prefWidth="200.0" />
+            <ColumnConstraints minWidth="100.0" prefWidth="100.0"/>
+            <ColumnConstraints minWidth="200.0" prefWidth="200.0"/>
         </columnConstraints>
-        <children>
-            <Label text="Город:" GridPane.rowIndex="0" GridPane.columnIndex="0" />
-            <ComboBox fx:id="cityComboBox" promptText="Выберите город" GridPane.rowIndex="0" GridPane.columnIndex="1" />
+        <Label text="Город:" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+        <ComboBox fx:id="cityComboBox" promptText="Выберите город" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
 
-            <Label text="Адрес:" GridPane.rowIndex="1" GridPane.columnIndex="0" />
-            <TextField fx:id="addressField" promptText="Введите адрес отеля" GridPane.rowIndex="1" GridPane.columnIndex="1" />
-        </children>
+        <Label text="Адрес:" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+        <TextField fx:id="addressField" promptText="Введите адрес отеля" GridPane.rowIndex="1"
+                   GridPane.columnIndex="1"/>
     </GridPane>
 
     <HBox spacing="10.0">
@@ -36,5 +35,5 @@
         <Button fx:id="cancelButton" onAction="#handleCancel" mnemonicParsing="false" text="Отмена" />
     </HBox>
 
-    <Label fx:id="statusLabel" text="Заполните данные отеля" />
+    <Label fx:id="statusLabel" />
 </VBox>
