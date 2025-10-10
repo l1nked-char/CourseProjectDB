@@ -24,6 +24,9 @@ public class AllDictionaries {
     private static final Map<String, Integer> servicesIdMap = new HashMap<>();
     private static final Map<Integer, String> servicesNameMap = new HashMap<>();
 
+    private static final Map<String, Integer> hotelsIdMap = new HashMap<>();
+    private static final Map<Integer, String> hotelsNameMap = new HashMap<>();
+
     public static void initialiseCitiesMaps() throws Exception
     {
         Connection connection = Session.getConnection();
@@ -109,6 +112,24 @@ public class AllDictionaries {
         }
     }
 
+    public static void initialiseHotelsMaps() throws Exception {
+        Connection connection = Session.getConnection();
+        ResultSet rs = Database_functions.callFunction(connection, "get_all_hotels");
+
+        hotelsIdMap.clear();
+        hotelsNameMap.clear();
+
+        while (rs.next()) {
+            int hotelId = rs.getInt("hotel_id");
+            String cityName = rs.getString("hotel_city");
+            String address = rs.getString("hotel_address");
+            String hotelInfo = cityName + " - " + address;
+
+            hotelsIdMap.put(hotelInfo, hotelId);
+            hotelsNameMap.put(hotelId, hotelInfo);
+        }
+    }
+
     public static Map<String, Integer> getCitiesIdMap() { return citiesIdMap; }
     public static Map<String, Integer> getSocialStatusIdMap() { return socialStatusIdMap; }
     public static Map<String, Integer> getConveniencesIdMap() { return conveniencesIdMap; }
@@ -120,4 +141,6 @@ public class AllDictionaries {
     public static Map<Integer, String> getConveniencesNameMap() { return conveniencesNameMap; }
     public static Map<Integer, String> getTypesOfRoomNameMap() { return typesOfRoomNameMap; }
     public static Map<Integer, String> getSevicesNameMap() { return servicesNameMap; }
+    public static Map<String, Integer> getHotelsIdMap() { return hotelsIdMap; }
+    public static Map<Integer, String> getHotelsNameMap() { return hotelsNameMap; }
 }

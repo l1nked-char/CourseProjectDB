@@ -29,6 +29,8 @@ public class AdminController {
     private void initializeTableConfigs() {
         tableConfigs.put("Отели", "/app/subd/tables/hotel_management.fxml");
         tableConfigs.put("Пользователи", "/app/subd/admin_panels/user_management.fxml");
+        tableConfigs.put("Типы комнат", "/app/subd/tables/type_of_room_management.fxml");
+        tableConfigs.put("Номера", "/app/subd/tables/hotel_room_management.fxml");
     }
 
     @FXML
@@ -93,6 +95,11 @@ public class AdminController {
     @FXML
     private void showHotelManagement() {
         openTableTab("Отели");
+    }
+
+    @FXML
+    private void showTypeOfRoomManagement() {
+        openTableTab("Типы комнат");
     }
 
     @FXML

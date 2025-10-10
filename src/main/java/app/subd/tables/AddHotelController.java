@@ -82,9 +82,7 @@ public class AddHotelController {
             Connection connection = Session.getConnection();
 
             Database_functions.callFunction(connection, "add_new_hotel", cityId, address);
-
             clearForm();
-
             showSuccess(statusLabel, "Отель успешно добавлен");
 
             parent.handleRefresh();
