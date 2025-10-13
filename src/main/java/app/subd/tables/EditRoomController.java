@@ -1,5 +1,6 @@
 package app.subd.tables;
 
+import app.subd.ComboBoxSearchListener;
 import app.subd.Database_functions;
 import app.subd.Session;
 import app.subd.models.Room;
@@ -42,6 +43,7 @@ public class EditRoomController {
         } catch (Exception e) {
             showError(statusLabel, "Ошибка загрузки списка типов комнат: " + e.getMessage());
         }
+        new ComboBoxSearchListener(typeOfRoomComboBox);
         setupEventListeners();
     }
 
@@ -76,6 +78,8 @@ public class EditRoomController {
             
             if (room.getTypeOfRoomId() != null) {
                 typeOfRoomComboBox.setValue(AllDictionaries.getTypesOfRoomNameMap().get(room.getTypeOfRoomId()));
+            } else {
+                typeOfRoomComboBox.setValue(room.getTypeOfRoomName());
             }
         }
     }
@@ -94,7 +98,7 @@ public class EditRoomController {
             int typeOfRoomId = AllDictionaries.getTypesOfRoomIdMap().get(typeOfRoomComboBox.getValue());
 
             Connection connection = Session.getConnection();
-            Database_functions.callFunction(connection, "edit_hotel_room", 
+            Database_functions.callFunction(connection, "edit_room",
                 room.getId(), room.getHotelId(), maxPeople, pricePerPerson, roomNumber, typeOfRoomId);
 
             showSuccess(statusLabel, "Комната успешно обновлена");

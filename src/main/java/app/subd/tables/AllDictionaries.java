@@ -61,8 +61,7 @@ public class AllDictionaries {
         }
     }
 
-    public static void initialiseConveniencesMaps() throws Exception
-    {
+    public static void initialiseConveniencesMaps() throws Exception {
         Connection connection = Session.getConnection();
         ResultSet rs = Database_functions.callFunction(connection, "get_all_conveniences");
 
@@ -87,8 +86,8 @@ public class AllDictionaries {
         typesOfRoomNameMap.clear();
 
         while (rs.next()) {
-            int id = rs.getInt("room_type_id");
-            String name = rs.getString("room_type_name");
+            int id = rs.getInt("type_id");
+            String name = rs.getString("type_name");
 
             typesOfRoomIdMap.put(name, id);
             typesOfRoomNameMap.put(id, name);

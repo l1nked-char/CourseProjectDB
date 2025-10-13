@@ -20,9 +20,11 @@
             <Menu text="Таблицы">
                 <MenuItem text="Управление отелями" onAction="#showHotelManagement" />
                 <MenuItem text="Управление комнатами в отелях" onAction="#showRoomManagement" />
+                <MenuItem text="Управление удобствами" onAction="#showRoomConvenienceManagement" />
             </Menu>
             <Menu text="Справочники">
                 <MenuItem text="Управление типами комнат" onAction="#showTypeOfRoomManagement" />
+                <MenuItem text="Управление удобствами" onAction="#showConveniencesManagement" />
             </Menu>
             <Menu text="Отчеты">
                 <MenuItem text="Общая статистика" onAction="#showGeneralStats" />

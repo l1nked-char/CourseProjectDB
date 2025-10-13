@@ -31,6 +31,8 @@ public class AdminController {
         tableConfigs.put("Пользователи", "/app/subd/admin_panels/user_management.fxml");
         tableConfigs.put("Типы комнат", "/app/subd/tables/type_of_room_management.fxml");
         tableConfigs.put("Номера", "/app/subd/tables/hotel_room_management.fxml");
+        tableConfigs.put("Удобства", "/app/subd/tables/convenience_management.fxml");
+        tableConfigs.put("Удобства в комнате", "/app/subd/tables/room_convenience_management.fxml");
     }
 
     @FXML
@@ -103,6 +105,11 @@ public class AdminController {
     }
 
     @FXML
+    private void showConveniencesManagement() {
+        openTableTab("Удобства");
+    }
+
+    @FXML
     private void showRoomManagement() {
         openTableTab("Номера");
     }
@@ -120,5 +127,10 @@ public class AdminController {
     @FXML
     private void showGeneralStats() {
         System.out.println("Общая статистика");
+    }
+
+    @FXML
+    private void showRoomConvenienceManagement() {
+        openTableTab("Удобства в комнате");
     }
 }

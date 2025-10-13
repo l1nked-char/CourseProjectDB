@@ -1,7 +1,7 @@
 import psycopg2
 from faker import Faker
 import random
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 
 # Настройки подключения к БД
 DB_CONFIG = {
@@ -183,14 +183,12 @@ def generate_room_conveniences(conn):
                 price = random.randint(100, 1000)
                 amount = random.randint(1, 2)
 
-                # Получаем type_of_room_id для комнаты
-                cur.execute("SELECT type_of_room_id FROM hotel_rooms WHERE room_id = %s", (room_id,))
-                type_of_room = cur.fetchone()[0]
+                start_date = datetime.now().date()
 
                 cur.execute("""
-                            INSERT INTO room_conveniences (room_id, conv_name_id, type_of_room, price_per_one, amount)
+                            INSERT INTO room_conveniences (room_id, conv_name_id, price_per_one, amount, start_date)
                             VALUES (%s, %s, %s, %s, %s)
-                            """, (room_id, conv_id, type_of_room, price, amount))
+                            """, (room_id, conv_id, price, amount, start_date))
 
         conn.commit()
         print(f"Добавлены удобства для {len(room_ids)} номеров")

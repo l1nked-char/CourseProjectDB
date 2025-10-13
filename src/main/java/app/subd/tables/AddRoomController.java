@@ -80,7 +80,7 @@ public class AddRoomController {
             int typeOfRoomId = AllDictionaries.getTypesOfRoomIdMap().get(typeOfRoomComboBox.getValue());
 
             Connection connection = Session.getConnection();
-            Database_functions.callFunction(connection, "add_hotel_room",
+            Database_functions.callFunction(connection, "add_room",
                     hotelId, maxPeople, pricePerPerson, roomNumber, typeOfRoomId);
 
             showSuccess(statusLabel, "Комната успешно добавлена");
