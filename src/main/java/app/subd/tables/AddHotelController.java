@@ -1,7 +1,8 @@
 package app.subd.tables;
 
 import app.subd.Database_functions;
-import app.subd.Session;
+import app.subd.components.Session;
+import app.subd.admin_panels.AdminController;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
@@ -21,11 +22,10 @@ public class AddHotelController {
     @FXML protected ComboBox<String> cityComboBox;
     @FXML protected Label statusLabel;
 
-    private HotelManagementController parent;
+    private AdminController.RefreshableController parentController;
 
-    protected void setParentController(HotelManagementController parent)
-    {
-        this.parent = parent;
+    public void setParentController(AdminController.RefreshableController parentController) {
+        this.parentController = parentController;
     }
 
     public void initialize() {
@@ -85,7 +85,7 @@ public class AddHotelController {
             clearForm();
             showSuccess(statusLabel, "Отель успешно добавлен");
 
-            parent.handleRefresh();
+            parentController.handleRefresh();
 
         } catch (Exception e) {
             showError(statusLabel, "Ошибка добавления отеля: " + e.getMessage());

@@ -1,8 +1,9 @@
 package app.subd.tables;
 
-import app.subd.ComboBoxSearchListener;
+import app.subd.components.ComboBoxSearchListener;
 import app.subd.Database_functions;
-import app.subd.Session;
+import app.subd.components.Session;
+import app.subd.admin_panels.AdminController;
 import app.subd.models.Room;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
@@ -24,14 +25,14 @@ public class EditRoomController {
     @FXML private Label statusLabel;
 
     private Room room;
-    private HotelRoomManagementController parentController;
+    private AdminController.RefreshableController parentController;
 
     public void setRoom(Room room) {
         this.room = room;
         populateForm();
     }
 
-    public void setParentController(HotelRoomManagementController parentController) {
+    public void setParentController(AdminController.RefreshableController parentController) {
         this.parentController = parentController;
     }
 

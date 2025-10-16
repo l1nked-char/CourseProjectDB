@@ -1,6 +1,6 @@
 package app.subd.employee_panels;
 
-import app.subd.Session;
+import app.subd.components.Session;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;

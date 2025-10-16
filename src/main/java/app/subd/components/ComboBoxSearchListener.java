@@ -1,4 +1,4 @@
-package app.subd;
+package app.subd.components;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;

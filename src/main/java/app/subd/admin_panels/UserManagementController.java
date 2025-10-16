@@ -1,7 +1,7 @@
 package app.subd.admin_panels;
 
 import app.subd.Database_functions;
-import app.subd.Session;
+import app.subd.components.Session;
 import app.subd.models.User;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;

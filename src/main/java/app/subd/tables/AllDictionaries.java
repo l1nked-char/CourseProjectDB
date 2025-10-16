@@ -1,7 +1,7 @@
 package app.subd.tables;
 
 import app.subd.Database_functions;
-import app.subd.Session;
+import app.subd.components.Session;
 
 import java.sql.Connection;
 import java.sql.ResultSet;

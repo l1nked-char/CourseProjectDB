@@ -1,8 +1,8 @@
 package app.subd.admin_panels;
 
-import app.subd.ComboBoxSearchListener;
+import app.subd.components.ComboBoxSearchListener;
 import app.subd.Database_functions;
-import app.subd.Session;
+import app.subd.components.Session;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;

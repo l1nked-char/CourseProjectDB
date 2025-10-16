@@ -23,4 +23,6 @@ module app.subd {
     exports app.subd.employee_panels;
     exports app.subd.models;
     exports app.subd.tables;
+    exports app.subd.components;
+    opens app.subd.components;
 }

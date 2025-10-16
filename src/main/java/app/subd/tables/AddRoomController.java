@@ -1,7 +1,8 @@
 package app.subd.tables;
 
 import app.subd.Database_functions;
-import app.subd.Session;
+import app.subd.components.Session;
+import app.subd.admin_panels.AdminController;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.stage.Stage;
@@ -21,10 +22,10 @@ public class AddRoomController {
     @FXML private Label statusLabel;
     @FXML private Label hotelLabel;
 
-    private HotelRoomManagementController parentController;
+    private AdminController.RefreshableController parentController;
     private int hotelId;
 
-    public void setParentController(HotelRoomManagementController parentController) {
+    public void setParentController(AdminController.RefreshableController parentController) {
         this.parentController = parentController;
     }
 

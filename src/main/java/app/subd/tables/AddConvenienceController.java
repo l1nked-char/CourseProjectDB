@@ -1,7 +1,7 @@
 package app.subd.tables;
 
 import app.subd.Database_functions;
-import app.subd.Session;
+import app.subd.components.Session;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;

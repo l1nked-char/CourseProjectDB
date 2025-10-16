@@ -1,4 +1,4 @@
-package app.subd;
+package app.subd.components;
 
 import java.sql.Connection;
 import java.sql.SQLException;

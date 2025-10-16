@@ -1,7 +1,8 @@
 package app.subd.tables;
 
 import app.subd.Database_functions;
-import app.subd.Session;
+import app.subd.components.Session;
+import app.subd.admin_panels.AdminController;
 import app.subd.models.Hotel;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -24,7 +25,7 @@ public class EditHotelController {
     @FXML protected Label statusLabel;
 
     private Hotel hotel;
-    private HotelManagementController parentController;
+    private AdminController.RefreshableController parentController;
 
     public void setHotel(Hotel hotel) {
         this.hotel = hotel;
@@ -36,7 +37,7 @@ public class EditHotelController {
         cityComboBox.valueProperty().addListener((observable, oldValue, newValue) -> validateForm());
     }
 
-    public void setParentController(HotelManagementController parentController) {
+    public void setParentController(AdminController.RefreshableController parentController) {
         this.parentController = parentController;
     }
 
