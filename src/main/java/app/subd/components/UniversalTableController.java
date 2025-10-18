@@ -1,5 +1,6 @@
 package app.subd.components;
 
+import app.subd.admin_panels.AdminController;
 import app.subd.config.TableConfig;
 import app.subd.config.ColumnConfig;
 import app.subd.config.FilterConfig;
@@ -16,7 +17,7 @@ import java.util.Map;
 
 import static app.subd.MessageController.*;
 
-public class UniversalTableController {
+public class UniversalTableController implements AdminController.RefreshableController {
 
     @FXML private VBox filtersContainer;
     @FXML private TextField searchField;
@@ -65,7 +66,8 @@ public class UniversalTableController {
     }
 
     private void setupTable() {
-        filteredData = new FilteredList<>(originalData != null ? originalData : javafx.collections.FXCollections.observableArrayList());
+        originalData = javafx.collections.FXCollections.observableArrayList();
+        filteredData = new FilteredList<>(originalData);
         sortedData = new SortedList<>(filteredData);
         tableView.setItems(sortedData);
         sortedData.comparatorProperty().bind(tableView.comparatorProperty());
@@ -99,7 +101,7 @@ public class UniversalTableController {
         ComboBox<Object> comboBox = new ComboBox<>();
         comboBox.setItems((ObservableList<Object>) filterConfig.getItemsSupplier().get());
         comboBox.setPromptText("Выберите...");
-        comboBox.getItems().add(0, "Все");
+        comboBox.getItems().addFirst("Все");
 
         comboBox.valueProperty().addListener((observable, oldValue, newValue) -> {
             handleFilterChange(filterConfig.getFilterKey(), newValue);
@@ -141,7 +143,7 @@ public class UniversalTableController {
             editButton.setVisible(currentConfig.getOnEdit() != null);
         }
         if (deleteButton != null) {
-            deleteButton.setVisible(false);
+            deleteButton.setVisible(false); // Пока скрываем кнопку удаления
         }
     }
 
@@ -172,7 +174,7 @@ public class UniversalTableController {
         String searchText = searchField.getText().toLowerCase();
 
         filteredData.setPredicate(item -> {
-            if (searchText == null || searchText.isEmpty()) {
+            if (searchText.isEmpty()) {
                 return true;
             }
 
@@ -201,24 +203,25 @@ public class UniversalTableController {
         Object selected = tableView.getSelectionModel().getSelectedItem();
         if (selected != null && currentConfig != null && currentConfig.getOnEdit() != null) {
             currentConfig.getOnEdit().call(selected);
-        } else if (statusLabel != null) {
-            showError(statusLabel, "Выберите запись для редактирования");
         }
     }
 
     @FXML
-    private void handleRefresh() {
-        if (currentConfig != null && currentConfig.getOnRefresh() != null) {
-            currentConfig.getOnRefresh().call(null);
+    private void handleDelete() {
+        Object selected = tableView.getSelectionModel().getSelectedItem();
+        if (selected != null) {
+            // Реализация удаления будет добавлена позже
+            showError(statusLabel, "Функция удаления пока не реализована");
         }
+    }
+
+    @FXML
+    public void handleRefresh() {
         refreshData();
     }
 
     @FXML
     private void handleClearFilters() {
-        for (ComboBox<?> comboBox : activeFilters.values()) {
-            //comboBox.setValue("Все");
-        }
         currentFilterValues.clear();
 
         if (searchField != null) {
@@ -234,5 +237,9 @@ public class UniversalTableController {
 
     public Object getSelectedItem() {
         return tableView.getSelectionModel().getSelectedItem();
+    }
+
+    public Map<String, Object> getCurrentFilterValues() {
+        return currentFilterValues;
     }
 }

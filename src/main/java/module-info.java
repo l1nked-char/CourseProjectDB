@@ -16,13 +16,16 @@ module app.subd {
     opens app.subd.employee_panels to javafx.fxml;
     opens app.subd.models;
     opens app.subd.tables;
+    opens app.subd.components;
+    opens app.subd.config;
 
     exports app.subd;
+    exports app.subd.config;
     exports app.subd.admin_panels;
     exports app.subd.owner_panels;
     exports app.subd.employee_panels;
     exports app.subd.models;
     exports app.subd.tables;
     exports app.subd.components;
-    opens app.subd.components;
+
 }

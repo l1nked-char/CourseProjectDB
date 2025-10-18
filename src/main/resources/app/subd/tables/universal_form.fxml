@@ -1,14 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import java.lang.*?>
-<?import java.util.*?>
-<?import javafx.scene.*?>
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<AnchorPane xmlns="http://javafx.com/javafx"
-            xmlns:fx="http://javafx.com/fxml"
-            fx:controller="$CONTROLLER_NAME$"
-            prefHeight="400.0" prefWidth="600.0" >
+<VBox xmlns="http://javafx.com/javafx/11.0.1"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="app.subd.components.UniversalFormController"
+      spacing="10.0"
+      prefWidth="500"
+      prefHeight="600"
+      style="-fx-padding: 15;">
 
-</AnchorPane>
+    <!-- Заголовок формы -->
+    <Label fx:id="titleLabel" style="-fx-font-size: 18; -fx-font-weight: bold;" />
+
+    <!-- Контейнер для динамически создаваемых полей -->
+    <VBox fx:id="formContainer" spacing="10" VBox.vgrow="ALWAYS">
+        <!-- Поля будут добавляться динамически -->
+    </VBox>
+
+    <!-- Панель кнопок -->
+    <HBox spacing="10" alignment="CENTER_RIGHT">
+        <Button fx:id="saveButton"
+                onAction="#handleSave"
+                mnemonicParsing="false"
+                text="Сохранить"
+                disable="true"
+                defaultButton="true"
+                style="-fx-font-weight: bold;"/>
+        <Button fx:id="cancelButton"
+                onAction="#handleCancel"
+                mnemonicParsing="false"
+                text="Отмена"
+                cancelButton="true"/>
+    </HBox>
+
+    <!-- Статусная строка -->
+    <Label fx:id="statusLabel" style="-fx-text-fill: derive(-fx-text-base-color, -30%);"/>
+</VBox>
