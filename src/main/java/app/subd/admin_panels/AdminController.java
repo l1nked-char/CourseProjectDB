@@ -152,11 +152,11 @@ public class AdminController {
         javafx.collections.ObservableList<Object> types = FXCollections.observableArrayList();
         try {
             Connection connection = Session.getConnection();
-            ResultSet rs = Database_functions.callFunction(connection, "get_all_room_types");
+            ResultSet rs = Database_functions.callFunction(connection, "get_all_types_of_room");
             while (rs.next()) {
                 types.add(new TypeOfRoom(
-                        rs.getInt("room_type_id"),
-                        rs.getString("room_type_name")
+                        rs.getInt("type_id"),
+                        rs.getString("type_name")
                 ));
             }
         } catch (Exception e) {
@@ -325,12 +325,12 @@ public class AdminController {
             Connection connection = Session.getConnection();
             if (room.getId() == 0) {
                 Database_functions.callFunction(connection, "add_hotel_room",
-                        room.getHotelId(), room.getTypeOfRoomId(), room.getRoomNumber(),
-                        room.getMaxPeople(), room.getPricePerPerson());
+                        room.getHotelId(), room.getMaxPeople(), room.getPricePerPerson(),
+                        room.getRoomNumber(), room.getTypeOfRoomId());
             } else {
                 Database_functions.callFunction(connection, "edit_room",
-                        room.getId(), room.getHotelId(), room.getTypeOfRoomId(),
-                        room.getRoomNumber(), room.getMaxPeople(), room.getPricePerPerson());
+                        room.getId(), room.getHotelId(), room.getMaxPeople(), room.getPricePerPerson(),
+                        room.getRoomNumber(), room.getTypeOfRoomId());
             }
             return true;
         } catch (Exception e) {
@@ -341,9 +341,21 @@ public class AdminController {
     }
 
     private Boolean saveTypeOfRoom(TypeOfRoom type) {
-        // Реализация сохранения типа комнаты
-        System.out.println("Сохранение типа комнаты: " + type.getName());
-        return true;
+        try {
+            Connection connection = Session.getConnection();
+            if (type.getId() == 0) {
+                Database_functions.callFunction(connection, "add_type_of_room",
+                        type.getName());
+            } else {
+                Database_functions.callFunction(connection, "edit_type_of_room",
+                        type.getId(), type.getName());
+            }
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            showError(statusLabel, "Ошибка сохранения комнаты: " + e.getMessage());
+            return false;
+        }
     }
 
     private void refreshActiveTable() {
@@ -518,18 +530,9 @@ public class AdminController {
                 return false;
             }
 
-            // Проверяем пароли для добавления нового пользователя
             String password = getTempPassword(user);
-            if (password != null && !password.isEmpty()) {
-                // Проверяем подтверждение пароля
-                String confirmPassword = getTempConfirmPassword(user);
-                if (!password.equals(confirmPassword)) {
-                    showError(statusLabel, "Пароли не совпадают");
-                    return false;
-                }
-            }
 
-            if (user.getId() == 0) { // Добавление нового пользователя
+            if (user.getId() == 0) {
                 if (password == null || password.isEmpty()) {
                     showError(statusLabel, "Пароль обязателен для нового пользователя");
                     return false;
@@ -539,18 +542,15 @@ public class AdminController {
                         user.getUsername(), password, user.getRole(), hotelId);
                 showSuccess(statusLabel, "Пользователь " + user.getUsername() + " успешно создан");
 
-            } else { // Редактирование существующего пользователя
-                // Обновляем основные данные
+            } else {
                 Database_functions.callFunction(connection, "update_user_profile",
                         user.getId(), user.getUsername(), user.getRole(), hotelId);
 
-                // Обновляем пароль, если он указан
                 if (password != null && !password.isEmpty()) {
                     Database_functions.callFunction(connection, "change_user_password",
                             user.getUsername(), password);
                 }
 
-                // Обновляем статус блокировки
                 Database_functions.callFunction(connection, "set_user_lock_status",
                         user.getUsername(), user.getUserLocked());
 
@@ -565,7 +565,6 @@ public class AdminController {
         }
     }
 
-    // Вспомогательные методы для работы с временными полями паролей
     private String getTempPassword(User user) {
         try {
             Field passwordField = user.getClass().getDeclaredField("tempPassword");

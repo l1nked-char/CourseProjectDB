@@ -277,12 +277,35 @@ public class UniversalFormController<T> implements FormController<T> {
         } else if (control instanceof ComboBox && value != null) {
             ComboBox<Object> comboBox = (ComboBox<Object>) control;
 
+            Object itemToSelect = null;
+
             if (value instanceof Integer) {
-                Object foundItem = findItemById(comboBox, (Integer) value);
-                if (foundItem != null) {
-                    comboBox.setValue(foundItem);
+                // Поиск по ID для обычных сущностей
+                itemToSelect = findItemById(comboBox, (Integer) value);
+            } else if (value instanceof String) {
+                // Поиск по строковому представлению для User.hotelInfo
+                String stringValue = (String) value;
+                for (Object item : comboBox.getItems()) {
+                    String itemDisplay = getItemDisplayText(item);
+                    if (stringValue.equals(itemDisplay)) {
+                        itemToSelect = item;
+                        break;
+                    }
                 }
             } else {
+                // Прямое сравнение объектов
+                for (Object item : comboBox.getItems()) {
+                    if (value.equals(item)) {
+                        itemToSelect = item;
+                        break;
+                    }
+                }
+            }
+
+            if (itemToSelect != null) {
+                comboBox.getSelectionModel().select(itemToSelect);
+            } else {
+                // Если не нашли, устанавливаем значение напрямую (для обратной совместимости)
                 comboBox.setValue(value);
             }
         } else if (control instanceof DatePicker && value != null) {
@@ -311,35 +334,6 @@ public class UniversalFormController<T> implements FormController<T> {
             }
         }
         return null;
-    }
-
-    private String convertIdToName(Integer id, String propertyName) {
-        if (id == null) return null;
-
-        try {
-            return switch (propertyName) {
-                case "cityId" -> {
-                    AllDictionaries.initialiseCitiesMaps();
-                    yield AllDictionaries.getCitiesNameMap().get(id);
-                }
-                case "hotelId" -> {
-                    AllDictionaries.initialiseHotelsMaps();
-                    yield AllDictionaries.getHotelsNameMap().get(id);
-                }
-                case "typeOfRoomId" -> {
-                    AllDictionaries.initialiseTypesOfRoomMaps();
-                    yield AllDictionaries.getTypesOfRoomNameMap().get(id);
-                }
-                case "convNameId" -> {
-                    AllDictionaries.initialiseConveniencesMaps();
-                    yield AllDictionaries.getConveniencesNameMap().get(id);
-                }
-                default -> null;
-            };
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
     }
 
     private boolean validateForm() {
@@ -466,9 +460,7 @@ public class UniversalFormController<T> implements FormController<T> {
         }
     }
 
-    private void populateUserFromForm(User user) throws Exception {
-        String password = null;
-        String confirmPassword = null;
+    private void populateUserFromForm(User user) {
 
         for (FieldConfig fieldConfig : config.getFields()) {
             Control control = formControls.get(fieldConfig.getPropertyName());
@@ -480,17 +472,16 @@ public class UniversalFormController<T> implements FormController<T> {
                         user.setUsername(value != null ? value.toString() : "");
                         break;
                     case "password":
-                        password = value != null ? value.toString() : null;
+                        user.setPassword(value != null ? value.toString() : null);
                         break;
                     case "confirmPassword":
-                        confirmPassword = value != null ? value.toString() : null;
+                        user.setConfirmPassword(value != null ? value.toString() : null);
                         break;
                     case "role":
                         user.setRole(value != null ? value.toString() : "");
                         break;
                     case "hotelInfo":
-                        // Сохраняем hotelInfo как строку, ID получим при сохранении
-                        user.setHotelInfo(value != null ? value.toString() : "");
+                        user.setHotelInfo(value != null ? AllDictionaries.getHotelsNameMap().get(value) : "");
                         break;
                     case "userLocked":
                         if (value != null) {
@@ -501,13 +492,10 @@ public class UniversalFormController<T> implements FormController<T> {
             }
         }
 
-        if (password != null && !password.isEmpty()) {
-            try {
-                Field passwordField = user.getClass().getDeclaredField("tempPassword");
-                passwordField.setAccessible(true);
-                passwordField.set(user, password);
-            } catch (NoSuchFieldException ignored) {
-            }
+        if (user.getPassword() != null && !user.getPassword().isEmpty() && user.getPassword().equals(user.getConfirmPassword())) {
+            user.setTempPassword(user.getPassword());
+        } else {
+            showError(statusLabel, "Пароли должны совпадать");
         }
     }
 
@@ -545,7 +533,10 @@ public class UniversalFormController<T> implements FormController<T> {
             }
             return text;
         } else if (control instanceof ComboBox) {
-            Object selectedValue = ((ComboBox<Object>) control).getValue();
+            ComboBox<Object> comboBox = (ComboBox<Object>) control;
+            int selectedIndex = comboBox.getSelectionModel().getSelectedIndex();
+            if (selectedIndex == -1) selectedIndex = 0;
+            Object selectedValue = comboBox.getItems().get(selectedIndex);
 
             if (selectedValue instanceof City) {
                 return ((City) selectedValue).getCityId();
@@ -556,7 +547,7 @@ public class UniversalFormController<T> implements FormController<T> {
             } else if (selectedValue instanceof Convenience) {
                 return ((Convenience) selectedValue).getId();
             } else if (selectedValue instanceof String) {
-                return convertNameToId((String) selectedValue, propertyName);
+                return selectedValue;
             }
 
             return selectedValue;
@@ -570,7 +561,7 @@ public class UniversalFormController<T> implements FormController<T> {
         return null;
     }
 
-    private Integer convertNameToId(String name, String propertyName) {
+    /*private Integer convertNameToId(String name, String propertyName) {
         if (name == null) return null;
 
         try {
@@ -594,7 +585,7 @@ public class UniversalFormController<T> implements FormController<T> {
             e.printStackTrace();
             return null;
         }
-    }
+    }*/
 
     @FXML
     private void handleCancel() {
