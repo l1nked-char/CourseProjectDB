@@ -20,6 +20,7 @@ import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.stage.Stage;
 
+import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.util.HashMap;
@@ -58,6 +59,13 @@ public class AdminController {
                 this::loadTypesOfRoomData,
                 this::handleAddTypeOfRoom,
                 this::handleEditTypeOfRoom
+        ));
+
+        tableConfigs.put("Пользователи", ConfigFactory.createUserTableConfig(
+                this::loadUsersData,
+                this::handleAddUser,
+                this::handleEditUser,
+                this::handleToggleUserActive
         ));
 
         /*tableConfigs.put("Удобства", ConfigFactory.createConvenienceTableConfig(
@@ -206,7 +214,7 @@ public class AdminController {
     private Void handleAddHotel(Void param) {
         UniversalFormConfig<Hotel> formConfig = ConfigFactory.createHotelFormConfig(
                 this::saveHotel,
-                hotel -> refreshActiveTable(),
+                h -> refreshActiveTable(),
                 UniversalFormConfig.Mode.ADD
         );
         FormManager.showForm(formConfig, FormController.Mode.ADD, null, getActiveTableController());
@@ -220,7 +228,7 @@ public class AdminController {
         }
         UniversalFormConfig<Hotel> formConfig = ConfigFactory.createHotelFormConfig(
                 this::saveHotel,
-                h->refreshActiveTable(),
+                h -> refreshActiveTable(),
                 UniversalFormConfig.Mode.EDIT
         );
         FormManager.showForm(formConfig, FormController.Mode.EDIT, hotel, getActiveTableController());
@@ -238,11 +246,10 @@ public class AdminController {
     }
 
     private Void handleEditRoom(Object roomObj) {
-        if (!(roomObj instanceof Room)) {
+        if (!(roomObj instanceof Room room)) {
             showError(statusLabel, "Неверный тип данных для редактирования комнаты");
             return null;
         }
-        Room room = (Room) roomObj;
         UniversalFormConfig<Room> formConfig = ConfigFactory.createRoomFormConfig(
                 this::saveRoom,
                 r -> refreshActiveTable(),
@@ -263,11 +270,10 @@ public class AdminController {
     }
 
     private Void handleEditTypeOfRoom(Object typeObj) {
-        if (!(typeObj instanceof TypeOfRoom)) {
+        if (!(typeObj instanceof TypeOfRoom type)) {
             showError(statusLabel, "Неверный тип данных для редактирования типа комнаты");
             return null;
         }
-        TypeOfRoom type = (TypeOfRoom) typeObj;
         UniversalFormConfig<TypeOfRoom> formConfig = ConfigFactory.createTypeOfRoomFormConfig(
                 this::saveTypeOfRoom,
                 t -> refreshActiveTable(),
@@ -283,22 +289,49 @@ public class AdminController {
     private Boolean saveHotel(Hotel hotel) {
         try {
             Connection connection = Session.getConnection();
-            if (hotel.getId() == 0) {
-                Database_functions.callFunction(connection, "add_hotel", hotel.getCityId(), hotel.getAddress());
-            } else {
-                Database_functions.callFunction(connection, "edit_hotel", hotel.getId(), hotel.getCityId(), hotel.getAddress());
+
+            // Получаем ID города из названия
+            String cityName = AllDictionaries.getCitiesNameMap().get(hotel.getCityId());
+            Integer cityId = AllDictionaries.getCitiesIdMap().get(cityName);
+
+            if (cityId == null) {
+                showError(statusLabel, "Неверно выбран город");
+                return false;
+            }
+
+            if (hotel.getId() == 0) { // Добавление
+                Database_functions.callFunction(connection, "add_new_hotel", cityId, hotel.getAddress());
+                showSuccess(statusLabel, "Отель успешно добавлен");
+            } else { // Редактирование
+                Database_functions.callFunction(connection, "edit_hotel", hotel.getId(), cityId, hotel.getAddress());
+                showSuccess(statusLabel, "Отель успешно обновлен");
             }
             return true;
         } catch (Exception e) {
             e.printStackTrace();
+            showError(statusLabel, "Ошибка сохранения отеля: " + e.getMessage());
             return false;
         }
     }
 
     private Boolean saveRoom(Room room) {
-        // Реализация сохранения комнаты
-        System.out.println("Сохранение комнаты: " + room.getRoomNumber());
-        return true;
+        try {
+            Connection connection = Session.getConnection();
+            if (room.getId() == 0) { // Добавление
+                Database_functions.callFunction(connection, "add_room",
+                        room.getHotelId(), room.getTypeOfRoomId(), room.getRoomNumber(),
+                        room.getMaxPeople(), room.getPricePerPerson());
+            } else { // Редактирование
+                Database_functions.callFunction(connection, "edit_room",
+                        room.getId(), room.getHotelId(), room.getTypeOfRoomId(),
+                        room.getRoomNumber(), room.getMaxPeople(), room.getPricePerPerson());
+            }
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            showError(statusLabel, "Ошибка сохранения комнаты: " + e.getMessage());
+            return false;
+        }
     }
 
     private Boolean saveTypeOfRoom(TypeOfRoom type) {
@@ -341,7 +374,7 @@ public class AdminController {
                 return;
             }
 
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/app/subd/components/universal_table.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/app/subd/tables/universal_table.fxml"));
             Parent tableContent = loader.load();
 
             UniversalTableController controller = loader.getController();
@@ -363,18 +396,17 @@ public class AdminController {
         }
     }
 
-    // Интерфейс для обновления таблиц из форм
     public interface RefreshableController {
         void handleRefresh();
     }
 
-    // Методы открытия вкладок (без изменений)
     @FXML private void showHotelManagement() { openTableTab("Отели"); }
     @FXML private void showRoomManagement() { openTableTab("Номера"); }
     @FXML private void showTypeOfRoomManagement() { openTableTab("Типы комнат"); }
     @FXML private void showConveniencesManagement() { openTableTab("Удобства"); }
     @FXML private void showCityManagement() { openTableTab("Города"); }
     @FXML private void showRoomConvenienceManagement() { openTableTab("Удобства в комнате"); }
+    @FXML private void showUserManagement() { openTableTab("Пользователи"); }
 
     @FXML
     private void handleLogout() {
@@ -400,4 +432,156 @@ public class AdminController {
     private void showGeneralStats() {
         System.out.println("Общая статистика");
     }
+
+    private javafx.collections.ObservableList<Object> loadUsersData(Map<String, Object> filters) {
+        javafx.collections.ObservableList<Object> users = FXCollections.observableArrayList();
+        try {
+            Connection connection = Session.getConnection();
+            ResultSet rs = Database_functions.callFunction(connection, "get_all_users");
+
+            while (rs.next()) {
+                users.add(new User(
+                        rs.getInt("user_id"),
+                        rs.getString("username"),
+                        rs.getString("role_name"),
+                        AllDictionaries.getHotelsNameMap().get(rs.getInt("hotel_id")),
+                        rs.getBoolean("user_locked")
+                ));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            showError(statusLabel, "Ошибка загрузки пользователей: " + e.getMessage());
+        }
+        return users;
+    }
+
+    // Обработчики для пользователей
+    private Void handleAddUser(Void param) {
+        UniversalFormConfig<User> formConfig = ConfigFactory.createAddUserFormConfig(
+                this::saveUser,
+                u -> refreshActiveTable()
+        );
+        FormManager.showForm(formConfig, FormController.Mode.ADD, null, getActiveTableController());
+        return null;
+    }
+
+    private Void handleEditUser(Object userObj) {
+        if (!(userObj instanceof User user)) {
+            showError(statusLabel, "Неверный тип данных для редактирования пользователя");
+            return null;
+        }
+        UniversalFormConfig<User> formConfig = ConfigFactory.createEditUserFormConfig(
+                this::saveUser,
+                u -> refreshActiveTable()
+        );
+        FormManager.showForm(formConfig, FormController.Mode.EDIT, user, getActiveTableController());
+        return null;
+    }
+
+    private Void handleToggleUserActive(Object userObj) {
+        if (!(userObj instanceof User user)) {
+            showError(statusLabel, "Неверный тип данных для изменения статуса пользователя");
+            return null;
+        }
+
+        try {
+            Connection connection = Session.getConnection();
+            Boolean newStatus = !user.getUserLocked();
+
+            Database_functions.callFunction(connection, "toggle_user_lock", user.getUsername(), newStatus);
+
+            showSuccess(statusLabel, "Статус пользователя " + user.getUsername() +
+                    " изменен на: " + (newStatus ? "заблокирован" : "активен"));
+
+            refreshActiveTable();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            showError(statusLabel, "Ошибка изменения статуса пользователя: " + e.getMessage());
+        }
+        return null;
+    }
+
+    // Метод сохранения пользователя
+    private Boolean saveUser(User user) {
+        try {
+            Connection connection = Session.getConnection();
+
+            String hotelInfo = user.getHotelInfo();
+            Integer hotelId = AllDictionaries.getHotelsIdMap().get(hotelInfo);
+
+            if (hotelId == null) {
+                showError(statusLabel, "Неверно выбран отель");
+                return false;
+            }
+
+            // Проверяем пароли для добавления нового пользователя
+            String password = getTempPassword(user);
+            if (password != null && !password.isEmpty()) {
+                // Проверяем подтверждение пароля
+                String confirmPassword = getTempConfirmPassword(user);
+                if (!password.equals(confirmPassword)) {
+                    showError(statusLabel, "Пароли не совпадают");
+                    return false;
+                }
+            }
+
+            if (user.getId() == 0) { // Добавление нового пользователя
+                if (password == null || password.isEmpty()) {
+                    showError(statusLabel, "Пароль обязателен для нового пользователя");
+                    return false;
+                }
+
+                Database_functions.callFunction(connection, "create_user_with_role",
+                        user.getUsername(), password, user.getRole(), hotelId);
+                showSuccess(statusLabel, "Пользователь " + user.getUsername() + " успешно создан");
+
+            } else { // Редактирование существующего пользователя
+                // Обновляем основные данные
+                Database_functions.callFunction(connection, "update_user_profile",
+                        user.getId(), user.getUsername(), user.getRole(), hotelId);
+
+                // Обновляем пароль, если он указан
+                if (password != null && !password.isEmpty()) {
+                    Database_functions.callFunction(connection, "change_user_password",
+                            user.getUsername(), password);
+                }
+
+                // Обновляем статус блокировки
+                Database_functions.callFunction(connection, "set_user_lock_status",
+                        user.getUsername(), user.getUserLocked());
+
+                showSuccess(statusLabel, "Данные пользователя " + user.getUsername() + " успешно обновлены");
+            }
+            return true;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            showError(statusLabel, "Ошибка сохранения пользователя: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // Вспомогательные методы для работы с временными полями паролей
+    private String getTempPassword(User user) {
+        try {
+            Field passwordField = user.getClass().getDeclaredField("tempPassword");
+            passwordField.setAccessible(true);
+            return (String) passwordField.get(user);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private String getTempConfirmPassword(User user) {
+        try {
+            Field confirmPasswordField = user.getClass().getDeclaredField("tempConfirmPassword");
+            confirmPasswordField.setAccessible(true);
+            return (String) confirmPasswordField.get(user);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+
 }

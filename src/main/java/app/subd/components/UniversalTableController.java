@@ -27,14 +27,15 @@ public class UniversalTableController implements AdminController.RefreshableCont
     @FXML private Button deleteButton;
     @FXML private Button refreshButton;
     @FXML private Button clearFiltersButton;
+    @FXML private Button toggleActiveButton;
     @FXML private Label statusLabel;
 
     private TableConfig currentConfig;
     private ObservableList<Object> originalData;
     private FilteredList<Object> filteredData;
     private SortedList<Object> sortedData;
-    private Map<String, ComboBox<?>> activeFilters = new HashMap<>();
-    private Map<String, Object> currentFilterValues = new HashMap<>();
+    private final Map<String, ComboBox<?>> activeFilters = new HashMap<>();
+    private final Map<String, Object> currentFilterValues = new HashMap<>();
 
     @FXML
     public void initialize() {
@@ -143,7 +144,10 @@ public class UniversalTableController implements AdminController.RefreshableCont
             editButton.setVisible(currentConfig.getOnEdit() != null);
         }
         if (deleteButton != null) {
-            deleteButton.setVisible(false); // Пока скрываем кнопку удаления
+            deleteButton.setVisible(false);
+        }
+        if (toggleActiveButton != null) {
+            toggleActiveButton.setVisible(currentConfig.getOnToggleActive() != null);
         }
     }
 
@@ -188,6 +192,17 @@ public class UniversalTableController implements AdminController.RefreshableCont
         }
         if (deleteButton != null) {
             deleteButton.setDisable(!hasSelection);
+        }
+        if (toggleActiveButton != null) {
+            toggleActiveButton.setDisable(!hasSelection);
+        }
+    }
+
+    @FXML
+    private void handleToggleActive() {
+        Object selected = tableView.getSelectionModel().getSelectedItem();
+        if (selected != null && currentConfig != null && currentConfig.getOnToggleActive() != null) {
+            currentConfig.getOnToggleActive().call(selected);
         }
     }
 

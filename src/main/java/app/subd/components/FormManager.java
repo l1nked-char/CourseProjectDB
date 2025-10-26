@@ -16,8 +16,8 @@ public class FormManager {
                                    T item,
                                    AdminController.RefreshableController parentController) {
         try {
-            FXMLLoader loader = new FXMLLoader(FormManager.class.getResource("/app/subd/components/universal_form.fxml"));
-            Scene scene = new Scene(loader.load());
+            FXMLLoader loader = new FXMLLoader(FormManager.class.getResource("/app/subd/tables/universal_form.fxml"));
+            Scene scene = new Scene(loader.load(), 400, 400);
             
             UniversalFormController<T> controller = loader.getController();
             controller.setMode(mode);
@@ -27,6 +27,8 @@ public class FormManager {
             
             Stage stage = new Stage();
             stage.setTitle(getStageTitle(config, mode));
+            stage.setMinWidth(500);
+            stage.setMinHeight(400);
             stage.setScene(scene);
             stage.initModality(Modality.APPLICATION_MODAL);
             

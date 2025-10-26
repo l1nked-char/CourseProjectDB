@@ -21,6 +21,7 @@
         <Button fx:id="clearFiltersButton" text="Очистить фильтры" onAction="#handleClearFilters"/>
         <Button fx:id="addButton" text="Добавить" onAction="#handleAdd"/>
         <Button fx:id="editButton" text="Редактировать" onAction="#handleEdit"/>
+        <Button fx:id="toggleActiveButton" text="Активировать/Деактивировать" onAction="#handleToggleActive"/>
         <Button fx:id="refreshButton" text="Обновить" onAction="#handleRefresh"/>
     </HBox>
 

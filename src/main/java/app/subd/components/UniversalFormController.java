@@ -3,6 +3,8 @@ package app.subd.components;
 import app.subd.admin_panels.AdminController;
 import app.subd.config.UniversalFormConfig;
 import app.subd.config.FieldConfig;
+import app.subd.models.User;
+import app.subd.tables.AllDictionaries;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
@@ -28,13 +30,12 @@ public class UniversalFormController<T> implements FormController<T> {
     private UniversalFormConfig<T> config;
     private T item;
     private Runnable onSaveSuccess;
-    private AdminController.RefreshableController parentController;
     private Stage stage;
 
     private FormController.Mode controllerMode;
 
-    private Map<String, Control> formControls = new HashMap<>();
-    private Map<String, Label> fieldLabels = new HashMap<>();
+    private final Map<String, Control> formControls = new HashMap<>();
+    private final Map<String, Label> fieldLabels = new HashMap<>();
 
     @Override
     public void setMode(FormController.Mode mode) {
@@ -53,7 +54,7 @@ public class UniversalFormController<T> implements FormController<T> {
 
     @Override
     public void setParentController(AdminController.RefreshableController parentController) {
-        this.parentController = parentController;
+
     }
 
     @Override
@@ -79,7 +80,6 @@ public class UniversalFormController<T> implements FormController<T> {
     private void initializeForm() {
         if (config == null) return;
 
-        // Устанавливаем заголовок
         String title = config.getFormTitle();
         if (controllerMode != null) {
             title = (controllerMode == FormController.Mode.ADD ? "Добавление" : "Редактирование") +
@@ -87,28 +87,23 @@ public class UniversalFormController<T> implements FormController<T> {
         }
         titleLabel.setText(title);
 
-        // Очищаем контейнер
         formContainer.getChildren().clear();
         formControls.clear();
         fieldLabels.clear();
 
-        // Создаем GridPane для формы
         GridPane grid = new GridPane();
         grid.setHgap(10);
         grid.setVgap(10);
         grid.setStyle("-fx-padding: 10;");
 
-        // Создаем поля формы
         createFormFields(grid);
 
         formContainer.getChildren().add(grid);
 
-        // Заполняем форму данными, если это редактирование
         if (item != null && controllerMode == FormController.Mode.EDIT) {
             populateForm();
         }
 
-        // Настраиваем обработчики событий
         setupEventListeners();
         validateForm();
     }
@@ -116,18 +111,14 @@ public class UniversalFormController<T> implements FormController<T> {
     private void createFormFields(GridPane grid) {
         int row = 0;
         for (FieldConfig fieldConfig : config.getFields()) {
-            // Создаем Label для поля
             Label label = new Label(fieldConfig.getLabel() + (fieldConfig.isRequired() ? " *" : ""));
             label.setStyle("-fx-font-weight: bold;");
 
-            // Создаем элемент управления в зависимости от типа
             Control control = createControl(fieldConfig);
 
-            // Сохраняем ссылки на элементы
             formControls.put(fieldConfig.getPropertyName(), control);
             fieldLabels.put(fieldConfig.getPropertyName(), label);
 
-            // Добавляем в сетку
             grid.add(label, 0, row);
             grid.add(control, 1, row);
 
@@ -163,9 +154,9 @@ public class UniversalFormController<T> implements FormController<T> {
                 return numberField;
 
             case COMBOBOX:
-                ComboBox<Object> comboBox = new ComboBox<>();
+                ComboBox<String> comboBox = new ComboBox<>();
                 if (fieldConfig.getItemsSupplier() != null) {
-                    comboBox.setItems((ObservableList<Object>) fieldConfig.getItemsSupplier().get());
+                    comboBox.setItems((ObservableList<String>) fieldConfig.getItemsSupplier().get());
                 }
                 if (fieldConfig.getPromptText() != null) {
                     comboBox.setPromptText(fieldConfig.getPromptText());
@@ -197,8 +188,7 @@ public class UniversalFormController<T> implements FormController<T> {
                 return textArea;
 
             case CHECKBOX:
-                CheckBox checkBox = new CheckBox();
-                return checkBox;
+                return new CheckBox();
 
             default:
                 return new TextField();
@@ -227,12 +217,12 @@ public class UniversalFormController<T> implements FormController<T> {
             for (FieldConfig fieldConfig : config.getFields()) {
                 Control control = formControls.get(fieldConfig.getPropertyName());
                 if (control != null) {
-                    // Получаем значение поля из объекта через reflection
+
                     Field field = item.getClass().getDeclaredField(fieldConfig.getPropertyName());
                     field.setAccessible(true);
                     Object value = field.get(item);
 
-                    setControlValue(control, value, fieldConfig.getType());
+                    setControlValue(control, value, fieldConfig);
                 }
             }
         } catch (Exception e) {
@@ -240,11 +230,20 @@ public class UniversalFormController<T> implements FormController<T> {
         }
     }
 
-    private void setControlValue(Control control, Object value, FieldConfig.FieldType fieldType) {
+    private void setControlValue(Control control, Object value, FieldConfig fieldConfig) {
         if (control instanceof TextField && value != null) {
             ((TextField) control).setText(value.toString());
         } else if (control instanceof ComboBox && value != null) {
-            ((ComboBox<Object>) control).setValue(value);
+            ComboBox<String> comboBox = (ComboBox<String>) control;
+
+            if (value instanceof Integer) {
+                String name = convertIdToName((Integer) value, fieldConfig.getPropertyName());
+                if (name != null) {
+                    comboBox.setValue(name);
+                }
+            } else if (value instanceof String) {
+                comboBox.setValue((String) value);
+            }
         } else if (control instanceof DatePicker && value != null) {
             if (value instanceof LocalDate) {
                 ((DatePicker) control).setValue((LocalDate) value);
@@ -258,6 +257,35 @@ public class UniversalFormController<T> implements FormController<T> {
         }
     }
 
+    private String convertIdToName(Integer id, String propertyName) {
+        if (id == null) return null;
+
+        try {
+            return switch (propertyName) {
+                case "cityId" -> {
+                    AllDictionaries.initialiseCitiesMaps();
+                    yield AllDictionaries.getCitiesNameMap().get(id);
+                }
+                case "hotelId" -> {
+                    AllDictionaries.initialiseHotelsMaps();
+                    yield AllDictionaries.getHotelsNameMap().get(id);
+                }
+                case "typeOfRoomId" -> {
+                    AllDictionaries.initialiseTypesOfRoomMaps();
+                    yield AllDictionaries.getTypesOfRoomNameMap().get(id);
+                }
+                case "convNameId" -> {
+                    AllDictionaries.initialiseConveniencesMaps();
+                    yield AllDictionaries.getConveniencesNameMap().get(id);
+                }
+                default -> null;
+            };
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
     private boolean validateForm() {
         boolean isValid = true;
 
@@ -268,7 +296,6 @@ public class UniversalFormController<T> implements FormController<T> {
 
                 if (!fieldValid) {
                     isValid = false;
-                    // Подсвечиваем невалидное поле
                     fieldLabels.get(fieldConfig.getPropertyName()).setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
                 } else {
                     fieldLabels.get(fieldConfig.getPropertyName()).setStyle("-fx-text-fill: black; -fx-font-weight: bold;");
@@ -287,20 +314,27 @@ public class UniversalFormController<T> implements FormController<T> {
     }
 
     private boolean validateField(Control control, FieldConfig fieldConfig) {
-        if (control == null) return false;
-
-        if (control instanceof TextInputControl) {
-            String text = ((TextInputControl) control).getText();
-            return text != null && !text.trim().isEmpty();
-        } else if (control instanceof ComboBox) {
-            Object value = ((ComboBox<?>) control).getValue();
-            return value != null;
-        } else if (control instanceof DatePicker) {
-            LocalDate value = ((DatePicker) control).getValue();
-            return value != null;
-        } else if (control instanceof CheckBox) {
-            // CheckBox всегда валиден, даже если не выбран
-            return true;
+        switch (control) {
+            case null -> {
+                return false;
+            }
+            case TextInputControl textInputControl -> {
+                String text = textInputControl.getText();
+                return text != null && !text.trim().isEmpty();
+            }
+            case ComboBox comboBox -> {
+                Object value = comboBox.getValue();
+                return value != null;
+            }
+            case DatePicker datePicker -> {
+                LocalDate value = datePicker.getValue();
+                return value != null;
+            }
+            case CheckBox ignored -> {
+                return true;
+            }
+            default -> {
+            }
         }
 
         return false;
@@ -314,13 +348,10 @@ public class UniversalFormController<T> implements FormController<T> {
         }
 
         try {
-            // Создаем или используем существующий объект
             T entity = item != null ? item : createNewInstance();
 
-            // Заполняем объект данными из формы
             populateEntityFromForm(entity);
 
-            // Сохраняем объект
             boolean success = config.getSaveFunction().apply(entity);
 
             if (success) {
@@ -329,21 +360,18 @@ public class UniversalFormController<T> implements FormController<T> {
 
                 showSuccess(statusLabel, successMessage);
 
-                // Вызываем callback при успешном сохранении
                 if (onSaveSuccess != null) {
                     onSaveSuccess.run();
                 }
 
-                // Вызываем внешний обработчик успеха
                 if (config.getOnSuccess() != null) {
                     config.getOnSuccess().accept(entity);
                 }
 
-                // Если это добавление - очищаем форму для следующего ввода
                 if (controllerMode == FormController.Mode.ADD) {
                     clearForm();
+                    showSuccess(statusLabel, successMessage);
                 } else {
-                    // Если редактирование - закрываем окно
                     closeWindow();
                 }
             } else {
@@ -358,21 +386,71 @@ public class UniversalFormController<T> implements FormController<T> {
 
     @SuppressWarnings("unchecked")
     private T createNewInstance() throws Exception {
-        Class<?> entityClass = config.getClass().getMethod("getEntityClass").getReturnType();
+        Class<?> entityClass = config.getEntityClass();
         return (T) entityClass.newInstance();
     }
 
     private void populateEntityFromForm(T entity) throws Exception {
+        if (entity instanceof User) {
+            populateUserFromForm((User) entity);
+            return;
+        }
+
         for (FieldConfig fieldConfig : config.getFields()) {
             Control control = formControls.get(fieldConfig.getPropertyName());
             if (control != null) {
-                Object value = getControlValue(control, fieldConfig.getType());
+                Object value = getControlValue(control, fieldConfig.getType(), fieldConfig.getPropertyName());
 
                 Field field = entity.getClass().getDeclaredField(fieldConfig.getPropertyName());
                 field.setAccessible(true);
 
                 value = convertValueToFieldType(value, field.getType());
                 field.set(entity, value);
+            }
+        }
+    }
+
+    private void populateUserFromForm(User user) throws Exception {
+        String password = null;
+        String confirmPassword = null;
+
+        for (FieldConfig fieldConfig : config.getFields()) {
+            Control control = formControls.get(fieldConfig.getPropertyName());
+            if (control != null) {
+                Object value = getControlValue(control, fieldConfig.getType(), fieldConfig.getPropertyName());
+
+                switch (fieldConfig.getPropertyName()) {
+                    case "username":
+                        user.setUsername(value != null ? value.toString() : "");
+                        break;
+                    case "password":
+                        password = value != null ? value.toString() : null;
+                        break;
+                    case "confirmPassword":
+                        confirmPassword = value != null ? value.toString() : null;
+                        break;
+                    case "role":
+                        user.setRole(value != null ? value.toString() : "");
+                        break;
+                    case "hotelInfo":
+                        // Сохраняем hotelInfo как строку, ID получим при сохранении
+                        user.setHotelInfo(value != null ? value.toString() : "");
+                        break;
+                    case "userLocked":
+                        if (value != null) {
+                            user.setUserLocked(Boolean.TRUE.equals(value));
+                        }
+                        break;
+                }
+            }
+        }
+
+        if (password != null && !password.isEmpty()) {
+            try {
+                Field passwordField = user.getClass().getDeclaredField("tempPassword");
+                passwordField.setAccessible(true);
+                passwordField.set(user, password);
+            } catch (NoSuchFieldException ignored) {
             }
         }
     }
@@ -395,7 +473,7 @@ public class UniversalFormController<T> implements FormController<T> {
         return value;
     }
 
-    private Object getControlValue(Control control, FieldConfig.FieldType fieldType) {
+    private Object getControlValue(Control control, FieldConfig.FieldType fieldType, String propertyName) {
         if (control instanceof TextField) {
             String text = ((TextField) control).getText();
             if (fieldType == FieldConfig.FieldType.NUMBER && !text.isEmpty()) {
@@ -411,7 +489,8 @@ public class UniversalFormController<T> implements FormController<T> {
             }
             return text;
         } else if (control instanceof ComboBox) {
-            return ((ComboBox<?>) control).getValue();
+            String selectedValue = ((ComboBox<String>) control).getValue();
+            return convertNameToId(selectedValue, propertyName);
         } else if (control instanceof DatePicker) {
             return ((DatePicker) control).getValue();
         } else if (control instanceof CheckBox) {
@@ -420,6 +499,32 @@ public class UniversalFormController<T> implements FormController<T> {
             return ((TextArea) control).getText();
         }
         return null;
+    }
+
+    private Integer convertNameToId(String name, String propertyName) {
+        if (name == null) return null;
+
+        try {
+            switch (propertyName) {
+                case "cityId":
+                    AllDictionaries.initialiseCitiesMaps();
+                    return AllDictionaries.getCitiesIdMap().get(name);
+                case "hotelId":
+                    AllDictionaries.initialiseHotelsMaps();
+                    return AllDictionaries.getHotelsIdMap().get(name);
+                case "typeOfRoomId":
+                    AllDictionaries.initialiseTypesOfRoomMaps();
+                    return AllDictionaries.getTypesOfRoomIdMap().get(name);
+                case "convNameId":
+                    AllDictionaries.initialiseConveniencesMaps();
+                    return AllDictionaries.getConveniencesIdMap().get(name);
+                default:
+                    return null;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     @FXML

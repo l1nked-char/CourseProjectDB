@@ -1,14 +1,26 @@
 package app.subd.models;
 
 public class Room {
-    private final int id;
-    private final int hotelId;
-    private final int maxPeople;
-    private final double pricePerPerson;
-    private final int roomNumber;
-    private final Integer typeOfRoomId;
-    private final String hotelInfo;
-    private final String typeOfRoomName;
+    private int id;
+    private int hotelId;
+    private int maxPeople;
+    private double pricePerPerson;
+    private int roomNumber;
+    private Integer typeOfRoomId;
+    private String hotelInfo;
+    private String typeOfRoomName;
+
+    // Конструктор по умолчанию
+    public Room() {
+        this.id = 0;
+        this.hotelId = 0;
+        this.maxPeople = 0;
+        this.pricePerPerson = 0.0;
+        this.roomNumber = 0;
+        this.typeOfRoomId = 0;
+        this.hotelInfo = "";
+        this.typeOfRoomName = "";
+    }
 
     public Room(int id, int hotelId, int maxPeople, double pricePerPerson,
                 int roomNumber, Integer typeOfRoomId,
@@ -23,13 +35,28 @@ public class Room {
         this.typeOfRoomName = typeOfRoomName;
     }
 
-    // Геттеры
+    // Геттеры и сеттеры
     public int getId() { return id; }
+    public void setId(int id) { this.id = id; }
+
     public int getHotelId() { return hotelId; }
+    public void setHotelId(int hotelId) { this.hotelId = hotelId; }
+
     public int getMaxPeople() { return maxPeople; }
+    public void setMaxPeople(int maxPeople) { this.maxPeople = maxPeople; }
+
     public double getPricePerPerson() { return pricePerPerson; }
+    public void setPricePerPerson(double pricePerPerson) { this.pricePerPerson = pricePerPerson; }
+
     public int getRoomNumber() { return roomNumber; }
+    public void setRoomNumber(int roomNumber) { this.roomNumber = roomNumber; }
+
     public Integer getTypeOfRoomId() { return typeOfRoomId; }
+    public void setTypeOfRoomId(Integer typeOfRoomId) { this.typeOfRoomId = typeOfRoomId; }
+
     public String getHotelInfo() { return hotelInfo; }
+    public void setHotelInfo(String hotelInfo) { this.hotelInfo = hotelInfo; }
+
     public String getTypeOfRoomName() { return typeOfRoomName; }
+    public void setTypeOfRoomName(String typeOfRoomName) { this.typeOfRoomName = typeOfRoomName; }
 }
