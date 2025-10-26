@@ -3,7 +3,7 @@ package app.subd.components;
 import app.subd.admin_panels.AdminController;
 import app.subd.config.UniversalFormConfig;
 import app.subd.config.FieldConfig;
-import app.subd.models.User;
+import app.subd.models.*;
 import app.subd.tables.AllDictionaries;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -105,7 +105,6 @@ public class UniversalFormController<T> implements FormController<T> {
         }
 
         setupEventListeners();
-        validateForm();
     }
 
     private void createFormFields(GridPane grid) {
@@ -154,9 +153,9 @@ public class UniversalFormController<T> implements FormController<T> {
                 return numberField;
 
             case COMBOBOX:
-                ComboBox<String> comboBox = new ComboBox<>();
+                ComboBox<Object> comboBox = new ComboBox<>();
                 if (fieldConfig.getItemsSupplier() != null) {
-                    comboBox.setItems((ObservableList<String>) fieldConfig.getItemsSupplier().get());
+                    comboBox.setItems(fieldConfig.getItemsSupplier().get());
                 }
                 if (fieldConfig.getPromptText() != null) {
                     comboBox.setPromptText(fieldConfig.getPromptText());
@@ -164,6 +163,31 @@ public class UniversalFormController<T> implements FormController<T> {
                 if (fieldConfig.getWidth() > 0) {
                     comboBox.setPrefWidth(fieldConfig.getWidth());
                 }
+
+                comboBox.setCellFactory(lv -> new ListCell<>() {
+                    @Override
+                    protected void updateItem(Object item, boolean empty) {
+                        super.updateItem(item, empty);
+                        if (empty || item == null) {
+                            setText(null);
+                        } else {
+                            setText(getItemDisplayText(item));
+                        }
+                    }
+                });
+
+                comboBox.setButtonCell(new ListCell<>() {
+                    @Override
+                    protected void updateItem(Object item, boolean empty) {
+                        super.updateItem(item, empty);
+                        if (empty || item == null) {
+                            setText(null);
+                        } else {
+                            setText(getItemDisplayText(item));
+                        }
+                    }
+                });
+
                 return comboBox;
 
             case DATE:
@@ -195,8 +219,24 @@ public class UniversalFormController<T> implements FormController<T> {
         }
     }
 
+    private String getItemDisplayText(Object item) {
+        if (item instanceof City) {
+            return ((City) item).getCityName();
+        } else if (item instanceof Hotel) {
+            Hotel hotel = (Hotel) item;
+            if (hotel.getCityName() != null) {
+                return hotel.getCityName() + " - " + hotel.getAddress();
+            }
+            return hotel.getAddress();
+        } else if (item instanceof TypeOfRoom) {
+            return ((TypeOfRoom) item).getName();
+        } else if (item instanceof Convenience) {
+            return ((Convenience) item).getName();
+        }
+        return item.toString();
+    }
+
     private void setupEventListeners() {
-        // Валидация формы при изменении любых полей
         for (Control control : formControls.values()) {
             if (control instanceof TextInputControl) {
                 ((TextInputControl) control).textProperty().addListener((observable, oldValue, newValue) -> validateForm());
@@ -222,7 +262,7 @@ public class UniversalFormController<T> implements FormController<T> {
                     field.setAccessible(true);
                     Object value = field.get(item);
 
-                    setControlValue(control, value, fieldConfig);
+                    setControlValue(control, value);
                 }
             }
         } catch (Exception e) {
@@ -230,19 +270,20 @@ public class UniversalFormController<T> implements FormController<T> {
         }
     }
 
-    private void setControlValue(Control control, Object value, FieldConfig fieldConfig) {
+
+    private void setControlValue(Control control, Object value) {
         if (control instanceof TextField && value != null) {
             ((TextField) control).setText(value.toString());
         } else if (control instanceof ComboBox && value != null) {
-            ComboBox<String> comboBox = (ComboBox<String>) control;
+            ComboBox<Object> comboBox = (ComboBox<Object>) control;
 
             if (value instanceof Integer) {
-                String name = convertIdToName((Integer) value, fieldConfig.getPropertyName());
-                if (name != null) {
-                    comboBox.setValue(name);
+                Object foundItem = findItemById(comboBox, (Integer) value);
+                if (foundItem != null) {
+                    comboBox.setValue(foundItem);
                 }
-            } else if (value instanceof String) {
-                comboBox.setValue((String) value);
+            } else {
+                comboBox.setValue(value);
             }
         } else if (control instanceof DatePicker && value != null) {
             if (value instanceof LocalDate) {
@@ -255,6 +296,21 @@ public class UniversalFormController<T> implements FormController<T> {
         } else if (control instanceof TextArea && value != null) {
             ((TextArea) control).setText(value.toString());
         }
+    }
+
+    private Object findItemById(ComboBox<Object> comboBox, Integer id) {
+        for (Object item : comboBox.getItems()) {
+            if (item instanceof City && ((City) item).getCityId() == id) {
+                return item;
+            } else if (item instanceof Hotel && ((Hotel) item).getId() == id) {
+                return item;
+            } else if (item instanceof TypeOfRoom && ((TypeOfRoom) item).getId().equals(id)) {
+                return item;
+            } else if (item instanceof Convenience && ((Convenience) item).getId() == id) {
+                return item;
+            }
+        }
+        return null;
     }
 
     private String convertIdToName(Integer id, String propertyName) {
@@ -292,7 +348,7 @@ public class UniversalFormController<T> implements FormController<T> {
         for (FieldConfig fieldConfig : config.getFields()) {
             if (fieldConfig.isRequired()) {
                 Control control = formControls.get(fieldConfig.getPropertyName());
-                boolean fieldValid = validateField(control, fieldConfig);
+                boolean fieldValid = validateField(control);
 
                 if (!fieldValid) {
                     isValid = false;
@@ -313,7 +369,7 @@ public class UniversalFormController<T> implements FormController<T> {
         return isValid;
     }
 
-    private boolean validateField(Control control, FieldConfig fieldConfig) {
+    private boolean validateField(Control control) {
         switch (control) {
             case null -> {
                 return false;
@@ -489,8 +545,21 @@ public class UniversalFormController<T> implements FormController<T> {
             }
             return text;
         } else if (control instanceof ComboBox) {
-            String selectedValue = ((ComboBox<String>) control).getValue();
-            return convertNameToId(selectedValue, propertyName);
+            Object selectedValue = ((ComboBox<Object>) control).getValue();
+
+            if (selectedValue instanceof City) {
+                return ((City) selectedValue).getCityId();
+            } else if (selectedValue instanceof Hotel) {
+                return ((Hotel) selectedValue).getId();
+            } else if (selectedValue instanceof TypeOfRoom) {
+                return ((TypeOfRoom) selectedValue).getId();
+            } else if (selectedValue instanceof Convenience) {
+                return ((Convenience) selectedValue).getId();
+            } else if (selectedValue instanceof String) {
+                return convertNameToId((String) selectedValue, propertyName);
+            }
+
+            return selectedValue;
         } else if (control instanceof DatePicker) {
             return ((DatePicker) control).getValue();
         } else if (control instanceof CheckBox) {

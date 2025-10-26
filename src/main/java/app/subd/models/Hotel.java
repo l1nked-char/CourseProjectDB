@@ -6,7 +6,6 @@ public class Hotel {
     private String address;
     private String cityName;
 
-    // Конструктор по умолчанию
     public Hotel() {
         this.id = 0;
         this.cityId = 0;
@@ -27,7 +26,6 @@ public class Hotel {
         this.cityName = cityName;
     }
 
-    // Геттеры и сеттеры
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
 

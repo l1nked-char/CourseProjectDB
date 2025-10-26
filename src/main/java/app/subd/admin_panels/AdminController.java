@@ -39,10 +39,20 @@ public class AdminController {
     public void initialize() {
         statusLabel.setText("Администратор: " + Session.getUsername());
         initializeTableConfigs();
+        try {
+            AllDictionaries.initialiseCitiesMaps();
+            AllDictionaries.initialiseHotelsMaps();
+            //AllDictionaries.initialiseSocialStatusMaps();
+            //AllDictionaries.initialiseServicesMaps();
+            AllDictionaries.initialiseTypesOfRoomMaps();
+            AllDictionaries.initialiseConveniencesMaps();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
     }
 
     private void initializeTableConfigs() {
-        // Используем ConfigFactory для создания конфигураций
         tableConfigs.put("Отели", ConfigFactory.createHotelTableConfig(
                 this::loadHotelsData,
                 this::handleAddHotel,
@@ -87,7 +97,7 @@ public class AdminController {
         ));*/
     }
 
-    // Методы загрузки данных (остаются без изменений)
+
     private javafx.collections.ObservableList<Object> loadHotelsData(Map<String, Object> filters) {
         javafx.collections.ObservableList<Object> hotels = FXCollections.observableArrayList();
         try {
@@ -110,12 +120,12 @@ public class AdminController {
     private javafx.collections.ObservableList<Object> loadRoomsData(Map<String, Object> filters) {
         javafx.collections.ObservableList<Object> rooms = FXCollections.observableArrayList();
         try {
-            String selectedHotel = (String) filters.get("hotel");
+            Hotel selectedHotel = (Hotel) filters.get("hotel");
             if (selectedHotel == null) {
                 return rooms;
             }
 
-            int hotelId = AllDictionaries.getHotelsIdMap().get(selectedHotel);
+            int hotelId = selectedHotel.getId();
             Connection connection = Session.getConnection();
             ResultSet rs = Database_functions.callFunction(connection, "get_rooms_by_hotel", hotelId);
 
@@ -210,7 +220,6 @@ public class AdminController {
         return roomConveniences;
     }
 
-    // Упрощенные обработчики - теперь они просто вызывают FormManager с конфигурациями из ConfigFactory
     private Void handleAddHotel(Void param) {
         UniversalFormConfig<Hotel> formConfig = ConfigFactory.createHotelFormConfig(
                 this::saveHotel,
@@ -283,14 +292,11 @@ public class AdminController {
         return null;
     }
 
-    // Остальные обработчики по аналогии...
 
-    // Методы сохранения (остаются без изменений)
     private Boolean saveHotel(Hotel hotel) {
         try {
             Connection connection = Session.getConnection();
 
-            // Получаем ID города из названия
             String cityName = AllDictionaries.getCitiesNameMap().get(hotel.getCityId());
             Integer cityId = AllDictionaries.getCitiesIdMap().get(cityName);
 
@@ -299,10 +305,10 @@ public class AdminController {
                 return false;
             }
 
-            if (hotel.getId() == 0) { // Добавление
+            if (hotel.getId() == 0) {
                 Database_functions.callFunction(connection, "add_new_hotel", cityId, hotel.getAddress());
                 showSuccess(statusLabel, "Отель успешно добавлен");
-            } else { // Редактирование
+            } else {
                 Database_functions.callFunction(connection, "edit_hotel", hotel.getId(), cityId, hotel.getAddress());
                 showSuccess(statusLabel, "Отель успешно обновлен");
             }
@@ -317,11 +323,11 @@ public class AdminController {
     private Boolean saveRoom(Room room) {
         try {
             Connection connection = Session.getConnection();
-            if (room.getId() == 0) { // Добавление
-                Database_functions.callFunction(connection, "add_room",
+            if (room.getId() == 0) {
+                Database_functions.callFunction(connection, "add_hotel_room",
                         room.getHotelId(), room.getTypeOfRoomId(), room.getRoomNumber(),
                         room.getMaxPeople(), room.getPricePerPerson());
-            } else { // Редактирование
+            } else {
                 Database_functions.callFunction(connection, "edit_room",
                         room.getId(), room.getHotelId(), room.getTypeOfRoomId(),
                         room.getRoomNumber(), room.getMaxPeople(), room.getPricePerPerson());
@@ -340,9 +346,6 @@ public class AdminController {
         return true;
     }
 
-    // Остальные методы без изменений...
-
-    // Вспомогательные методы (без изменений)
     private void refreshActiveTable() {
         UniversalTableController controller = getActiveTableController();
         if (controller != null) {

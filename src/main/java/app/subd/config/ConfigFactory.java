@@ -3,12 +3,14 @@ package app.subd.config;
 import app.subd.models.*;
 import app.subd.tables.AllDictionaries;
 import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.util.Callback;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class ConfigFactory {
 
@@ -248,41 +250,63 @@ public class ConfigFactory {
         return new UniversalFormConfig<>("Удобство в комнате", fields, saveFunction, onSuccess, mode, RoomConvenience.class);
     }
 
-    // Вспомогательные методы для получения данных для комбобоксов
-    public static javafx.collections.ObservableList<String> getCitiesForComboBox() {
+    public static ObservableList<Object> getCitiesForComboBox() {
         try {
             AllDictionaries.initialiseCitiesMaps();
-            return FXCollections.observableArrayList(AllDictionaries.getCitiesIdMap().keySet());
+            return FXCollections.observableArrayList(
+                    AllDictionaries.getCitiesIdMap().entrySet().stream()
+                            .map(entry -> new City(entry.getValue(), entry.getKey()))
+                            .collect(Collectors.toList())
+            );
         } catch (Exception e) {
             e.printStackTrace();
             return FXCollections.observableArrayList();
         }
     }
 
-    public static javafx.collections.ObservableList<String> getHotelsForComboBox() {
+    public static ObservableList<Object> getHotelsForComboBox() {
         try {
             AllDictionaries.initialiseHotelsMaps();
-            return FXCollections.observableArrayList(AllDictionaries.getHotelsIdMap().keySet());
+            return FXCollections.observableArrayList(
+                    AllDictionaries.getHotelsIdMap().entrySet().stream()
+                            .map(entry -> {
+                                String[] parts = entry.getKey().split(" - ");
+                                if (parts.length == 2) {
+                                    return new Hotel(entry.getValue(), 0, parts[1], parts[0]);
+                                } else {
+                                    return new Hotel(entry.getValue(), 0, entry.getKey());
+                                }
+                            })
+                            .collect(Collectors.toList())
+            );
         } catch (Exception e) {
             e.printStackTrace();
             return FXCollections.observableArrayList();
         }
     }
 
-    public static javafx.collections.ObservableList<String> getRoomTypesForComboBox() {
+    public static ObservableList<Object> getRoomTypesForComboBox() {
         try {
             AllDictionaries.initialiseTypesOfRoomMaps();
-            return FXCollections.observableArrayList(AllDictionaries.getTypesOfRoomIdMap().keySet());
+            return FXCollections.observableArrayList(
+                    AllDictionaries.getTypesOfRoomIdMap().entrySet().stream()
+                            .map(entry -> new TypeOfRoom(entry.getValue(), entry.getKey()))
+                            .collect(Collectors.toList())
+            );
         } catch (Exception e) {
             e.printStackTrace();
             return FXCollections.observableArrayList();
         }
     }
 
-    public static javafx.collections.ObservableList<String> getConveniencesForComboBox() {
+    public static ObservableList<Object> getConveniencesForComboBox() {
         try {
             AllDictionaries.initialiseConveniencesMaps();
-            return FXCollections.observableArrayList(AllDictionaries.getConveniencesIdMap().keySet());
+            return FXCollections.observableArrayList(
+                    AllDictionaries.getConveniencesIdMap().entrySet().stream()
+                            .map(entry -> new Convenience(entry.getValue(), entry.getKey()))
+                            .collect(Collectors.toList())
+            );
         } catch (Exception e) {
             e.printStackTrace();
             return FXCollections.observableArrayList();

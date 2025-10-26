@@ -16,7 +16,6 @@ public class TableConfig {
     private final List<FilterConfig> filters;
     private final Callback<Object, Void> onToggleActive;
 
-    // Старый конструктор для обратной совместимости
     public TableConfig(String tableName,
                        Function<Map<String, Object>, ObservableList<Object>> dataLoader,
                        Callback<Void, Void> onAdd,
@@ -27,7 +26,6 @@ public class TableConfig {
         this(tableName, dataLoader, onAdd, onEdit, onRefresh, columns, filters, null);
     }
 
-    // Новый конструктор с поддержкой onToggleActive
     public TableConfig(String tableName,
                        Function<Map<String, Object>, ObservableList<Object>> dataLoader,
                        Callback<Void, Void> onAdd,

@@ -54,7 +54,7 @@ public class UniversalTableController implements AdminController.RefreshableCont
         clearPreviousConfiguration();
         setupTableColumns();
         setupFilters();
-        loadData();
+        refreshData();
         setupActionHandlers();
     }
 
