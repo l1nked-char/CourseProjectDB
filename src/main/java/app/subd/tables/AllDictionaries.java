@@ -142,29 +142,4 @@ public class AllDictionaries {
     public static Map<Integer, String> getSevicesNameMap() { return servicesNameMap; }
     public static Map<String, Integer> getHotelsIdMap() { return hotelsIdMap; }
     public static Map<Integer, String> getHotelsNameMap() { return hotelsNameMap; }
-
-    private static final Map<String, Integer> roomsIdMap = new HashMap<>();
-    private static final Map<Integer, String> roomsNameMap = new HashMap<>();
-
-    public static void initialiseRoomsMaps() throws Exception {
-        Connection connection = Session.getConnection();
-        ResultSet rs = Database_functions.callFunction(connection, "get_all_rooms");
-
-        roomsIdMap.clear();
-        roomsNameMap.clear();
-
-        while (rs.next()) {
-            int roomId = rs.getInt("room_id");
-            String hotelInfo = rs.getString("hotel_info");
-            int roomNumber = rs.getInt("room_number");
-            String roomInfo = hotelInfo + " - Комната " + roomNumber;
-
-            roomsIdMap.put(roomInfo, roomId);
-            roomsNameMap.put(roomId, roomInfo);
-        }
-    }
-
-    // Добавьте геттеры:
-    public static Map<String, Integer> getRoomsIdMap() { return roomsIdMap; }
-    public static Map<Integer, String> getRoomsNameMap() { return roomsNameMap; }
 }

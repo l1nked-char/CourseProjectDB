@@ -24,6 +24,15 @@ public class Room {
         this.typeOfRoomName = "";
     }
 
+    public Room(int id, int hotelId, int roomNumber, int maxPeople, float pricePerPerson, int typeOfRoomId) {
+        this.id = id;
+        this.hotelId = hotelId;
+        this.roomNumber = roomNumber;
+        this.maxPeople = maxPeople;
+        this.pricePerPerson = BigDecimal.valueOf(pricePerPerson);
+        this.typeOfRoomId = typeOfRoomId;
+    }
+
     public Room(int id, int hotelId, int maxPeople, BigDecimal pricePerPerson,
                 int roomNumber, Integer typeOfRoomId,
                 String hotelInfo, String typeOfRoomName) {
@@ -60,4 +69,9 @@ public class Room {
 
     public String getTypeOfRoomName() { return typeOfRoomName; }
     public void setTypeOfRoomName(String typeOfRoomName) { this.typeOfRoomName = typeOfRoomName; }
+
+    @Override
+    public String toString() {
+        return String.valueOf(roomNumber);
+    }
 }

@@ -10,6 +10,7 @@ module app.subd {
     requires javafx.base;
     requires javafx.graphics;
 
+
     opens app.subd to javafx.fxml, org.controlsfx.controls;
     opens app.subd.admin_panels to javafx.fxml;
     opens app.subd.owner_panels to javafx.fxml;

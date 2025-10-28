@@ -11,6 +11,7 @@ import app.subd.components.FormManager;
 import app.subd.models.*;
 import app.subd.tables.AllDictionaries;
 import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -23,8 +24,7 @@ import javafx.stage.Stage;
 import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.ResultSet;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import static app.subd.MessageController.*;
 
@@ -46,7 +46,6 @@ public class AdminController {
             //AllDictionaries.initialiseServicesMaps();
             AllDictionaries.initialiseTypesOfRoomMaps();
             AllDictionaries.initialiseConveniencesMaps();
-            AllDictionaries.initialiseRoomsMaps();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -99,8 +98,8 @@ public class AdminController {
     }
 
 
-    private javafx.collections.ObservableList<Object> loadHotelsData(Map<String, Object> filters) {
-        javafx.collections.ObservableList<Object> hotels = FXCollections.observableArrayList();
+    private ObservableList<Object> loadHotelsData(Map<String, Object> filters) {
+        ObservableList<Object> hotels = FXCollections.observableArrayList();
         try {
             Connection connection = Session.getConnection();
             ResultSet rs = Database_functions.callFunction(connection, "get_all_hotels");
@@ -118,8 +117,8 @@ public class AdminController {
         return hotels;
     }
 
-    private javafx.collections.ObservableList<Object> loadRoomsData(Map<String, Object> filters) {
-        javafx.collections.ObservableList<Object> rooms = FXCollections.observableArrayList();
+    private ObservableList<Object> loadRoomsData(Map<String, Object> filters) {
+        ObservableList<Object> rooms = FXCollections.observableArrayList();
         try {
             Hotel selectedHotel = (Hotel) filters.get("hotel");
             if (selectedHotel == null) {
@@ -149,8 +148,8 @@ public class AdminController {
     }
 
     // Аналогичные методы для других сущностей...
-    private javafx.collections.ObservableList<Object> loadTypesOfRoomData(Map<String, Object> filters) {
-        javafx.collections.ObservableList<Object> types = FXCollections.observableArrayList();
+    private ObservableList<Object> loadTypesOfRoomData(Map<String, Object> filters) {
+        ObservableList<Object> types = FXCollections.observableArrayList();
         try {
             Connection connection = Session.getConnection();
             ResultSet rs = Database_functions.callFunction(connection, "get_all_types_of_room");
@@ -166,8 +165,8 @@ public class AdminController {
         return types;
     }
 
-    private javafx.collections.ObservableList<Object> loadConveniencesData(Map<String, Object> filters) {
-        javafx.collections.ObservableList<Object> conveniences = FXCollections.observableArrayList();
+    private ObservableList<Object> loadConveniencesData(Map<String, Object> filters) {
+        ObservableList<Object> conveniences = FXCollections.observableArrayList();
         try {
             Connection connection = Session.getConnection();
             ResultSet rs = Database_functions.callFunction(connection, "get_all_conveniences");
@@ -183,8 +182,8 @@ public class AdminController {
         return conveniences;
     }
 
-    private javafx.collections.ObservableList<Object> loadCitiesData(Map<String, Object> filters) {
-        javafx.collections.ObservableList<Object> cities = FXCollections.observableArrayList();
+    private ObservableList<Object> loadCitiesData(Map<String, Object> filters) {
+        ObservableList<Object> cities = FXCollections.observableArrayList();
         try {
             Connection connection = Session.getConnection();
             ResultSet rs = Database_functions.callFunction(connection, "get_all_cities");
@@ -200,21 +199,38 @@ public class AdminController {
         return cities;
     }
 
-    private javafx.collections.ObservableList<Object> loadRoomConveniencesData(Map<String, Object> filters) {
-        javafx.collections.ObservableList<Object> roomConveniences = FXCollections.observableArrayList();
+    private ObservableList<Object> loadRoomConveniencesData(Map<String, Object> filters) {
+        ObservableList<Object> roomConveniences = FXCollections.observableArrayList();
         try {
-            Connection connection = Session.getConnection();
-            ResultSet rs = Database_functions.callFunction(connection, "get_all_room_conveniences");
-            while (rs.next()) {
-                roomConveniences.add(new RoomConvenience(
-                        rs.getInt("room_id"),
-                        rs.getInt("conv_name_id"),
-                        rs.getDouble("price_per_one"),
-                        rs.getInt("amount"),
-                        rs.getDate("start_date").toLocalDate(),
-                        rs.getString("conv_name")
-                ));
+            Integer hotelId = null;
+            Integer roomId = null;
+
+            if (filters.get("hotel") instanceof Hotel hotel) {
+                hotelId = hotel.getId();
             }
+            if (filters.get("room") instanceof Room room) {
+                roomId = room.getId();
+            }
+
+            Connection connection = Session.getConnection();
+            ResultSet rs;
+
+            if (hotelId != null && roomId != null) {
+                rs = Database_functions.callFunction(connection, "get_room_conveniences_by_room", roomId);
+
+                while (rs.next()) {
+                    roomConveniences.add(new RoomConvenience(
+                            rs.getInt("conv_id"),
+                            rs.getInt("room_id"),
+                            rs.getInt("conv_name_id"),
+                            rs.getBigDecimal("price_per_one"),
+                            rs.getInt("amount"),
+                            rs.getDate("start_date").toLocalDate(),
+                            rs.getString("conv_name")
+                    ));
+                }
+            }
+
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -449,8 +465,8 @@ public class AdminController {
         System.out.println("Общая статистика");
     }
 
-    private javafx.collections.ObservableList<Object> loadUsersData(Map<String, Object> filters) {
-        javafx.collections.ObservableList<Object> users = FXCollections.observableArrayList();
+    private ObservableList<Object> loadUsersData(Map<String, Object> filters) {
+        ObservableList<Object> users = FXCollections.observableArrayList();
         try {
             Connection connection = Session.getConnection();
             ResultSet rs = Database_functions.callFunction(connection, "get_all_users");
@@ -502,7 +518,6 @@ public class AdminController {
 
         try {
             Connection connection = Session.getConnection();
-            Boolean newStatus = !user.getUserLocked();
 
             Database_functions.callFunction(connection, user.getUserLocked() ? "unban_user" : "ban_user", user.getUsername());
 
@@ -680,16 +695,15 @@ public class AdminController {
     private Boolean saveRoomConvenience(RoomConvenience rc) {
         try {
             Connection connection = Session.getConnection();
-            if (rc.getRoomId() == 0) {
-                // Для добавления - предполагаем, что есть функция add_room_convenience
+            // При добавлении roomId уже установлен в UniversalFormController
+            if (rc.getId() == 0) {
                 Database_functions.callFunction(connection, "add_room_convenience",
-                        rc.getRoomId(), rc.getConvNameId(), rc.getPricePerOne(),
+                        rc.getRoomId(), rc.getConvNameId(), rc.getPricePerOne(), // rc.getRoomId() теперь содержит правильное значение
                         rc.getAmount(), rc.getStartDate());
                 showSuccess(statusLabel, "Удобство в комнате успешно добавлено");
             } else {
-                // Для редактирования - предполагаем, что есть функция edit_room_convenience
                 Database_functions.callFunction(connection, "edit_room_convenience",
-                        rc.getRoomId(), rc.getConvNameId(), rc.getPricePerOne(),
+                        rc.getId(), rc.getConvNameId(), rc.getPricePerOne(),
                         rc.getAmount(), rc.getStartDate());
                 showSuccess(statusLabel, "Удобство в комнате успешно обновлено");
             }
@@ -710,16 +724,4 @@ public class AdminController {
             return null;
         }
     }
-
-    private String getTempConfirmPassword(User user) {
-        try {
-            Field confirmPasswordField = user.getClass().getDeclaredField("tempConfirmPassword");
-            confirmPasswordField.setAccessible(true);
-            return (String) confirmPasswordField.get(user);
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-
 }

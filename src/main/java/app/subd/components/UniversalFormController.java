@@ -32,6 +32,7 @@ public class UniversalFormController<T> implements FormController<T> {
     private T item;
     private Runnable onSaveSuccess;
     private Stage stage;
+    private UniversalTableController parentController;
 
     private FormController.Mode controllerMode;
 
@@ -55,7 +56,7 @@ public class UniversalFormController<T> implements FormController<T> {
 
     @Override
     public void setParentController(AdminController.RefreshableController parentController) {
-
+        this.parentController = (UniversalTableController) parentController;
     }
 
     @Override
@@ -446,6 +447,19 @@ public class UniversalFormController<T> implements FormController<T> {
         if (entity instanceof User) {
             populateUserFromForm((User) entity);
             return;
+        }
+
+        if (entity instanceof RoomConvenience && controllerMode == Mode.ADD) {
+            if (parentController != null) {
+                Map<String, Object> filters = parentController.getCurrentFilterValues();
+                Object roomObj = filters.get("room");
+                if (roomObj instanceof Room selectedRoom) {
+                    ((RoomConvenience) entity).setRoomId(selectedRoom.getId());
+                } else {
+                    showError(statusLabel, "Ошибка: Комната не выбрана в фильтре.");
+                    return;
+                }
+            }
         }
 
         for (FieldConfig fieldConfig : config.getFields()) {

@@ -5,6 +5,7 @@ import app.subd.config.TableConfig;
 import app.subd.config.ColumnConfig;
 import app.subd.config.FilterConfig;
 import app.subd.models.User;
+import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
@@ -35,8 +36,9 @@ public class UniversalTableController implements AdminController.RefreshableCont
     private ObservableList<Object> originalData;
     private FilteredList<Object> filteredData;
     private SortedList<Object> sortedData;
-    private final Map<String, ComboBox<?>> activeFilters = new HashMap<>();
+    private final Map<String, ComboBox<Object>> activeFilters = new HashMap<>();
     private final Map<String, Object> currentFilterValues = new HashMap<>();
+    private final Map<String, FilterConfig> filterConfigs = new HashMap<>();
 
     @FXML
     public void initialize() {
@@ -101,26 +103,83 @@ public class UniversalTableController implements AdminController.RefreshableCont
         Label label = new Label(filterConfig.getLabel());
 
         ComboBox<Object> comboBox = new ComboBox<>();
-        comboBox.setItems((ObservableList<Object>) filterConfig.getItemsSupplier().get());
         comboBox.setPromptText("Выберите...");
-        comboBox.getItems().addFirst("Все");
+
+        // Инициализируем комбобокс с текущими значениями фильтров
+        updateComboBoxItems(comboBox, filterConfig);
 
         comboBox.valueProperty().addListener((observable, oldValue, newValue) -> {
             handleFilterChange(filterConfig.getFilterKey(), newValue);
+
+            // Обновляем зависимые фильтры
+            updateDependentFilters(filterConfig.getFilterKey());
         });
 
         filterBox.getChildren().addAll(label, comboBox);
         filtersContainer.getChildren().add(filterBox);
         activeFilters.put(filterConfig.getFilterKey(), comboBox);
+        filterConfigs.put(filterConfig.getFilterKey(), filterConfig);
+    }
+
+    private void updateComboBoxItems(ComboBox<Object> comboBox, FilterConfig filterConfig) {
+        try {
+            ObservableList<?> rawItems = filterConfig.getItemsFunction().apply(currentFilterValues);
+            ObservableList<Object> items;
+            if (rawItems instanceof ObservableList) {
+                items = (ObservableList<Object>) rawItems;
+            } else {
+                items = FXCollections.observableArrayList();
+            }
+
+            Object currentValue = comboBox.getValue();
+
+            comboBox.setItems(items);
+
+            if (currentValue != null && items.contains(currentValue)) {
+                comboBox.setValue(currentValue);
+            } else if (items.isEmpty()) {
+                comboBox.setValue(null);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            comboBox.setItems(FXCollections.observableArrayList());
+        }
+    }
+
+    private void updateDependentFilters(String changedFilterKey) {
+        for (FilterConfig filterConfig : currentConfig.getFilters()) {
+            if (changedFilterKey.equals(filterConfig.getDependsOnFilter())) {
+                ComboBox<Object> dependentComboBox = activeFilters.get(filterConfig.getFilterKey());
+                if (dependentComboBox != null) {
+                    // Сбрасываем значение зависимого фильтра
+                    dependentComboBox.setValue(null);
+                    // Обновляем список значений
+                    updateComboBoxItems(dependentComboBox, filterConfig);
+                }
+            }
+        }
     }
 
     private void handleFilterChange(String filterKey, Object newValue) {
-        if (newValue != null && !newValue.equals("Все")) {
+        if (newValue != null) {
             currentFilterValues.put(filterKey, newValue);
         } else {
             currentFilterValues.remove(filterKey);
         }
+
         refreshData();
+    }
+
+    private void refreshAllFilters() {
+        for (Map.Entry<String, ComboBox<Object>> entry : activeFilters.entrySet()) {
+            String filterKey = entry.getKey();
+            ComboBox<Object> comboBox = entry.getValue();
+            FilterConfig config = filterConfigs.get(filterKey);
+
+            if (config != null) {
+                updateComboBoxItems(comboBox, config);
+            }
+        }
     }
 
     private void setupEventHandlers() {
@@ -133,6 +192,14 @@ public class UniversalTableController implements AdminController.RefreshableCont
         tableView.getSelectionModel().selectedItemProperty().addListener(
                 (observable, oldValue, newValue) -> {
                     updateButtonsState(newValue != null);
+                    if (toggleActiveButton != null && toggleActiveButton.isVisible()) {
+                        if (newValue instanceof User user) {
+                            toggleActiveButton.setText(user.getUserLocked() ? "Разблокировать" : "Заблокировать");
+                        } else {
+                            // Сбрасываем текст, если выбран не пользователь или ничего не выбрано
+                            toggleActiveButton.setText("Блокировка");
+                        }
+                    }
                 }
         );
     }
@@ -149,11 +216,6 @@ public class UniversalTableController implements AdminController.RefreshableCont
         }
         if (toggleActiveButton != null) {
             toggleActiveButton.setVisible(currentConfig.getOnToggleActive() != null);
-
-            Object selectedItem = tableView.getSelectionModel().getSelectedItem();
-            if (selectedItem instanceof User user) {
-                toggleActiveButton.setText(user.getUserLocked() ? "Разблокировать" : "Заблокировать");
-            }
         }
 
     }
@@ -250,6 +312,7 @@ public class UniversalTableController implements AdminController.RefreshableCont
             searchField.clear();
         }
 
+        refreshAllFilters();
         refreshData();
     }
 
