@@ -12,6 +12,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.HashMap;
@@ -222,9 +223,8 @@ public class UniversalFormController<T> implements FormController<T> {
     private String getItemDisplayText(Object item) {
         if (item instanceof City) {
             return ((City) item).getCityName();
-        } else if (item instanceof Hotel) {
-            Hotel hotel = (Hotel) item;
-            if (hotel.getCityName() != null) {
+        } else if (item instanceof Hotel hotel) {
+            if (hotel.getCityName() != null && !hotel.getCityName().isEmpty()) {
                 return hotel.getCityName() + " - " + hotel.getAddress();
             }
             return hotel.getAddress();
@@ -232,6 +232,8 @@ public class UniversalFormController<T> implements FormController<T> {
             return ((TypeOfRoom) item).getName();
         } else if (item instanceof Convenience) {
             return ((Convenience) item).getName();
+        } else if (item instanceof Room room) {
+            return room.getHotelInfo() != null ? room.getHotelInfo() : "Комната " + room.getId();
         }
         return item.toString();
     }
@@ -531,20 +533,36 @@ public class UniversalFormController<T> implements FormController<T> {
             return text;
         } else if (control instanceof ComboBox) {
             ComboBox<Object> comboBox = (ComboBox<Object>) control;
-            int selectedIndex = comboBox.getSelectionModel().getSelectedIndex();
-            if (selectedIndex == -1) selectedIndex = 0;
-            Object selectedValue = comboBox.getItems().get(selectedIndex);
+            Object selectedValue = comboBox.getValue();
 
-            if (selectedValue instanceof City) {
-                return ((City) selectedValue).getCityId();
-            } else if (selectedValue instanceof Hotel) {
-                return ((Hotel) selectedValue).getId();
-            } else if (selectedValue instanceof TypeOfRoom) {
-                return ((TypeOfRoom) selectedValue).getId();
-            } else if (selectedValue instanceof Convenience) {
-                return ((Convenience) selectedValue).getId();
-            } else if (selectedValue instanceof String) {
-                return selectedValue;
+            // Универсальная обработка выбранного значения
+            if (selectedValue != null) {
+                // Для сущностей с методом getId()
+                try {
+                    Method getIdMethod = selectedValue.getClass().getMethod("getId");
+                    Object idValue = getIdMethod.invoke(selectedValue);
+                    if (idValue instanceof Integer) {
+                        return idValue;
+                    }
+                } catch (Exception e) {
+                    // Игнорируем, если нет метода getId
+                }
+
+                // Для сущностей с методом getCityId() (City)
+                try {
+                    Method getCityIdMethod = selectedValue.getClass().getMethod("getCityId");
+                    Object idValue = getCityIdMethod.invoke(selectedValue);
+                    if (idValue instanceof Integer) {
+                        return idValue;
+                    }
+                } catch (Exception e) {
+                    // Игнорируем, если нет метода getCityId
+                }
+
+                // Для строковых значений
+                if (selectedValue instanceof String) {
+                    return selectedValue;
+                }
             }
 
             return selectedValue;
@@ -557,6 +575,8 @@ public class UniversalFormController<T> implements FormController<T> {
         }
         return null;
     }
+
+
 
     @FXML
     private void handleCancel() {
