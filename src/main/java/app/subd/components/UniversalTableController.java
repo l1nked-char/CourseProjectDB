@@ -4,6 +4,7 @@ import app.subd.admin_panels.AdminController;
 import app.subd.config.TableConfig;
 import app.subd.config.ColumnConfig;
 import app.subd.config.FilterConfig;
+import app.subd.models.User;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
@@ -148,7 +149,13 @@ public class UniversalTableController implements AdminController.RefreshableCont
         }
         if (toggleActiveButton != null) {
             toggleActiveButton.setVisible(currentConfig.getOnToggleActive() != null);
+
+            Object selectedItem = tableView.getSelectionModel().getSelectedItem();
+            if (selectedItem instanceof User user) {
+                toggleActiveButton.setText(user.getUserLocked() ? "Разблокировать" : "Заблокировать");
+            }
         }
+
     }
 
     private void loadData() {

@@ -46,6 +46,7 @@ public class AdminController {
             //AllDictionaries.initialiseServicesMaps();
             AllDictionaries.initialiseTypesOfRoomMaps();
             AllDictionaries.initialiseConveniencesMaps();
+            AllDictionaries.initialiseRoomsMaps();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -78,7 +79,7 @@ public class AdminController {
                 this::handleToggleUserActive
         ));
 
-        /*tableConfigs.put("Удобства", ConfigFactory.createConvenienceTableConfig(
+        tableConfigs.put("Удобства", ConfigFactory.createConvenienceTableConfig(
                 this::loadConveniencesData,
                 this::handleAddConvenience,
                 this::handleEditConvenience
@@ -94,7 +95,7 @@ public class AdminController {
                 this::loadRoomConveniencesData,
                 this::handleAddRoomConvenience,
                 this::handleEditRoomConvenience
-        ));*/
+        ));
     }
 
 
@@ -134,7 +135,7 @@ public class AdminController {
                         rs.getInt("room_id"),
                         rs.getInt("hotel_id"),
                         rs.getInt("max_people"),
-                        rs.getDouble("price_per_person"),
+                        rs.getBigDecimal("price_per_person"),
                         rs.getInt("room_number"),
                         rs.getInt("type_of_room_id"),
                         rs.getString("hotel_info"),
@@ -324,7 +325,7 @@ public class AdminController {
         try {
             Connection connection = Session.getConnection();
             if (room.getId() == 0) {
-                Database_functions.callFunction(connection, "add_hotel_room",
+                Database_functions.callFunction(connection, "add_room",
                         room.getHotelId(), room.getMaxPeople(), room.getPricePerPerson(),
                         room.getRoomNumber(), room.getTypeOfRoomId());
             } else {
@@ -503,10 +504,10 @@ public class AdminController {
             Connection connection = Session.getConnection();
             Boolean newStatus = !user.getUserLocked();
 
-            Database_functions.callFunction(connection, "toggle_user_lock", user.getUsername(), newStatus);
+            Database_functions.callFunction(connection, user.getUserLocked() ? "unban_user" : "ban_user", user.getUsername());
 
             showSuccess(statusLabel, "Статус пользователя " + user.getUsername() +
-                    " изменен на: " + (newStatus ? "заблокирован" : "активен"));
+                    " изменен!");
 
             refreshActiveTable();
 
@@ -517,7 +518,6 @@ public class AdminController {
         return null;
     }
 
-    // Метод сохранения пользователя
     private Boolean saveUser(User user) {
         try {
             Connection connection = Session.getConnection();
@@ -543,16 +543,19 @@ public class AdminController {
                 showSuccess(statusLabel, "Пользователь " + user.getUsername() + " успешно создан");
 
             } else {
-                Database_functions.callFunction(connection, "update_user_profile",
-                        user.getId(), user.getUsername(), user.getRole(), hotelId);
+                Database_functions.callFunction(connection, "change_user_hotel",
+                        user.getId(), hotelId);
 
                 if (password != null && !password.isEmpty()) {
                     Database_functions.callFunction(connection, "change_user_password",
                             user.getUsername(), password);
                 }
 
-                Database_functions.callFunction(connection, "set_user_lock_status",
-                        user.getUsername(), user.getUserLocked());
+                Database_functions.callFunction(connection, "change_username",
+                        user.getId(), user.getUsername());
+
+                Database_functions.callFunction(connection, "change_user_role",
+                        user.getUsername(), user.getRole());
 
                 showSuccess(statusLabel, "Данные пользователя " + user.getUsername() + " успешно обновлены");
             }
@@ -561,6 +564,139 @@ public class AdminController {
         } catch (Exception e) {
             e.printStackTrace();
             showError(statusLabel, "Ошибка сохранения пользователя: " + e.getMessage());
+            return false;
+        }
+    }
+
+    private Void handleAddConvenience(Void param) {
+        UniversalFormConfig<Convenience> formConfig = ConfigFactory.createConvenienceFormConfig(
+                this::saveConvenience,
+                c -> refreshActiveTable(),
+                UniversalFormConfig.Mode.ADD
+        );
+        FormManager.showForm(formConfig, FormController.Mode.ADD, null, getActiveTableController());
+        return null;
+    }
+
+    private Void handleEditConvenience(Object convObj) {
+        if (!(convObj instanceof Convenience conv)) {
+            showError(statusLabel, "Неверный тип данных для редактирования удобства");
+            return null;
+        }
+        UniversalFormConfig<Convenience> formConfig = ConfigFactory.createConvenienceFormConfig(
+                this::saveConvenience,
+                c -> refreshActiveTable(),
+                UniversalFormConfig.Mode.EDIT
+        );
+        FormManager.showForm(formConfig, FormController.Mode.EDIT, conv, getActiveTableController());
+        return null;
+    }
+
+    private Void handleAddCity(Void param) {
+        UniversalFormConfig<City> formConfig = ConfigFactory.createCityFormConfig(
+                this::saveCity,
+                c -> refreshActiveTable(),
+                UniversalFormConfig.Mode.ADD
+        );
+        FormManager.showForm(formConfig, FormController.Mode.ADD, null, getActiveTableController());
+        return null;
+    }
+
+    private Void handleEditCity(Object cityObj) {
+        if (!(cityObj instanceof City city)) {
+            showError(statusLabel, "Неверный тип данных для редактирования города");
+            return null;
+        }
+        UniversalFormConfig<City> formConfig = ConfigFactory.createCityFormConfig(
+                this::saveCity,
+                c -> refreshActiveTable(),
+                UniversalFormConfig.Mode.EDIT
+        );
+        FormManager.showForm(formConfig, FormController.Mode.EDIT, city, getActiveTableController());
+        return null;
+    }
+
+    private Void handleAddRoomConvenience(Void param) {
+        UniversalFormConfig<RoomConvenience> formConfig = ConfigFactory.createRoomConvenienceFormConfig(
+                this::saveRoomConvenience,
+                rc -> refreshActiveTable(),
+                UniversalFormConfig.Mode.ADD
+        );
+        FormManager.showForm(formConfig, FormController.Mode.ADD, null, getActiveTableController());
+        return null;
+    }
+
+    private Void handleEditRoomConvenience(Object rcObj) {
+        if (!(rcObj instanceof RoomConvenience rc)) {
+            showError(statusLabel, "Неверный тип данных для редактирования удобства в комнате");
+            return null;
+        }
+        UniversalFormConfig<RoomConvenience> formConfig = ConfigFactory.createRoomConvenienceFormConfig(
+                this::saveRoomConvenience,
+                r -> refreshActiveTable(),
+                UniversalFormConfig.Mode.EDIT
+        );
+        FormManager.showForm(formConfig, FormController.Mode.EDIT, rc, getActiveTableController());
+        return null;
+    }
+
+    // Добавьте методы сохранения:
+    private Boolean saveConvenience(Convenience conv) {
+        try {
+            Connection connection = Session.getConnection();
+            if (conv.getId() == 0) {
+                Database_functions.callFunction(connection, "add_convenience", conv.getName());
+                showSuccess(statusLabel, "Удобство успешно добавлено");
+            } else {
+                Database_functions.callFunction(connection, "edit_convenience", conv.getId(), conv.getName());
+                showSuccess(statusLabel, "Удобство успешно обновлено");
+            }
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            showError(statusLabel, "Ошибка сохранения удобства: " + e.getMessage());
+            return false;
+        }
+    }
+
+    private Boolean saveCity(City city) {
+        try {
+            Connection connection = Session.getConnection();
+            if (city.getCityId() == 0) {
+                Database_functions.callFunction(connection, "add_city", city.getCityName());
+                showSuccess(statusLabel, "Город успешно добавлен");
+            } else {
+                Database_functions.callFunction(connection, "edit_city", city.getCityId(), city.getCityName());
+                showSuccess(statusLabel, "Город успешно обновлен");
+            }
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            showError(statusLabel, "Ошибка сохранения города: " + e.getMessage());
+            return false;
+        }
+    }
+
+    private Boolean saveRoomConvenience(RoomConvenience rc) {
+        try {
+            Connection connection = Session.getConnection();
+            if (rc.getRoomId() == 0) {
+                // Для добавления - предполагаем, что есть функция add_room_convenience
+                Database_functions.callFunction(connection, "add_room_convenience",
+                        rc.getRoomId(), rc.getConvNameId(), rc.getPricePerOne(),
+                        rc.getAmount(), rc.getStartDate());
+                showSuccess(statusLabel, "Удобство в комнате успешно добавлено");
+            } else {
+                // Для редактирования - предполагаем, что есть функция edit_room_convenience
+                Database_functions.callFunction(connection, "edit_room_convenience",
+                        rc.getRoomId(), rc.getConvNameId(), rc.getPricePerOne(),
+                        rc.getAmount(), rc.getStartDate());
+                showSuccess(statusLabel, "Удобство в комнате успешно обновлено");
+            }
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            showError(statusLabel, "Ошибка сохранения удобства в комнате: " + e.getMessage());
             return false;
         }
     }

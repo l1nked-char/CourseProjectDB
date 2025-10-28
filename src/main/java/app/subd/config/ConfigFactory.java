@@ -62,8 +62,7 @@ public class ConfigFactory {
                 new FieldConfig("role", "Роль", FieldConfig.FieldType.COMBOBOX, true,
                         () -> FXCollections.observableArrayList("owner_role", "employee_role"), "Выберите роль", 200),
                 new FieldConfig("hotelInfo", "Отель", FieldConfig.FieldType.COMBOBOX, true,
-                        ConfigFactory::getHotelsForComboBox, "Выберите отель", 250),
-                new FieldConfig("userLocked", "Заблокировать аккаунт", FieldConfig.FieldType.CHECKBOX, false)
+                        ConfigFactory::getHotelsForComboBox, "Выберите отель", 250)
         );
 
         return new UniversalFormConfig<>("Пользователь", fields, saveFunction, onSuccess,
@@ -135,6 +134,7 @@ public class ConfigFactory {
         return new TableConfig("Удобства", dataLoader, onAdd, onEdit, null, columns, null);
     }
 
+    // Обновите метод createCityTableConfig:
     public static TableConfig createCityTableConfig(
             Function<Map<String, Object>, javafx.collections.ObservableList<Object>> dataLoader,
             Callback<Void, Void> onAdd,
@@ -148,6 +148,7 @@ public class ConfigFactory {
         return new TableConfig("Города", dataLoader, onAdd, onEdit, null, columns, null);
     }
 
+    // Обновите метод createRoomConvenienceTableConfig:
     public static TableConfig createRoomConvenienceTableConfig(
             Function<Map<String, Object>, javafx.collections.ObservableList<Object>> dataLoader,
             Callback<Void, Void> onAdd,
@@ -305,6 +306,27 @@ public class ConfigFactory {
             return FXCollections.observableArrayList(
                     AllDictionaries.getConveniencesIdMap().entrySet().stream()
                             .map(entry -> new Convenience(entry.getValue(), entry.getKey()))
+                            .collect(Collectors.toList())
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+            return FXCollections.observableArrayList();
+        }
+    }
+
+    public static ObservableList<Object> getRoomsForComboBox() {
+        try {
+            AllDictionaries.initialiseRoomsMaps();
+            return FXCollections.observableArrayList(
+                    AllDictionaries.getRoomsIdMap().entrySet().stream()
+                            .map(entry -> {
+                                // Создаем упрощенный объект Room для комбобокса
+                                Room room = new Room();
+                                room.setId(entry.getValue());
+                                // Используем существующее поле hotelInfo для отображения
+                                room.setHotelInfo(entry.getKey());
+                                return room;
+                            })
                             .collect(Collectors.toList())
             );
         } catch (Exception e) {

@@ -9,27 +9,21 @@
       spacing="10"
       style="-fx-padding: 10;">
 
-    <!-- Панель фильтров -->
     <VBox fx:id="filtersContainer" spacing="10">
         <Label text="Фильтры:" style="-fx-font-weight: bold;"/>
-        <!-- Фильтры будут добавляться динамически -->
     </VBox>
 
-    <!-- Панель поиска и действий -->
     <HBox spacing="10" alignment="CENTER_LEFT">
         <TextField fx:id="searchField" promptText="Поиск..." HBox.hgrow="ALWAYS"/>
         <Button fx:id="clearFiltersButton" text="Очистить фильтры" onAction="#handleClearFilters"/>
         <Button fx:id="addButton" text="Добавить" onAction="#handleAdd"/>
         <Button fx:id="editButton" text="Редактировать" onAction="#handleEdit"/>
-        <Button fx:id="toggleActiveButton" text="Активировать/Деактивировать" onAction="#handleToggleActive"/>
+        <Button fx:id="toggleActiveButton" text="Блокировать/Разблокировать" onAction="#handleToggleActive" visible="false"/>
         <Button fx:id="refreshButton" text="Обновить" onAction="#handleRefresh"/>
     </HBox>
 
-    <!-- Статус бар -->
     <Label fx:id="statusLabel" style="-fx-text-fill: green;"/>
 
-    <!-- Таблица -->
     <TableView fx:id="tableView" VBox.vgrow="ALWAYS">
-        <!-- Колонки будут добавляться динамически -->
     </TableView>
 </VBox>

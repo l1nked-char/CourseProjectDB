@@ -5,7 +5,6 @@ import app.subd.config.UniversalFormConfig;
 import app.subd.config.FieldConfig;
 import app.subd.models.*;
 import app.subd.tables.AllDictionaries;
-import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
@@ -13,6 +12,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 import java.lang.reflect.Field;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
@@ -483,11 +483,6 @@ public class UniversalFormController<T> implements FormController<T> {
                     case "hotelInfo":
                         user.setHotelInfo(value != null ? AllDictionaries.getHotelsNameMap().get(value) : "");
                         break;
-                    case "userLocked":
-                        if (value != null) {
-                            user.setUserLocked(Boolean.TRUE.equals(value));
-                        }
-                        break;
                 }
             }
         }
@@ -506,6 +501,8 @@ public class UniversalFormController<T> implements FormController<T> {
             return value.toString();
         } else if (fieldType == Integer.class || fieldType == int.class) {
             return Integer.parseInt(value.toString());
+        } else if (fieldType == BigDecimal.class) {
+            return BigDecimal.valueOf(Double.parseDouble(value.toString()));
         } else if (fieldType == Double.class || fieldType == double.class) {
             return Double.parseDouble(value.toString());
         } else if (fieldType == Boolean.class || fieldType == boolean.class) {
@@ -560,32 +557,6 @@ public class UniversalFormController<T> implements FormController<T> {
         }
         return null;
     }
-
-    /*private Integer convertNameToId(String name, String propertyName) {
-        if (name == null) return null;
-
-        try {
-            switch (propertyName) {
-                case "cityId":
-                    AllDictionaries.initialiseCitiesMaps();
-                    return AllDictionaries.getCitiesIdMap().get(name);
-                case "hotelId":
-                    AllDictionaries.initialiseHotelsMaps();
-                    return AllDictionaries.getHotelsIdMap().get(name);
-                case "typeOfRoomId":
-                    AllDictionaries.initialiseTypesOfRoomMaps();
-                    return AllDictionaries.getTypesOfRoomIdMap().get(name);
-                case "convNameId":
-                    AllDictionaries.initialiseConveniencesMaps();
-                    return AllDictionaries.getConveniencesIdMap().get(name);
-                default:
-                    return null;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-    }*/
 
     @FXML
     private void handleCancel() {
