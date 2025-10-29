@@ -53,4 +53,12 @@ public class RoomConvenience {
 
     public String getConvName() { return convName; }
     public void setConvName(String convName) { this.convName = convName; }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        RoomConvenience rc = (RoomConvenience) obj;
+        return id == rc.id;
+    }
 }

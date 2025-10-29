@@ -26,6 +26,9 @@ public class AllDictionaries {
 
     private static final Map<String, Integer> hotelsIdMap = new HashMap<>();
     private static final Map<Integer, String> hotelsNameMap = new HashMap<>();
+    
+    private static final Map<String, Integer> tenantsIdMap = new HashMap<>();
+    private static final Map<Integer, String> tenantsNameMap = new HashMap<>();
 
     public static void initialiseCitiesMaps() throws Exception
     {
@@ -128,18 +131,36 @@ public class AllDictionaries {
             hotelsNameMap.put(hotelId, hotelInfo);
         }
     }
+    
+    public static void initialiseTenantsMaps() throws Exception {
+        Connection connection = Session.getConnection();
+        ResultSet rs = Database_functions.callFunction(connection, "get_all_tenants");
+
+        tenantsIdMap.clear();
+        tenantsNameMap.clear();
+
+        while (rs.next()) {
+            int id = rs.getInt("id");
+            String name = rs.getString("name");
+
+            tenantsIdMap.put(name, id);
+            tenantsNameMap.put(id, name);
+        }
+    }
 
     public static Map<String, Integer> getCitiesIdMap() { return citiesIdMap; }
     public static Map<String, Integer> getSocialStatusIdMap() { return socialStatusIdMap; }
     public static Map<String, Integer> getConveniencesIdMap() { return conveniencesIdMap; }
     public static Map<String, Integer> getTypesOfRoomIdMap() { return typesOfRoomIdMap; }
-    public static Map<String, Integer> getSevicesIdMap() { return servicesIdMap; }
+    public static Map<String, Integer> getServicesIdMap() { return servicesIdMap; }
+    public static Map<String, Integer> getTenantsIdMap() { return tenantsIdMap; }
 
     public static Map<Integer, String> getCitiesNameMap() { return citiesNameMap; }
     public static Map<Integer, String> getSocialStatusNameMap() { return socialStatusNameMap; }
     public static Map<Integer, String> getConveniencesNameMap() { return conveniencesNameMap; }
     public static Map<Integer, String> getTypesOfRoomNameMap() { return typesOfRoomNameMap; }
-    public static Map<Integer, String> getSevicesNameMap() { return servicesNameMap; }
+    public static Map<Integer, String> getServicesNameMap() { return servicesNameMap; }
     public static Map<String, Integer> getHotelsIdMap() { return hotelsIdMap; }
     public static Map<Integer, String> getHotelsNameMap() { return hotelsNameMap; }
+    public static Map<Integer, String> getTenantsNameMap() { return tenantsNameMap; }
 }

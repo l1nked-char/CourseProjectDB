@@ -53,9 +53,4 @@ public class Hotel {
         Hotel hotel = (Hotel) obj;
         return id == hotel.id;
     }
-
-    @Override
-    public int hashCode() {
-        return id;
-    }
 }

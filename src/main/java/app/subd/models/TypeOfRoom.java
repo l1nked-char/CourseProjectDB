@@ -32,9 +32,4 @@ public class TypeOfRoom {
         TypeOfRoom type = (TypeOfRoom) obj;
         return id.equals(type.id);
     }
-
-    @Override
-    public int hashCode() {
-        return id;
-    }
 }

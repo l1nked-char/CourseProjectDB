@@ -42,10 +42,10 @@ public class AdminController {
         try {
             AllDictionaries.initialiseCitiesMaps();
             AllDictionaries.initialiseHotelsMaps();
-            //AllDictionaries.initialiseSocialStatusMaps();
-            //AllDictionaries.initialiseServicesMaps();
+            AllDictionaries.initialiseServicesMaps();
             AllDictionaries.initialiseTypesOfRoomMaps();
             AllDictionaries.initialiseConveniencesMaps();
+            AllDictionaries.initialiseTenantsMaps();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -94,6 +94,18 @@ public class AdminController {
                 this::loadRoomConveniencesData,
                 this::handleAddRoomConvenience,
                 this::handleEditRoomConvenience
+        ));
+        
+        tableConfigs.put("Сервисы отеля", ConfigFactory.createHotelServiceTableConfig(
+                this::loadHotelServicesData,
+                this::handleAddHotelService,
+                this::handleEditHotelService
+        ));
+
+        tableConfigs.put("История сервисов", ConfigFactory.createServiceHistoryTableConfig(
+                this::loadServiceHistoryData,
+                this::handleAddServiceHistory,
+                this::handleEditServiceHistory
         ));
     }
 
@@ -236,6 +248,54 @@ public class AdminController {
         }
         return roomConveniences;
     }
+    
+    private ObservableList<Object> loadHotelServicesData(Map<String, Object> filters) {
+        ObservableList<Object> hotelServices = FXCollections.observableArrayList();
+        try {
+            Hotel selectedHotel = (Hotel) filters.get("hotel");
+            if (selectedHotel == null) {
+                return hotelServices;
+            }
+            int hotelId = selectedHotel.getId();
+            Connection connection = Session.getConnection();
+            ResultSet rs = Database_functions.callFunction(connection, "get_hotel_services_by_hotel", hotelId);
+            while (rs.next()) {
+                int serv_name_id = rs.getInt("service_name_id");
+                hotelServices.add(new HotelService(
+                        rs.getInt("service_id"),
+                        hotelId,
+                        serv_name_id,
+                        rs.getDate("start_of_period").toLocalDate(),
+                        rs.getDate("end_of_period").toLocalDate(),
+                        rs.getBigDecimal("price_per_one"),
+                        rs.getBoolean("can_be_booked"),
+                        AllDictionaries.getServicesNameMap().get(serv_name_id)
+                ));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return hotelServices;
+    }
+
+    private ObservableList<Object> loadServiceHistoryData(Map<String, Object> filters) {
+        ObservableList<Object> serviceHistory = FXCollections.observableArrayList();
+        try {
+            Connection connection = Session.getConnection();
+            ResultSet rs = Database_functions.callFunction(connection, "get_all_service_history");
+            while (rs.next()) {
+                serviceHistory.add(new ServiceHistory(
+                        rs.getInt("id"),
+                        rs.getString("history_id"),
+                        rs.getInt("service_id"),
+                        rs.getInt("amount")
+                ));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return serviceHistory;
+    }
 
     private Void handleAddHotel(Void param) {
         UniversalFormConfig<Hotel> formConfig = ConfigFactory.createHotelFormConfig(
@@ -308,6 +368,54 @@ public class AdminController {
         FormManager.showForm(formConfig, FormController.Mode.EDIT, type, getActiveTableController());
         return null;
     }
+    
+    private Void handleAddHotelService(Void param) {
+        UniversalFormConfig<HotelService> formConfig = ConfigFactory.createHotelServiceFormConfig(
+                this::saveHotelService,
+                hs -> refreshActiveTable(),
+                UniversalFormConfig.Mode.ADD
+        );
+        FormManager.showForm(formConfig, FormController.Mode.ADD, null, getActiveTableController());
+        return null;
+    }
+
+    private Void handleEditHotelService(Object hsObj) {
+        if (!(hsObj instanceof HotelService hs)) {
+            showError(statusLabel, "Неверный тип данных для редактирования сервиса отеля");
+            return null;
+        }
+        UniversalFormConfig<HotelService> formConfig = ConfigFactory.createHotelServiceFormConfig(
+                this::saveHotelService,
+                h -> refreshActiveTable(),
+                UniversalFormConfig.Mode.EDIT
+        );
+        FormManager.showForm(formConfig, FormController.Mode.EDIT, hs, getActiveTableController());
+        return null;
+    }
+
+    private Void handleAddServiceHistory(Void param) {
+        UniversalFormConfig<ServiceHistory> formConfig = ConfigFactory.createServiceHistoryFormConfig(
+                this::saveServiceHistory,
+                sh -> refreshActiveTable(),
+                UniversalFormConfig.Mode.ADD
+        );
+        FormManager.showForm(formConfig, FormController.Mode.ADD, null, getActiveTableController());
+        return null;
+    }
+
+    private Void handleEditServiceHistory(Object shObj) {
+        if (!(shObj instanceof ServiceHistory sh)) {
+            showError(statusLabel, "Неверный тип данных для редактирования истории сервиса");
+            return null;
+        }
+        UniversalFormConfig<ServiceHistory> formConfig = ConfigFactory.createServiceHistoryFormConfig(
+                this::saveServiceHistory,
+                s -> refreshActiveTable(),
+                UniversalFormConfig.Mode.EDIT
+        );
+        FormManager.showForm(formConfig, FormController.Mode.EDIT, sh, getActiveTableController());
+        return null;
+    }
 
 
     private Boolean saveHotel(Hotel hotel) {
@@ -371,6 +479,46 @@ public class AdminController {
         } catch (Exception e) {
             e.printStackTrace();
             showError(statusLabel, "Ошибка сохранения комнаты: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    private Boolean saveHotelService(HotelService hotelService) {
+        try {
+            Connection connection = Session.getConnection();
+            if (hotelService.getId() == 0) {
+                Database_functions.callFunction(connection, "add_hotel_service",
+                        hotelService.getHotelId(), hotelService.getServiceNameId(), hotelService.getStartOfPeriod(),
+                        hotelService.getEndOfPeriod(), hotelService.getPricePerOne(), hotelService.getCanBeBooked());
+            } else {
+                Database_functions.callFunction(connection, "edit_hotel_service",
+                        hotelService.getId(), hotelService.getHotelId(), hotelService.getServiceNameId(),
+                        hotelService.getStartOfPeriod(), hotelService.getEndOfPeriod(), hotelService.getPricePerOne(),
+                        hotelService.getCanBeBooked());
+            }
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            showError(statusLabel, "Ошибка сохранения сервиса отеля: " + e.getMessage());
+            return false;
+        }
+    }
+
+    private Boolean saveServiceHistory(ServiceHistory serviceHistory) {
+        try {
+            Connection connection = Session.getConnection();
+            if (serviceHistory.getId() == 0) {
+                Database_functions.callFunction(connection, "add_service_history",
+                        serviceHistory.getHistoryId(), serviceHistory.getServiceId(), serviceHistory.getAmount());
+            } else {
+                Database_functions.callFunction(connection, "edit_service_history",
+                        serviceHistory.getId(), serviceHistory.getHistoryId(), serviceHistory.getServiceId(),
+                        serviceHistory.getAmount());
+            }
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            showError(statusLabel, "Ошибка сохранения истории сервиса: " + e.getMessage());
             return false;
         }
     }
@@ -439,6 +587,8 @@ public class AdminController {
     @FXML private void showCityManagement() { openTableTab("Города"); }
     @FXML private void showRoomConvenienceManagement() { openTableTab("Удобства в комнате"); }
     @FXML private void showUserManagement() { openTableTab("Пользователи"); }
+    @FXML private void showHotelServiceManagement() { openTableTab("Сервисы отеля"); }
+    @FXML private void showServiceHistoryManagement() { openTableTab("История сервисов"); }
 
     @FXML
     private void handleLogout() {

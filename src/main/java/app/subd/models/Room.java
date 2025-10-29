@@ -12,7 +12,6 @@ public class Room {
     private String hotelInfo;
     private String typeOfRoomName;
 
-    // Конструктор по умолчанию
     public Room() {
         this.id = 0;
         this.hotelId = 0;

@@ -21,6 +21,8 @@
                 <MenuItem text="Управление отелями" onAction="#showHotelManagement" />
                 <MenuItem text="Управление комнатами в отелях" onAction="#showRoomManagement" />
                 <MenuItem text="Управление удобствами в комнатах" onAction="#showRoomConvenienceManagement" />
+                <MenuItem text="Управление услугами отеля" onAction="#showHotelServiceManagement" />
+                <MenuItem text="Управление историей заказов услуг" onAction="#showServiceHistoryManagement" />
             </Menu>
             <Menu text="Справочники">
                 <MenuItem text="Управление типами комнат" onAction="#showTypeOfRoomManagement" />

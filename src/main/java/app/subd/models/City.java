@@ -34,9 +34,4 @@ public class City {
         City city = (City) obj;
         return cityId == city.cityId;
     }
-
-    @Override
-    public int hashCode() {
-        return cityId;
-    }
 }

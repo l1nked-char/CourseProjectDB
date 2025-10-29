@@ -1,15 +1,15 @@
 package app.subd.models;
 
-public class Convenience {
+public class Service {
     private int id;
     private String name;
 
-    public Convenience() {
+    public Service() {
         this.id = 0;
         this.name = "";
     }
 
-    public Convenience(int id, String name) {
+    public Service(int id, String name) {
         this.id = id;
         this.name = name;
     }
@@ -29,7 +29,7 @@ public class Convenience {
     public boolean equals(Object obj) {
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
-        Convenience conv = (Convenience) obj;
-        return id == conv.id;
+        Service s = (Service) obj;
+        return id == s.id;
     }
 }

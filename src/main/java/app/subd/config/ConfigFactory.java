@@ -181,6 +181,73 @@ public class ConfigFactory {
         return new TableConfig("Удобства в комнате", dataLoader, onAdd, onEdit, null, columns, filters, null);
     }
 
+    public static TableConfig createHotelServiceTableConfig(
+            Function<Map<String, Object>, ObservableList<Object>> dataLoader,
+            Callback<Void, Void> onAdd,
+            Callback<Object, Void> onEdit) {
+        List<ColumnConfig> columns = Arrays.asList(
+                new ColumnConfig("serviceName", "Название сервиса", 200),
+                new ColumnConfig("startOfPeriod", "Начало периода", 120),
+                new ColumnConfig("endOfPeriod", "Конец периода", 120),
+                new ColumnConfig("pricePerOne", "Цена", 100),
+                new ColumnConfig("canBeBooked", "Можно забронировать", 150)
+        );
+        List<FilterConfig> filters = List.of(
+                new FilterConfig(
+                        "hotel",
+                        "Отель",
+                        (map) -> ConfigFactory.getHotelsForComboBox()
+                )
+        );
+        return new TableConfig("Сервисы отеля", dataLoader, onAdd, onEdit, null, columns, filters, null);
+    }
+
+    public static TableConfig createServiceHistoryTableConfig(
+            Function<Map<String, Object>, ObservableList<Object>> dataLoader,
+            Callback<Void, Void> onAdd,
+            Callback<Object, Void> onEdit) {
+        List<ColumnConfig> columns = Arrays.asList(
+                new ColumnConfig("id", "ID", 80),
+                new ColumnConfig("historyId", "ID Истории", 150),
+                new ColumnConfig("serviceName", "Сервис", 200),
+                new ColumnConfig("amount", "Количество", 100)
+        );
+        return new TableConfig("История заказов услуг", dataLoader, onAdd, onEdit, null, columns, null, null);
+    }
+    
+    public static UniversalFormConfig<HotelService> createHotelServiceFormConfig(
+            Function<HotelService, Boolean> saveFunction,
+            java.util.function.Consumer<HotelService> onSuccess,
+            UniversalFormConfig.Mode mode) {
+
+        List<FieldConfig> fields = Arrays.asList(
+                new FieldConfig("serviceNameId", "Услуга", FieldConfig.FieldType.COMBOBOX, true,
+                        ConfigFactory::getServicesForComboBox, "Выберите услугу", 200),
+                new FieldConfig("startOfPeriod", "Начало периода", FieldConfig.FieldType.DATE, true),
+                new FieldConfig("endOfPeriod", "Конец периода", FieldConfig.FieldType.DATE, true),
+                new FieldConfig("pricePerOne", "Цена", FieldConfig.FieldType.NUMBER, true),
+                new FieldConfig("canBeBooked", "Можно забронировать", FieldConfig.FieldType.CHECKBOX, true)
+        );
+
+        return new UniversalFormConfig<>("Услуги отеля", fields, saveFunction, onSuccess, mode, HotelService.class);
+    }
+
+    public static UniversalFormConfig<ServiceHistory> createServiceHistoryFormConfig(
+            Function<ServiceHistory, Boolean> saveFunction,
+            java.util.function.Consumer<ServiceHistory> onSuccess,
+            UniversalFormConfig.Mode mode) {
+
+        List<FieldConfig> fields = Arrays.asList(
+                new FieldConfig("historyId", "ID Истории", FieldConfig.FieldType.TEXT, true),
+                new FieldConfig("serviceId", "Услуга", FieldConfig.FieldType.COMBOBOX, true,
+                        ConfigFactory::getServicesForComboBox, "Выберите услугу", 200),
+                new FieldConfig("amount", "Количество", FieldConfig.FieldType.NUMBER, true)
+        );
+
+        return new UniversalFormConfig<>("История заказа услуг", fields, saveFunction, onSuccess, mode, ServiceHistory.class);
+    }
+
+
     public static UniversalFormConfig<Hotel> createHotelFormConfig(
             Function<Hotel, Boolean> saveFunction,
             java.util.function.Consumer<Hotel> onSuccess,
@@ -329,6 +396,22 @@ public class ConfigFactory {
             );
         } catch (Exception e) {
             System.err.println("Ошибка при загрузке удобств для ComboBox: " + e.getMessage());
+            e.printStackTrace();
+            return FXCollections.observableArrayList();
+        }
+    }
+    
+    public static ObservableList<Object> getServicesForComboBox() {
+        try {
+            // Assuming AllDictionaries can fetch services
+            AllDictionaries.initialiseServicesMaps();
+            return FXCollections.observableArrayList(
+                    AllDictionaries.getServicesIdMap().entrySet().stream()
+                            .map(entry -> new Service(entry.getValue(), entry.getKey()))
+                            .collect(Collectors.toList())
+            );
+        } catch (Exception e) {
+            System.err.println("Ошибка при загрузке сервисов для ComboBox: " + e.getMessage());
             e.printStackTrace();
             return FXCollections.observableArrayList();
         }
