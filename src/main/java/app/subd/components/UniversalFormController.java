@@ -10,6 +10,8 @@ import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import net.synedra.validatorfx.Check;
+import net.synedra.validatorfx.Validator;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -36,8 +38,8 @@ public class UniversalFormController<T> implements FormController<T> {
 
     private FormController.Mode controllerMode;
 
+    private final Validator validator = new Validator();
     private final Map<String, Control> formControls = new HashMap<>();
-    private final Map<String, Label> fieldLabels = new HashMap<>();
 
     @Override
     public void setMode(FormController.Mode mode) {
@@ -91,7 +93,6 @@ public class UniversalFormController<T> implements FormController<T> {
 
         formContainer.getChildren().clear();
         formControls.clear();
-        fieldLabels.clear();
 
         GridPane grid = new GridPane();
         grid.setHgap(10);
@@ -99,6 +100,7 @@ public class UniversalFormController<T> implements FormController<T> {
         grid.setStyle("-fx-padding: 10;");
 
         createFormFields(grid);
+        createChecks();
 
         formContainer.getChildren().add(grid);
 
@@ -106,7 +108,7 @@ public class UniversalFormController<T> implements FormController<T> {
             populateForm();
         }
 
-        setupEventListeners();
+        saveButton.disableProperty().bind(validator.containsErrorsProperty());
     }
 
     private void createFormFields(GridPane grid) {
@@ -118,12 +120,88 @@ public class UniversalFormController<T> implements FormController<T> {
             Control control = createControl(fieldConfig);
 
             formControls.put(fieldConfig.getPropertyName(), control);
-            fieldLabels.put(fieldConfig.getPropertyName(), label);
 
             grid.add(label, 0, row);
             grid.add(control, 1, row);
 
             row++;
+        }
+    }
+
+    private void createChecks() {
+        for (FieldConfig fieldConfig : config.getFields()) {
+            if (fieldConfig.isRequired()) {
+                Control control = formControls.get(fieldConfig.getPropertyName());
+                Check check = validator.createCheck();
+                if (control instanceof TextInputControl) {
+                    check.dependsOn("value", ((TextInputControl) control).textProperty());
+                    check.withMethod(c -> {
+                        String text = c.get("value");
+                        if (text == null || text.trim().isEmpty()) {
+                            c.error("Поле не должно быть пустым");
+                        }
+                    });
+                } else if (control instanceof ComboBox) {
+                    check.dependsOn("value", ((ComboBox<?>) control).valueProperty());
+                    check.withMethod(c -> {
+                        if (c.get("value") == null) {
+                            c.error("Необходимо выбрать значение");
+                        }
+                    });
+                } else if (control instanceof DatePicker) {
+                    check.dependsOn("value", ((DatePicker) control).valueProperty());
+                    check.withMethod(c -> {
+                        if (c.get("value") == null) {
+                            c.error("Необходимо выбрать дату");
+                        }
+                    });
+                }
+            }
+        }
+
+        Class<?> entityClass = config.getEntityClass();
+        if (entityClass == Tenant.class) {
+            validator.createCheck()
+                    .dependsOn("email", ((TextField) formControls.get("email")).textProperty())
+                    .withMethod(c -> {
+                        String email = c.get("email");
+                        if (!email.matches("^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$")) {
+                            c.error("Неверный формат email");
+                        }
+                    });
+        } else if (entityClass == HotelService.class) {
+            validator.createCheck()
+                    .dependsOn("start", ((DatePicker) formControls.get("startOfPeriod")).valueProperty())
+                    .dependsOn("end", ((DatePicker) formControls.get("endOfPeriod")).valueProperty())
+                    .withMethod(c -> {
+                        LocalDate start = c.get("start");
+                        LocalDate end = c.get("end");
+                        if (start != null && end != null && !start.isBefore(end)) {
+                            c.error("Начало должно быть раньше конца");
+                        }
+                    });
+            validator.createCheck()
+                    .dependsOn("price", ((TextField) formControls.get("pricePerOne")).textProperty())
+                    .withMethod(c -> {
+                        try {
+                            if (new BigDecimal((String) c.get("price")).compareTo(BigDecimal.ZERO) <= 0) {
+                                c.error("Цена должна быть больше нуля");
+                            }
+                        } catch (Exception e) {
+                            c.error("Неверный формат цены");
+                        }
+                    });
+        } else if (entityClass == TenantHistory.class) {
+            validator.createCheck()
+                    .dependsOn("booking", ((DatePicker) formControls.get("bookingDate")).valueProperty())
+                    .dependsOn("checkin", ((DatePicker) formControls.get("checkInDate")).valueProperty())
+                    .withMethod(c -> {
+                        LocalDate booking = c.get("booking");
+                        LocalDate checkin = c.get("checkin");
+                        if (booking != null && checkin != null && !booking.isBefore(checkin)) {
+                            c.error("Бронь должна быть раньше заезда");
+                        }
+                    });
         }
     }
 
@@ -235,22 +313,14 @@ public class UniversalFormController<T> implements FormController<T> {
             return ((Convenience) item).getName();
         } else if (item instanceof Room room) {
             return room.getHotelInfo() != null ? room.getHotelInfo() : "Комната " + room.getId();
+        } else if (item instanceof SocialStatus) {
+            return ((SocialStatus) item).getName();
+        } else if (item instanceof Service) {
+            return ((Service) item).getName();
+        } else if (item instanceof Tenant) {
+            return ((Tenant) item).getFirstName() + " " + ((Tenant) item).getName() + " " + ((Tenant) item).getPatronymic();
         }
         return item.toString();
-    }
-
-    private void setupEventListeners() {
-        for (Control control : formControls.values()) {
-            if (control instanceof TextInputControl) {
-                ((TextInputControl) control).textProperty().addListener((observable, oldValue, newValue) -> validateForm());
-            } else if (control instanceof ComboBox) {
-                ((ComboBox<?>) control).valueProperty().addListener((observable, oldValue, newValue) -> validateForm());
-            } else if (control instanceof DatePicker) {
-                ((DatePicker) control).valueProperty().addListener((observable, oldValue, newValue) -> validateForm());
-            } else if (control instanceof CheckBox) {
-                ((CheckBox) control).selectedProperty().addListener((observable, oldValue, newValue) -> validateForm());
-            }
-        }
     }
 
     private void populateForm() {
@@ -334,69 +404,25 @@ public class UniversalFormController<T> implements FormController<T> {
                 return item;
             } else if (item instanceof Convenience && ((Convenience) item).getId() == id) {
                 return item;
+            } else if (item instanceof SocialStatus && ((SocialStatus) item).getId() == id) {
+                return item;
+            } else if (item instanceof Service && ((Service) item).getId() == id) {
+                return item;
+            } else if (item instanceof Tenant && ((Tenant) item).getId() == id) {
+                return item;
+            } else if (item instanceof HotelService && ((HotelService) item).getServiceNameId() == id) {
+                return item;
+            } else if (item instanceof ServiceHistory && ((ServiceHistory) item).getServiceId() == id) {
+                return item;
             }
         }
         return null;
     }
 
-    private boolean validateForm() {
-        boolean isValid = true;
-
-        for (FieldConfig fieldConfig : config.getFields()) {
-            if (fieldConfig.isRequired()) {
-                Control control = formControls.get(fieldConfig.getPropertyName());
-                boolean fieldValid = validateField(control);
-
-                if (!fieldValid) {
-                    isValid = false;
-                    fieldLabels.get(fieldConfig.getPropertyName()).setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
-                } else {
-                    fieldLabels.get(fieldConfig.getPropertyName()).setStyle("-fx-text-fill: black; -fx-font-weight: bold;");
-                }
-            }
-        }
-
-        saveButton.setDisable(!isValid);
-
-        if (isValid) {
-            clearStatus(statusLabel);
-        } else {
-            showError(statusLabel, "Заполните все обязательные поля");
-        }
-        return isValid;
-    }
-
-    private boolean validateField(Control control) {
-        switch (control) {
-            case null -> {
-                return false;
-            }
-            case TextInputControl textInputControl -> {
-                String text = textInputControl.getText();
-                return text != null && !text.trim().isEmpty();
-            }
-            case ComboBox comboBox -> {
-                Object value = comboBox.getValue();
-                return value != null;
-            }
-            case DatePicker datePicker -> {
-                LocalDate value = datePicker.getValue();
-                return value != null;
-            }
-            case CheckBox ignored -> {
-                return true;
-            }
-            default -> {
-            }
-        }
-
-        return false;
-    }
-
     @FXML
     private void handleSave() {
-        if (!validateForm()) {
-            showError(statusLabel, "Заполните все обязательные поля");
+        if (validator.containsErrors()) {
+            showError(statusLabel, "Пожалуйста, исправьте ошибки в форме.");
             return;
         }
 
@@ -440,7 +466,7 @@ public class UniversalFormController<T> implements FormController<T> {
     @SuppressWarnings("unchecked")
     private T createNewInstance() throws Exception {
         Class<?> entityClass = config.getEntityClass();
-        return (T) entityClass.newInstance();
+        return (T) entityClass.getConstructor().newInstance();
     }
 
     private void populateEntityFromForm(T entity) throws Exception {
@@ -457,6 +483,27 @@ public class UniversalFormController<T> implements FormController<T> {
                     ((RoomConvenience) entity).setRoomId(selectedRoom.getId());
                 } else {
                     showError(statusLabel, "Ошибка: Комната не выбрана в фильтре.");
+                    return;
+                }
+            }
+        }
+
+        if (entity instanceof HotelService && controllerMode == Mode.ADD) {
+            if (parentController != null) {
+                Map<String, Object> filters = parentController.getCurrentFilterValues();
+                if (filters.get("hotel") instanceof Hotel selectedHotel) {
+                    ((HotelService) entity).setHotelId(selectedHotel.getId());
+                }
+            }
+        }
+
+        if (entity instanceof ServiceHistory && controllerMode == Mode.ADD) {
+            if (parentController != null) {
+                Map<String, Object> filters = parentController.getCurrentFilterValues();
+                if (filters.get("booking") instanceof TenantHistory selectedBooking) {
+                    ((ServiceHistory) entity).setHistoryId(selectedBooking.getBookingNumber());
+                } else {
+                    showError(statusLabel, "Ошибка: Бронирование не выбрано в фильтре.");
                     return;
                 }
             }
@@ -513,12 +560,19 @@ public class UniversalFormController<T> implements FormController<T> {
     private Object convertValueToFieldType(Object value, Class<?> fieldType) {
         if (value == null) return null;
 
+        if (fieldType.isInstance(value)) {
+            return value;
+        }
+
         if (fieldType == String.class) {
             return value.toString();
         } else if (fieldType == Integer.class || fieldType == int.class) {
+            if (value instanceof Double) { // Преобразование из Double в Integer
+                return ((Double) value).intValue();
+            }
             return Integer.parseInt(value.toString());
         } else if (fieldType == BigDecimal.class) {
-            return BigDecimal.valueOf(Double.parseDouble(value.toString()));
+            return new BigDecimal(value.toString());
         } else if (fieldType == Double.class || fieldType == double.class) {
             return Double.parseDouble(value.toString());
         } else if (fieldType == Boolean.class || fieldType == boolean.class) {
@@ -573,6 +627,11 @@ public class UniversalFormController<T> implements FormController<T> {
                     // Игнорируем, если нет метода getCityId
                 }
 
+                // Для TenantHistory
+                if (selectedValue instanceof TenantHistory) {
+                    return ((TenantHistory) selectedValue).getBookingNumber();
+                }
+
                 // Для строковых значений
                 if (selectedValue instanceof String) {
                     return selectedValue;
@@ -609,7 +668,6 @@ public class UniversalFormController<T> implements FormController<T> {
                 ((CheckBox) control).setSelected(false);
             }
         }
-        validateForm();
     }
 
     private void closeWindow() {

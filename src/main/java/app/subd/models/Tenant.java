@@ -15,6 +15,7 @@ public class Tenant {
     public int number;
     public String documentType;
     public String email;
+    public int hotelId;
 
     public Tenant() {
         this.id = 0;
@@ -29,6 +30,7 @@ public class Tenant {
         this.number = 0;
         this.documentType = "";
         this.email = "";
+        this.hotelId = 0;
     }
 
     public Tenant(int id, String firstName, String name, String patronymic, int cityId, int socialStatusId, int series, int number, String document_type, String email) {
@@ -43,6 +45,7 @@ public class Tenant {
         this.number = number;
         this.documentType = document_type;
         this.email = email;
+        this.hotelId = 0;
     }
 
     public int getId() { return id; }
@@ -69,10 +72,16 @@ public class Tenant {
     public void setDocumentType(String documentType) { this.documentType = documentType; }
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
+    public int getHotelId() { return hotelId; }
+    public void setHotelId(int hotelId) { this.hotelId = hotelId; }
+
+    public String getPassport() {
+        return String.format("%04d %06d", series, number);
+    }
 
     @Override
     public String toString() {
-        return firstName + " " + name + " " + patronymic + " " + birthDate;
+        return firstName + " " + name + " " + patronymic + " " + birthDate + " " + email;
     }
 
     @Override

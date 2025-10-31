@@ -21,7 +21,9 @@ import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.stage.Stage;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
+import java.net.URL;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.util.*;
@@ -47,7 +49,7 @@ public class AdminController {
             AllDictionaries.initialiseConveniencesMaps();
             AllDictionaries.initialiseSocialStatusMaps();
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Ошибка инициализации словарей: " + e.getMessage());
         }
 
     }
@@ -123,7 +125,14 @@ public class AdminController {
         tableConfigs.put("Жильцы", ConfigFactory.createTenantTableConfig(
                 this::loadTenantsData,
                 this::handleAddTenant,
-                this::handleEditTenant
+                this::handleEditTenant,
+                true
+        ));
+
+        tableConfigs.put("История заселений", ConfigFactory.createTenantHistoryTableConfig(
+                this::loadTenantHistoryData,
+                this::handleAddTenantHistory,
+                this::handleEditTenantHistory
         ));
     }
 
@@ -142,7 +151,7 @@ public class AdminController {
                 ));
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Ошибка загрузки данных отелей: " + e.getMessage());
         }
         return hotels;
     }
@@ -172,7 +181,7 @@ public class AdminController {
                 ));
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Ошибка загрузки данных о комнатах: " + e.getMessage());
         }
         return rooms;
     }
@@ -190,7 +199,7 @@ public class AdminController {
                 ));
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Ошибка загрузки типов комнат: " + e.getMessage());
         }
         return types;
     }
@@ -207,7 +216,7 @@ public class AdminController {
                 ));
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Ошибка загрузки удобств: " + e.getMessage());
         }
         return conveniences;
     }
@@ -224,7 +233,7 @@ public class AdminController {
                 ));
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Ошибка загрузки городов: " + e.getMessage());
         }
         return cities;
     }
@@ -262,7 +271,7 @@ public class AdminController {
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Ошибка загрузки удобств в номере: " + e.getMessage());
         }
         return roomConveniences;
     }
@@ -291,26 +300,37 @@ public class AdminController {
                 ));
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Ошибка загрузки сервисов отеля: " + e.getMessage());
         }
         return hotelServices;
     }
 
     private ObservableList<Object> loadServiceHistoryData(Map<String, Object> filters) {
         ObservableList<Object> serviceHistory = FXCollections.observableArrayList();
+        // Загружаем данные только если выбрано бронирование
+        if (!(filters.get("booking") instanceof TenantHistory selectedBooking)) {
+            return serviceHistory; // Возвращаем пустой список, если бронирование не выбрано
+        }
+
         try {
+            String bookingNumber = selectedBooking.getBookingNumber();
             Connection connection = Session.getConnection();
-            ResultSet rs = Database_functions.callFunction(connection, "get_all_service_history");
+            // Используем функцию для получения истории по конкретному бронированию
+            ResultSet rs = Database_functions.callFunction(connection, "get_service_history_by_booking", bookingNumber);
+
             while (rs.next()) {
-                serviceHistory.add(new ServiceHistory(
-                        rs.getInt("id"),
-                        rs.getString("history_id"),
-                        rs.getInt("service_id"),
+                int serviceId = rs.getInt("service_id");
+                ServiceHistory historyItem = new ServiceHistory(
+                        rs.getInt("row_id"),
+                        bookingNumber,
+                        serviceId,
                         rs.getInt("amount")
-                ));
+                );
+                historyItem.setServiceName(AllDictionaries.getServicesNameMap().get(serviceId));
+                serviceHistory.add(historyItem);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            showError(statusLabel, "Ошибка загрузки истории услуг: " + e.getMessage());
         }
         return serviceHistory;
     }
@@ -327,7 +347,7 @@ public class AdminController {
                 ));
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Ошибка загрузки социальных статусов: " + e.getMessage());
         }
         return socialStatuses;
     }
@@ -344,7 +364,7 @@ public class AdminController {
                 ));
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Ошибка загрузки услуг: " + e.getMessage());
         }
         return services;
     }
@@ -352,28 +372,64 @@ public class AdminController {
     private ObservableList<Object> loadTenantsData(Map<String, Object> filters) {
         ObservableList<Object> tenants = FXCollections.observableArrayList();
         try {
+            Hotel selectedHotel = (Hotel) filters.get("hotel");
+            if (selectedHotel == null) {
+                return tenants;
+            }
+            int hotelId = selectedHotel.getId();
             Connection connection = Session.getConnection();
-            ResultSet rs = Database_functions.callFunction(connection, "get_all_tenants");
+            ResultSet rs = Database_functions.callFunction(connection, "get_tenants_by_hotel", hotelId);
             while (rs.next()) {
-                Tenant tenant = new Tenant();
-                tenant.setId(rs.getInt("id"));
-                tenant.setFirstName(rs.getString("first_name"));
-                tenant.setName(rs.getString("name"));
-                tenant.setPatronymic(rs.getString("patronymic"));
-                tenant.setCityId(rs.getInt("city_id"));
+                Tenant tenant = new Tenant(
+                        rs.getInt("tenant_id"),
+                        rs.getString("first_name"),
+                        rs.getString("name"),
+                        rs.getString("patronymic"),
+                        rs.getInt("city_id"),
+                        rs.getInt("social_status_id"),
+                        rs.getInt("series"),
+                        rs.getInt("number"),
+                        rs.getString("document_type"),
+                        rs.getString("email")
+                );
                 tenant.setBirthDate(rs.getDate("birth_date").toLocalDate());
-                tenant.setSocialStatusId(rs.getInt("social_status_id"));
-                tenant.setSeries(rs.getInt("series"));
-                tenant.setNumber(rs.getInt("number"));
-                tenant.setDocumentType(rs.getString("document_type"));
-                tenant.setEmail(rs.getString("email"));
+                tenant.setHotelId(hotelId);
                 tenant.setSocialStatus(AllDictionaries.getSocialStatusNameMap().get(tenant.getSocialStatusId()));
                 tenants.add(tenant);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Ошибка загрузки жильцов: " + e.getMessage());
         }
         return tenants;
+    }
+
+    private ObservableList<Object> loadTenantHistoryData(Map<String, Object> filters) {
+        ObservableList<Object> tenantHistory = FXCollections.observableArrayList();
+        try {
+            Hotel selectedHotel = (Hotel) filters.get("hotel");
+            if (selectedHotel == null) {
+                return tenantHistory;
+            }
+            int hotelId = selectedHotel.getId();
+            Connection connection = Session.getConnection();
+            ResultSet rs = Database_functions.callFunction(connection, "get_tenant_history_by_hotel", hotelId);
+            while (rs.next()) {
+                tenantHistory.add(new TenantHistory(
+                        rs.getString("booking_number"),
+                        rs.getInt("room_id"),
+                        rs.getInt("tenant_id"),
+                        rs.getDate("booking_date").toLocalDate(),
+                        rs.getDate("check_in_date").toLocalDate(),
+                        rs.getString("check_in_status"),
+                        rs.getInt("occupied_space"),
+                        rs.getInt("amount_of_nights"),
+                        rs.getBoolean("can_be_split")
+                ));
+            }
+        } catch (Exception e) {
+            System.err.println("Ошибка загрузки истории заселений: " + e.getMessage());
+        }
+        return tenantHistory;
     }
 
     private Void handleAddHotel(Void param) {
@@ -468,6 +524,11 @@ public class AdminController {
                 h -> refreshActiveTable(),
                 UniversalFormConfig.Mode.EDIT
         );
+        UniversalTableController tableController = getActiveTableController();
+        if (tableController != null && tableController.getCurrentFilterValues().containsKey("hotel")) {
+            Hotel selectedHotel = (Hotel) tableController.getCurrentFilterValues().get("hotel");
+            hs.setHotelId(selectedHotel.getId());
+        }
         FormManager.showForm(formConfig, FormController.Mode.EDIT, hs, getActiveTableController());
         return null;
     }
@@ -568,6 +629,30 @@ public class AdminController {
         return null;
     }
 
+    private Void handleAddTenantHistory(Void param) {
+        UniversalFormConfig<TenantHistory> formConfig = ConfigFactory.createTenantHistoryFormConfig(
+                this::saveTenantHistory,
+                th -> refreshActiveTable(),
+                UniversalFormConfig.Mode.ADD
+        );
+        FormManager.showForm(formConfig, FormController.Mode.ADD, null, getActiveTableController());
+        return null;
+    }
+
+    private Void handleEditTenantHistory(Object thObj) {
+        if (!(thObj instanceof TenantHistory th)) {
+            showError(statusLabel, "Неверный тип данных для редактирования истории заселения");
+            return null;
+        }
+        UniversalFormConfig<TenantHistory> formConfig = ConfigFactory.createTenantHistoryFormConfig(
+                this::saveTenantHistory,
+                t -> refreshActiveTable(),
+                UniversalFormConfig.Mode.EDIT
+        );
+        FormManager.showForm(formConfig, FormController.Mode.EDIT, th, getActiveTableController());
+        return null;
+    }
+
 
     private Boolean saveHotel(Hotel hotel) {
         try {
@@ -590,7 +675,6 @@ public class AdminController {
             }
             return true;
         } catch (Exception e) {
-            e.printStackTrace();
             showError(statusLabel, "Ошибка сохранения отеля: " + e.getMessage());
             return false;
         }
@@ -610,7 +694,6 @@ public class AdminController {
             }
             return true;
         } catch (Exception e) {
-            e.printStackTrace();
             showError(statusLabel, "Ошибка сохранения комнаты: " + e.getMessage());
             return false;
         }
@@ -628,7 +711,6 @@ public class AdminController {
             }
             return true;
         } catch (Exception e) {
-            e.printStackTrace();
             showError(statusLabel, "Ошибка сохранения комнаты: " + e.getMessage());
             return false;
         }
@@ -637,19 +719,26 @@ public class AdminController {
     private Boolean saveHotelService(HotelService hotelService) {
         try {
             Connection connection = Session.getConnection();
+            int hotelId = hotelService.getHotelId();
+            if (hotelId == 0) {
+                UniversalTableController tableController = getActiveTableController();
+                if (tableController != null && tableController.getCurrentFilterValues().get("hotel") instanceof Hotel hotel) {
+                    hotelId = hotel.getId();
+                }
+            }
+
             if (hotelService.getId() == 0) {
                 Database_functions.callFunction(connection, "add_hotel_service",
-                        hotelService.getHotelId(), hotelService.getServiceNameId(), hotelService.getStartOfPeriod(),
+                        hotelId, hotelService.getServiceNameId(), hotelService.getStartOfPeriod(),
                         hotelService.getEndOfPeriod(), hotelService.getPricePerOne(), hotelService.getCanBeBooked());
             } else {
                 Database_functions.callFunction(connection, "edit_hotel_service",
-                        hotelService.getId(), hotelService.getHotelId(), hotelService.getServiceNameId(),
+                        hotelService.getId(), hotelId, hotelService.getServiceNameId(),
                         hotelService.getStartOfPeriod(), hotelService.getEndOfPeriod(), hotelService.getPricePerOne(),
                         hotelService.getCanBeBooked());
             }
             return true;
         } catch (Exception e) {
-            e.printStackTrace();
             showError(statusLabel, "Ошибка сохранения сервиса отеля: " + e.getMessage());
             return false;
         }
@@ -658,17 +747,25 @@ public class AdminController {
     private Boolean saveServiceHistory(ServiceHistory serviceHistory) {
         try {
             Connection connection = Session.getConnection();
+            String historyId = serviceHistory.getHistoryId();
+            if (historyId == null || historyId.isEmpty()) {
+                UniversalTableController tableController = getActiveTableController();
+                if (tableController != null && tableController.getCurrentFilterValues().get("booking") instanceof TenantHistory th) {
+                    historyId = th.getBookingNumber();
+                }
+            }
+
             if (serviceHistory.getId() == 0) {
                 Database_functions.callFunction(connection, "add_service_history",
-                        serviceHistory.getHistoryId(), serviceHistory.getServiceId(), serviceHistory.getAmount());
+                        historyId, serviceHistory.getServiceId(), serviceHistory.getAmount());
+                showSuccess(statusLabel, "Заказ услуги успешно добавлен");
             } else {
                 Database_functions.callFunction(connection, "edit_service_history",
-                        serviceHistory.getId(), serviceHistory.getHistoryId(), serviceHistory.getServiceId(),
-                        serviceHistory.getAmount());
+                        serviceHistory.getId(), historyId, serviceHistory.getServiceId(), serviceHistory.getAmount());
+                showSuccess(statusLabel, "Заказ услуги успешно обновлен");
             }
             return true;
         } catch (Exception e) {
-            e.printStackTrace();
             showError(statusLabel, "Ошибка сохранения истории сервиса: " + e.getMessage());
             return false;
         }
@@ -686,7 +783,6 @@ public class AdminController {
             }
             return true;
         } catch (Exception e) {
-            e.printStackTrace();
             showError(statusLabel, "Ошибка сохранения социального статуса: " + e.getMessage());
             return false;
         }
@@ -704,7 +800,6 @@ public class AdminController {
             }
             return true;
         } catch (Exception e) {
-            e.printStackTrace();
             showError(statusLabel, "Ошибка сохранения услуги: " + e.getMessage());
             return false;
         }
@@ -715,17 +810,43 @@ public class AdminController {
             Connection connection = Session.getConnection();
             if (tenant.getId() == 0) {
                 Database_functions.callFunction(connection, "add_tenant",
-                        tenant.getName(), tenant.getSeries(), tenant.getSocialStatusId());
+                        tenant.getFirstName(), tenant.getName(), tenant.getPatronymic(), tenant.getCityId(),
+                        tenant.getBirthDate(), tenant.getSocialStatusId(), tenant.getSeries(), tenant.getNumber(),
+                        tenant.getDocumentType(), tenant.getEmail());
                 showSuccess(statusLabel, "Жилец успешно добавлен");
             } else {
                 Database_functions.callFunction(connection, "edit_tenant",
-                        tenant.getId(), tenant.getName(), tenant.getSeries(), tenant.getSocialStatusId());
+                        tenant.getId(), tenant.getFirstName(), tenant.getName(), tenant.getPatronymic(), tenant.getCityId(),
+                        tenant.getBirthDate(), tenant.getSocialStatusId(), tenant.getSeries(), tenant.getNumber(),
+                        tenant.getDocumentType(), tenant.getEmail());
                 showSuccess(statusLabel, "Жилец успешно обновлен");
             }
             return true;
         } catch (Exception e) {
-            e.printStackTrace();
             showError(statusLabel, "Ошибка сохранения жильца: " + e.getMessage());
+            return false;
+        }
+    }
+
+    private Boolean saveTenantHistory(TenantHistory tenantHistory) {
+        try {
+            Connection connection = Session.getConnection();
+            if (tenantHistory.getBookingNumber().isEmpty()) {
+                Database_functions.callFunction(connection, "add_tenant_history",
+                        tenantHistory.getRoomId(), tenantHistory.getTenantId(), tenantHistory.getBookingDate(),
+                        tenantHistory.getCheckInDate(), tenantHistory.getCheckInStatus(), tenantHistory.getOccupiedSpace(),
+                        tenantHistory.getAmountOfNights(), tenantHistory.isCanBeSplit());
+                showSuccess(statusLabel, "История заселения успешно добавлена");
+            } else {
+                Database_functions.callFunction(connection, "edit_tenant_history",
+                        tenantHistory.getBookingNumber(), tenantHistory.getRoomId(), tenantHistory.getTenantId(),
+                        tenantHistory.getBookingDate(), tenantHistory.getCheckInDate(), tenantHistory.getCheckInStatus(),
+                        tenantHistory.getOccupiedSpace(), tenantHistory.getAmountOfNights(), tenantHistory.isCanBeSplit());
+                showSuccess(statusLabel, "История заселения успешно обновлена");
+            }
+            return true;
+        } catch (Exception e) {
+            showError(statusLabel, "Ошибка сохранения истории заселения: " + e.getMessage());
             return false;
         }
     }
@@ -761,7 +882,12 @@ public class AdminController {
                 return;
             }
 
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/app/subd/tables/universal_table.fxml"));
+            URL resource = getClass().getResource("/app/subd/tables/universal_table.fxml");
+            if (resource == null) {
+                statusLabel.setText("Не удалось найти FXML-файл для таблицы");
+                return;
+            }
+            FXMLLoader loader = new FXMLLoader(resource);
             Parent tableContent = loader.load();
 
             UniversalTableController controller = loader.getController();
@@ -778,8 +904,8 @@ public class AdminController {
             statusLabel.setText("Открыта таблица: " + tableName);
 
         } catch (Exception e) {
-            e.printStackTrace();
             statusLabel.setText("Ошибка загрузки таблицы '" + tableName + "'");
+            System.err.println("Ошибка загрузки таблицы: " + e.getMessage());
         }
     }
 
@@ -799,12 +925,18 @@ public class AdminController {
     @FXML private void showSocialStatusManagement() { openTableTab("Социальные статусы"); }
     @FXML private void showServiceManagement() { openTableTab("Услуги"); }
     @FXML private void showTenantManagement() { openTableTab("Жильцы"); }
+    @FXML private void showTenantHistoryManagement() { openTableTab("История заселений"); }
 
     @FXML
     private void handleLogout() {
         try {
             Session.clear();
-            Parent root = FXMLLoader.load(getClass().getResource("/app/subd/login.fxml"));
+            URL resource = getClass().getResource("/app/subd/login.fxml");
+            if (resource == null) {
+                showError(statusLabel, "Не удалось найти FXML-файл для входа");
+                return;
+            }
+            Parent root = FXMLLoader.load(resource);
             Stage stage = new Stage();
             stage.setTitle("Авторизация");
             stage.setMinWidth(400);
@@ -815,8 +947,8 @@ public class AdminController {
             Stage currentStage = (Stage) mainTabPane.getScene().getWindow();
             currentStage.close();
 
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (IOException e) {
+            showError(statusLabel, "Ошибка выхода: " + e.getMessage());
         }
     }
 
@@ -841,7 +973,6 @@ public class AdminController {
                 ));
             }
         } catch (Exception e) {
-            e.printStackTrace();
             showError(statusLabel, "Ошибка загрузки пользователей: " + e.getMessage());
         }
         return users;
@@ -887,7 +1018,6 @@ public class AdminController {
             refreshActiveTable();
 
         } catch (Exception e) {
-            e.printStackTrace();
             showError(statusLabel, "Ошибка изменения статуса пользователя: " + e.getMessage());
         }
         return null;
@@ -937,7 +1067,6 @@ public class AdminController {
             return true;
 
         } catch (Exception e) {
-            e.printStackTrace();
             showError(statusLabel, "Ошибка сохранения пользователя: " + e.getMessage());
             return false;
         }
@@ -1028,7 +1157,6 @@ public class AdminController {
             }
             return true;
         } catch (Exception e) {
-            e.printStackTrace();
             showError(statusLabel, "Ошибка сохранения удобства: " + e.getMessage());
             return false;
         }
@@ -1046,7 +1174,6 @@ public class AdminController {
             }
             return true;
         } catch (Exception e) {
-            e.printStackTrace();
             showError(statusLabel, "Ошибка сохранения города: " + e.getMessage());
             return false;
         }
@@ -1069,7 +1196,6 @@ public class AdminController {
             }
             return true;
         } catch (Exception e) {
-            e.printStackTrace();
             showError(statusLabel, "Ошибка сохранения удобства в комнате: " + e.getMessage());
             return false;
         }

@@ -173,7 +173,7 @@ public class ConfigFactory {
                 new FilterConfig(
                         "room",
                         "Комната",
-                        (map) -> ConfigFactory.getRoomsByHotelForComboBox(map),
+                        ConfigFactory::getRoomsByHotelForComboBox,
                         "hotel"
                 )
         );
@@ -212,9 +212,22 @@ public class ConfigFactory {
                 new ColumnConfig("serviceName", "Сервис", 200),
                 new ColumnConfig("amount", "Количество", 100)
         );
-        return new TableConfig("История заказов услуг", dataLoader, onAdd, onEdit, null, columns, null, null);
+        List<FilterConfig> filters = List.of(
+                new FilterConfig(
+                        "hotel",
+                        "Отель",
+                        (map) -> ConfigFactory.getHotelsForComboBox()
+                ),
+                new FilterConfig(
+                        "booking",
+                        "Бронирование",
+                        ConfigFactory::getTenantHistoryByHotelForComboBox,
+                        "hotel"
+                )
+        );
+        return new TableConfig("История заказов услуг", dataLoader, onAdd, onEdit, null, columns, filters, null);
     }
-
+    
     public static TableConfig createSocialStatusTableConfig(
             Function<Map<String, Object>, ObservableList<Object>> dataLoader,
             Callback<Void, Void> onAdd,
@@ -268,16 +281,28 @@ public class ConfigFactory {
     public static TableConfig createTenantTableConfig(
             Function<Map<String, Object>, ObservableList<Object>> dataLoader,
             Callback<Void, Void> onAdd,
-            Callback<Object, Void> onEdit) {
+            Callback<Object, Void> onEdit,
+            boolean isAdmin) {
 
         List<ColumnConfig> columns = Arrays.asList(
-                new ColumnConfig("id", "ID", 80),
+                new ColumnConfig("firstName", "Фамилия", 150),
                 new ColumnConfig("name", "Имя", 150),
+                new ColumnConfig("patronymic", "Отчество", 150),
+                new ColumnConfig("birthDate", "Дата рождения", 120),
                 new ColumnConfig("passport", "Паспорт", 150),
-                new ColumnConfig("socialStatus", "Социальный статус", 200)
+                new ColumnConfig("socialStatus", "Социальный статус", 150),
+                new ColumnConfig("email", "Email", 200),
+                new ColumnConfig("documentType", "Тип документа", 150)
         );
 
-        return new TableConfig("Жильцы", dataLoader, onAdd, onEdit, null, columns, null, null);
+        List<FilterConfig> filters = null;
+        if (isAdmin) {
+            filters = List.of(
+                    new FilterConfig("hotel", "Отель", (map) -> ConfigFactory.getHotelsForComboBox())
+            );
+        }
+
+        return new TableConfig("Жильцы", dataLoader, onAdd, onEdit, null, columns, filters, null);
     }
 
     public static UniversalFormConfig<Tenant> createTenantFormConfig(
@@ -286,8 +311,16 @@ public class ConfigFactory {
             UniversalFormConfig.Mode mode) {
 
         List<FieldConfig> fields = Arrays.asList(
+                new FieldConfig("firstName", "Фамилия", FieldConfig.FieldType.TEXT, true, "Введите фамилию"),
                 new FieldConfig("name", "Имя", FieldConfig.FieldType.TEXT, true, "Введите имя"),
-                new FieldConfig("passport", "Паспорт", FieldConfig.FieldType.TEXT, true, "Введите паспорт"),
+                new FieldConfig("patronymic", "Отчество", FieldConfig.FieldType.TEXT, false, "Введите отчество"),
+                new FieldConfig("birthDate", "Дата рождения", FieldConfig.FieldType.DATE, true),
+                new FieldConfig("series", "Серия паспорта", FieldConfig.FieldType.NUMBER, true, "4 цифры"),
+                new FieldConfig("number", "Номер паспорта", FieldConfig.FieldType.NUMBER, true, "6 цифр"),
+                new FieldConfig("documentType", "Тип документа", FieldConfig.FieldType.TEXT, true, "Например, Паспорт РФ"),
+                new FieldConfig("email", "Email", FieldConfig.FieldType.TEXT, false, "example@mail.com"),
+                new FieldConfig("cityId", "Город", FieldConfig.FieldType.COMBOBOX, true,
+                        ConfigFactory::getCitiesForComboBox, "Выберите город", 200),
                 new FieldConfig("socialStatusId", "Социальный статус", FieldConfig.FieldType.COMBOBOX, true,
                         ConfigFactory::getSocialStatusForComboBox, "Выберите социальный статус", 200)
         );
@@ -317,14 +350,22 @@ public class ConfigFactory {
             java.util.function.Consumer<ServiceHistory> onSuccess,
             UniversalFormConfig.Mode mode) {
 
-        List<FieldConfig> fields = Arrays.asList(
-                new FieldConfig("historyId", "ID Истории", FieldConfig.FieldType.COMBOBOX, true,
-                        ConfigFactory::getTenantHistoryForComboBox, "Выберите историю", 200),
+        List<FieldConfig> fields;
+        if (mode == UniversalFormConfig.Mode.ADD) {
+            fields = Arrays.asList(
                 new FieldConfig("serviceId", "Услуга", FieldConfig.FieldType.COMBOBOX, true,
                         ConfigFactory::getServicesForComboBox, "Выберите услугу", 200),
                 new FieldConfig("amount", "Количество", FieldConfig.FieldType.NUMBER, true)
-        );
-
+            );
+        } else { // EDIT
+            fields = Arrays.asList(
+                    new FieldConfig("historyId", "ID Истории", FieldConfig.FieldType.COMBOBOX, true,
+                            ConfigFactory::getTenantHistoryForComboBox, "Выберите историю", 200),
+                    new FieldConfig("serviceId", "Услуга", FieldConfig.FieldType.COMBOBOX, true,
+                            ConfigFactory::getServicesForComboBox, "Выберите услугу", 200),
+                    new FieldConfig("amount", "Количество", FieldConfig.FieldType.NUMBER, true)
+            );
+        }
         return new UniversalFormConfig<>("История заказа услуг", fields, saveFunction, onSuccess, mode, ServiceHistory.class);
     }
 
@@ -413,6 +454,54 @@ public class ConfigFactory {
         return new UniversalFormConfig<>("Удобство в комнате", fields, saveFunction, onSuccess, mode, RoomConvenience.class);
     }
 
+    public static TableConfig createTenantHistoryTableConfig(
+            Function<Map<String, Object>, ObservableList<Object>> dataLoader,
+            Callback<Void, Void> onAdd,
+            Callback<Object, Void> onEdit) {
+
+        List<ColumnConfig> columns = Arrays.asList(
+                new ColumnConfig("bookingNumber", "Номер брони", 150),
+                new ColumnConfig("roomId", "ID комнаты", 100),
+                new ColumnConfig("tenantId", "ID жильца", 100),
+                new ColumnConfig("bookingDate", "Дата брони", 120),
+                new ColumnConfig("checkInDate", "Дата заезда", 120),
+                new ColumnConfig("checkInStatus", "Статус заезда", 120),
+                new ColumnConfig("occupiedSpace", "Занято мест", 100),
+                new ColumnConfig("amountOfNights", "Кол-во ночей", 100),
+                new ColumnConfig("canBeSplit", "Разделяемая", 100)
+        );
+
+        List<FilterConfig> filters = List.of(
+                new FilterConfig(
+                        "hotel",
+                        "Отель",
+                        (map) -> ConfigFactory.getHotelsForComboBox()
+                )
+        );
+
+        return new TableConfig("История заселений", dataLoader, onAdd, onEdit, null, columns, filters, null);
+    }
+
+    public static UniversalFormConfig<TenantHistory> createTenantHistoryFormConfig(
+            Function<TenantHistory, Boolean> saveFunction,
+            java.util.function.Consumer<TenantHistory> onSuccess,
+            UniversalFormConfig.Mode mode) {
+
+        List<FieldConfig> fields = Arrays.asList(
+                new FieldConfig("hotel", "Отель", FieldConfig.FieldType.COMBOBOX, true, ConfigFactory::getHotelsForComboBox, "Выберите отель", 400),
+                new FieldConfig("roomId", "Комната", FieldConfig.FieldType.COMBOBOX, true, ConfigFactory::getRoomsByHotelForComboBox, "Выберите комнату", 200, "hotel"),
+                new FieldConfig("tenantId", "Жилец", FieldConfig.FieldType.COMBOBOX, true, ConfigFactory::getTenantsForComboBox, "Выберите жильца", 400, "hotel"),
+                new FieldConfig("bookingDate", "Дата бронирования", FieldConfig.FieldType.DATE, true),
+                new FieldConfig("checkInDate", "Дата заезда", FieldConfig.FieldType.DATE, true),
+                new FieldConfig("checkInStatus", "Статус заезда", FieldConfig.FieldType.TEXT, true, "Введите статус"),
+                new FieldConfig("occupiedSpace", "Занято мест", FieldConfig.FieldType.NUMBER, true, "Введите количество"),
+                new FieldConfig("amountOfNights", "Количество ночей", FieldConfig.FieldType.NUMBER, true, "Введите количество"),
+                new FieldConfig("canBeSplit", "Разделяемое бронирование", FieldConfig.FieldType.CHECKBOX, true)
+        );
+
+        return new UniversalFormConfig<>("История заселений", fields, saveFunction, onSuccess, mode, TenantHistory.class);
+    }
+
     public static ObservableList<Object> getCitiesForComboBox() {
         try {
             AllDictionaries.initialiseCitiesMaps();
@@ -423,7 +512,6 @@ public class ConfigFactory {
             );
         } catch (Exception e) {
             System.err.println("Ошибка при загрузке городов для ComboBox: " + e.getMessage());
-            e.printStackTrace(); // Для детальной отладки
             return FXCollections.observableArrayList();
         }
     }
@@ -447,7 +535,6 @@ public class ConfigFactory {
             );
         } catch (Exception e) {
             System.err.println("Ошибка при загрузке отелей для ComboBox: " + e.getMessage());
-            e.printStackTrace(); // Для детальной отладки
             return FXCollections.observableArrayList();
         }
     }
@@ -462,7 +549,6 @@ public class ConfigFactory {
             );
         } catch (Exception e) {
             System.err.println("Ошибка при загрузке типов комнат для ComboBox: " + e.getMessage());
-            e.printStackTrace(); // Для детальной отладки
             return FXCollections.observableArrayList();
         }
     }
@@ -477,7 +563,6 @@ public class ConfigFactory {
             );
         } catch (Exception e) {
             System.err.println("Ошибка при загрузке удобств для ComboBox: " + e.getMessage());
-            e.printStackTrace();
             return FXCollections.observableArrayList();
         }
     }
@@ -493,7 +578,6 @@ public class ConfigFactory {
             );
         } catch (Exception e) {
             System.err.println("Ошибка при загрузке сервисов для ComboBox: " + e.getMessage());
-            e.printStackTrace();
             return FXCollections.observableArrayList();
         }
     }
@@ -508,7 +592,6 @@ public class ConfigFactory {
             );
         } catch (Exception e) {
             System.err.println("Ошибка при загрузке социальных статусов для ComboBox: " + e.getMessage());
-            e.printStackTrace();
             return FXCollections.observableArrayList();
         }
     }
@@ -533,12 +616,74 @@ public class ConfigFactory {
             }
         } catch (Exception e) {
             System.err.println("Ошибка при загрузке истории жильцов для ComboBox: " + e.getMessage());
-            e.printStackTrace();
         }
         return tenantHistory;
     }
 
-    public static ObservableList<?> getRoomsByHotelForComboBox(Map<String, Object> currentFilters) {
+    public static ObservableList<Object> getTenantHistoryByHotelForComboBox(Map<String, Object> currentFilters) {
+        ObservableList<Object> tenantHistory = FXCollections.observableArrayList();
+        Object hotelFilterValue = currentFilters.get("hotel");
+        if (!(hotelFilterValue instanceof Hotel selectedHotel)) {
+            return tenantHistory;
+        }
+
+        try {
+            int hotelId = selectedHotel.getId();
+            Connection connection = Session.getConnection();
+            ResultSet rs = Database_functions.callFunction(connection, "get_tenant_history_by_hotel", hotelId);
+            while (rs.next()) {
+                tenantHistory.add(new TenantHistory(
+                        rs.getString("booking_number"),
+                        rs.getInt("room_id"),
+                        rs.getInt("tenant_id"),
+                        rs.getDate("booking_date").toLocalDate(),
+                        rs.getDate("check_in_date").toLocalDate(),
+                        rs.getString("check_in_status"),
+                        rs.getInt("occupied_space"),
+                        rs.getInt("amount_of_nights"),
+                        rs.getBoolean("can_be_split")
+                ));
+            }
+        } catch (Exception e) {
+            System.err.println("Ошибка при загрузке истории жильцов для отеля ID " + selectedHotel.getId() + ": " + e.getMessage());
+        }
+        return tenantHistory;
+    }
+
+    public static ObservableList<Object> getTenantsForComboBox(Map<String, Object> currentFilters) {
+        ObservableList<Object> tenants = FXCollections.observableArrayList();
+        Object hotelFilterValue = currentFilters.get("hotel");
+        if (!(hotelFilterValue instanceof Hotel selectedHotel)) {
+            return tenants;
+        }
+
+        try {
+            int hotelId = selectedHotel.getId();
+            Connection connection = Session.getConnection();
+            ResultSet rs = Database_functions.callFunction(connection, "get_tenants_by_hotel", hotelId);
+            while (rs.next()) {
+                Tenant tenant = new Tenant(
+                        rs.getInt("tenant_id"),
+                        rs.getString("first_name"),
+                        rs.getString("name"),
+                        rs.getString("patronymic"),
+                        rs.getInt("city_id"),
+                        rs.getInt("social_status_id"),
+                        rs.getInt("series"),
+                        rs.getInt("number"),
+                        rs.getString("document_type"),
+                        rs.getString("email")
+                );
+                tenant.setBirthDate(rs.getDate("birth_date").toLocalDate());
+                tenants.add(tenant);
+            }
+        } catch (Exception e) {
+            System.err.println("Ошибка при загрузке жильцов для ComboBox: " + e.getMessage());
+        }
+        return tenants;
+    }
+
+    public static ObservableList<Object> getRoomsByHotelForComboBox(Map<String, Object> currentFilters) {
         ObservableList<Object> rooms = FXCollections.observableArrayList();
         Object hotelFilterValue = currentFilters.get("hotel");
         if (!(hotelFilterValue instanceof Hotel selectedHotel)) {
@@ -564,7 +709,6 @@ public class ConfigFactory {
             }
         } catch (Exception e) {
             System.err.println("Ошибка при загрузке комнат для отеля ID " + selectedHotel.getId() + ": " + e.getMessage());
-            e.printStackTrace();
 
         }
         return rooms;
