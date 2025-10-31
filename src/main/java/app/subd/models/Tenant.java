@@ -10,12 +10,13 @@ public class Tenant {
     public int cityId;
     public LocalDate birthDate;
     public int socialStatusId;
+    public String socialStatus;
     public int series;
     public int number;
     public String documentType;
     public String email;
 
-    Tenant() {
+    public Tenant() {
         this.id = 0;
         this.firstName = "";
         this.name = "";
@@ -23,6 +24,7 @@ public class Tenant {
         this.cityId = 0;
         this.birthDate = null;
         this.socialStatusId = 0;
+        this.socialStatus = "";
         this.series = 0;
         this.number = 0;
         this.documentType = "";
@@ -36,6 +38,7 @@ public class Tenant {
         this.patronymic = patronymic;
         this.cityId = cityId;
         this.socialStatusId = socialStatusId;
+        this.socialStatus = "";
         this.series = series;
         this.number = number;
         this.documentType = document_type;
@@ -56,6 +59,8 @@ public class Tenant {
     public void setBirthDate(LocalDate birthDate) { this.birthDate = birthDate; }
     public int getSocialStatusId() { return socialStatusId; }
     public void setSocialStatusId(int socialStatusId) { this.socialStatusId = socialStatusId; }
+    public String getSocialStatus() { return socialStatus; }
+    public void setSocialStatus(String socialStatus) { this.socialStatus = socialStatus; }
     public int getSeries() { return series; }
     public void setSeries(int series) { this.series = series; }
     public int getNumber() { return number; }

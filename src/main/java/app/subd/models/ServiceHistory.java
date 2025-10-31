@@ -1,11 +1,11 @@
 package app.subd.models;
 
 public class ServiceHistory {
-    public int id;
-    public String historyId;
-    public int serviceId;
-    public int amount;
-    public String serviceName;
+    private int id;
+    private String historyId;
+    private int serviceId;
+    private int amount;
+    private String serviceName;
 
     public ServiceHistory() {
         this.id = 0;

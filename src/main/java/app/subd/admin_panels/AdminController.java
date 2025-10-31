@@ -45,7 +45,7 @@ public class AdminController {
             AllDictionaries.initialiseServicesMaps();
             AllDictionaries.initialiseTypesOfRoomMaps();
             AllDictionaries.initialiseConveniencesMaps();
-            AllDictionaries.initialiseTenantsMaps();
+            AllDictionaries.initialiseSocialStatusMaps();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -106,6 +106,24 @@ public class AdminController {
                 this::loadServiceHistoryData,
                 this::handleAddServiceHistory,
                 this::handleEditServiceHistory
+        ));
+
+        tableConfigs.put("Социальные статусы", ConfigFactory.createSocialStatusTableConfig(
+                this::loadSocialStatusData,
+                this::handleAddSocialStatus,
+                this::handleEditSocialStatus
+        ));
+
+        tableConfigs.put("Услуги", ConfigFactory.createServiceTableConfig(
+                this::loadServicesData,
+                this::handleAddService,
+                this::handleEditService
+        ));
+
+        tableConfigs.put("Жильцы", ConfigFactory.createTenantTableConfig(
+                this::loadTenantsData,
+                this::handleAddTenant,
+                this::handleEditTenant
         ));
     }
 
@@ -297,6 +315,67 @@ public class AdminController {
         return serviceHistory;
     }
 
+    private ObservableList<Object> loadSocialStatusData(Map<String, Object> filters) {
+        ObservableList<Object> socialStatuses = FXCollections.observableArrayList();
+        try {
+            Connection connection = Session.getConnection();
+            ResultSet rs = Database_functions.callFunction(connection, "get_all_social_statuses");
+            while (rs.next()) {
+                socialStatuses.add(new SocialStatus(
+                        rs.getInt("status_id"),
+                        rs.getString("status_name")
+                ));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return socialStatuses;
+    }
+
+    private ObservableList<Object> loadServicesData(Map<String, Object> filters) {
+        ObservableList<Object> services = FXCollections.observableArrayList();
+        try {
+            Connection connection = Session.getConnection();
+            ResultSet rs = Database_functions.callFunction(connection, "get_all_services");
+            while (rs.next()) {
+                services.add(new Service(
+                        rs.getInt("service_name_id"),
+                        rs.getString("service_name")
+                ));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return services;
+    }
+
+    private ObservableList<Object> loadTenantsData(Map<String, Object> filters) {
+        ObservableList<Object> tenants = FXCollections.observableArrayList();
+        try {
+            Connection connection = Session.getConnection();
+            ResultSet rs = Database_functions.callFunction(connection, "get_all_tenants");
+            while (rs.next()) {
+                Tenant tenant = new Tenant();
+                tenant.setId(rs.getInt("id"));
+                tenant.setFirstName(rs.getString("first_name"));
+                tenant.setName(rs.getString("name"));
+                tenant.setPatronymic(rs.getString("patronymic"));
+                tenant.setCityId(rs.getInt("city_id"));
+                tenant.setBirthDate(rs.getDate("birth_date").toLocalDate());
+                tenant.setSocialStatusId(rs.getInt("social_status_id"));
+                tenant.setSeries(rs.getInt("series"));
+                tenant.setNumber(rs.getInt("number"));
+                tenant.setDocumentType(rs.getString("document_type"));
+                tenant.setEmail(rs.getString("email"));
+                tenant.setSocialStatus(AllDictionaries.getSocialStatusNameMap().get(tenant.getSocialStatusId()));
+                tenants.add(tenant);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return tenants;
+    }
+
     private Void handleAddHotel(Void param) {
         UniversalFormConfig<Hotel> formConfig = ConfigFactory.createHotelFormConfig(
                 this::saveHotel,
@@ -417,6 +496,78 @@ public class AdminController {
         return null;
     }
 
+    private Void handleAddSocialStatus(Void param) {
+        UniversalFormConfig<SocialStatus> formConfig = ConfigFactory.createSocialStatusFormConfig(
+                this::saveSocialStatus,
+                ss -> refreshActiveTable(),
+                UniversalFormConfig.Mode.ADD
+        );
+        FormManager.showForm(formConfig, FormController.Mode.ADD, null, getActiveTableController());
+        return null;
+    }
+
+    private Void handleEditSocialStatus(Object ssObj) {
+        if (!(ssObj instanceof SocialStatus ss)) {
+            showError(statusLabel, "Неверный тип данных для редактирования социального статуса");
+            return null;
+        }
+        UniversalFormConfig<SocialStatus> formConfig = ConfigFactory.createSocialStatusFormConfig(
+                this::saveSocialStatus,
+                s -> refreshActiveTable(),
+                UniversalFormConfig.Mode.EDIT
+        );
+        FormManager.showForm(formConfig, FormController.Mode.EDIT, ss, getActiveTableController());
+        return null;
+    }
+
+    private Void handleAddService(Void param) {
+        UniversalFormConfig<Service> formConfig = ConfigFactory.createServiceFormConfig(
+                this::saveService,
+                s -> refreshActiveTable(),
+                UniversalFormConfig.Mode.ADD
+        );
+        FormManager.showForm(formConfig, FormController.Mode.ADD, null, getActiveTableController());
+        return null;
+    }
+
+    private Void handleEditService(Object sObj) {
+        if (!(sObj instanceof Service s)) {
+            showError(statusLabel, "Неверный тип данных для редактирования услуги");
+            return null;
+        }
+        UniversalFormConfig<Service> formConfig = ConfigFactory.createServiceFormConfig(
+                this::saveService,
+                serv -> refreshActiveTable(),
+                UniversalFormConfig.Mode.EDIT
+        );
+        FormManager.showForm(formConfig, FormController.Mode.EDIT, s, getActiveTableController());
+        return null;
+    }
+
+    private Void handleAddTenant(Void param) {
+        UniversalFormConfig<Tenant> formConfig = ConfigFactory.createTenantFormConfig(
+                this::saveTenant,
+                ten -> refreshActiveTable(),
+                UniversalFormConfig.Mode.ADD
+        );
+        FormManager.showForm(formConfig, FormController.Mode.ADD, null, getActiveTableController());
+        return null;
+    }
+
+    private Void handleEditTenant(Object tObj) {
+        if (!(tObj instanceof Tenant t)) {
+            showError(statusLabel, "Неверный тип данных для редактирования жильца");
+            return null;
+        }
+        UniversalFormConfig<Tenant> formConfig = ConfigFactory.createTenantFormConfig(
+                this::saveTenant,
+                ten -> refreshActiveTable(),
+                UniversalFormConfig.Mode.EDIT
+        );
+        FormManager.showForm(formConfig, FormController.Mode.EDIT, t, getActiveTableController());
+        return null;
+    }
+
 
     private Boolean saveHotel(Hotel hotel) {
         try {
@@ -523,6 +674,62 @@ public class AdminController {
         }
     }
 
+    private Boolean saveSocialStatus(SocialStatus socialStatus) {
+        try {
+            Connection connection = Session.getConnection();
+            if (socialStatus.getId() == 0) {
+                Database_functions.callFunction(connection, "add_social_status", socialStatus.getName());
+                showSuccess(statusLabel, "Социальный статус успешно добавлен");
+            } else {
+                Database_functions.callFunction(connection, "edit_social_status", socialStatus.getId(), socialStatus.getName());
+                showSuccess(statusLabel, "Социальный статус успешно обновлен");
+            }
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            showError(statusLabel, "Ошибка сохранения социального статуса: " + e.getMessage());
+            return false;
+        }
+    }
+
+    private Boolean saveService(Service service) {
+        try {
+            Connection connection = Session.getConnection();
+            if (service.getId() == 0) {
+                Database_functions.callFunction(connection, "add_service", service.getName());
+                showSuccess(statusLabel, "Услуга успешно добавлена");
+            } else {
+                Database_functions.callFunction(connection, "edit_service", service.getId(), service.getName());
+                showSuccess(statusLabel, "Услуга успешно обновлена");
+            }
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            showError(statusLabel, "Ошибка сохранения услуги: " + e.getMessage());
+            return false;
+        }
+    }
+
+    private Boolean saveTenant(Tenant tenant) {
+        try {
+            Connection connection = Session.getConnection();
+            if (tenant.getId() == 0) {
+                Database_functions.callFunction(connection, "add_tenant",
+                        tenant.getName(), tenant.getSeries(), tenant.getSocialStatusId());
+                showSuccess(statusLabel, "Жилец успешно добавлен");
+            } else {
+                Database_functions.callFunction(connection, "edit_tenant",
+                        tenant.getId(), tenant.getName(), tenant.getSeries(), tenant.getSocialStatusId());
+                showSuccess(statusLabel, "Жилец успешно обновлен");
+            }
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            showError(statusLabel, "Ошибка сохранения жильца: " + e.getMessage());
+            return false;
+        }
+    }
+
     private void refreshActiveTable() {
         UniversalTableController controller = getActiveTableController();
         if (controller != null) {
@@ -589,6 +796,9 @@ public class AdminController {
     @FXML private void showUserManagement() { openTableTab("Пользователи"); }
     @FXML private void showHotelServiceManagement() { openTableTab("Сервисы отеля"); }
     @FXML private void showServiceHistoryManagement() { openTableTab("История сервисов"); }
+    @FXML private void showSocialStatusManagement() { openTableTab("Социальные статусы"); }
+    @FXML private void showServiceManagement() { openTableTab("Услуги"); }
+    @FXML private void showTenantManagement() { openTableTab("Жильцы"); }
 
     @FXML
     private void handleLogout() {

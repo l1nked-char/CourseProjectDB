@@ -214,6 +214,86 @@ public class ConfigFactory {
         );
         return new TableConfig("История заказов услуг", dataLoader, onAdd, onEdit, null, columns, null, null);
     }
+
+    public static TableConfig createSocialStatusTableConfig(
+            Function<Map<String, Object>, ObservableList<Object>> dataLoader,
+            Callback<Void, Void> onAdd,
+            Callback<Object, Void> onEdit) {
+
+        List<ColumnConfig> columns = Arrays.asList(
+                new ColumnConfig("id", "ID", 80),
+                new ColumnConfig("name", "Название статуса", 200)
+        );
+
+        return new TableConfig("Социальные статусы", dataLoader, onAdd, onEdit, null, columns, null, null);
+    }
+
+    public static UniversalFormConfig<SocialStatus> createSocialStatusFormConfig(
+            Function<SocialStatus, Boolean> saveFunction,
+            java.util.function.Consumer<SocialStatus> onSuccess,
+            UniversalFormConfig.Mode mode) {
+
+        List<FieldConfig> fields = List.of(
+                new FieldConfig("name", "Название статуса", FieldConfig.FieldType.TEXT, true, "Введите название статуса")
+        );
+
+        return new UniversalFormConfig<>("Социальный статус", fields, saveFunction, onSuccess, mode, SocialStatus.class);
+    }
+
+    public static TableConfig createServiceTableConfig(
+            Function<Map<String, Object>, ObservableList<Object>> dataLoader,
+            Callback<Void, Void> onAdd,
+            Callback<Object, Void> onEdit) {
+
+        List<ColumnConfig> columns = Arrays.asList(
+                new ColumnConfig("id", "ID", 80),
+                new ColumnConfig("name", "Название услуги", 200)
+        );
+
+        return new TableConfig("Услуги", dataLoader, onAdd, onEdit, null, columns, null, null);
+    }
+
+    public static UniversalFormConfig<Service> createServiceFormConfig(
+            Function<Service, Boolean> saveFunction,
+            java.util.function.Consumer<Service> onSuccess,
+            UniversalFormConfig.Mode mode) {
+
+        List<FieldConfig> fields = List.of(
+                new FieldConfig("name", "Название услуги", FieldConfig.FieldType.TEXT, true, "Введите название услуги")
+        );
+
+        return new UniversalFormConfig<>("Услуга", fields, saveFunction, onSuccess, mode, Service.class);
+    }
+
+    public static TableConfig createTenantTableConfig(
+            Function<Map<String, Object>, ObservableList<Object>> dataLoader,
+            Callback<Void, Void> onAdd,
+            Callback<Object, Void> onEdit) {
+
+        List<ColumnConfig> columns = Arrays.asList(
+                new ColumnConfig("id", "ID", 80),
+                new ColumnConfig("name", "Имя", 150),
+                new ColumnConfig("passport", "Паспорт", 150),
+                new ColumnConfig("socialStatus", "Социальный статус", 200)
+        );
+
+        return new TableConfig("Жильцы", dataLoader, onAdd, onEdit, null, columns, null, null);
+    }
+
+    public static UniversalFormConfig<Tenant> createTenantFormConfig(
+            Function<Tenant, Boolean> saveFunction,
+            java.util.function.Consumer<Tenant> onSuccess,
+            UniversalFormConfig.Mode mode) {
+
+        List<FieldConfig> fields = Arrays.asList(
+                new FieldConfig("name", "Имя", FieldConfig.FieldType.TEXT, true, "Введите имя"),
+                new FieldConfig("passport", "Паспорт", FieldConfig.FieldType.TEXT, true, "Введите паспорт"),
+                new FieldConfig("socialStatusId", "Социальный статус", FieldConfig.FieldType.COMBOBOX, true,
+                        ConfigFactory::getSocialStatusForComboBox, "Выберите социальный статус", 200)
+        );
+
+        return new UniversalFormConfig<>("Жилец", fields, saveFunction, onSuccess, mode, Tenant.class);
+    }
     
     public static UniversalFormConfig<HotelService> createHotelServiceFormConfig(
             Function<HotelService, Boolean> saveFunction,
@@ -238,7 +318,8 @@ public class ConfigFactory {
             UniversalFormConfig.Mode mode) {
 
         List<FieldConfig> fields = Arrays.asList(
-                new FieldConfig("historyId", "ID Истории", FieldConfig.FieldType.TEXT, true),
+                new FieldConfig("historyId", "ID Истории", FieldConfig.FieldType.COMBOBOX, true,
+                        ConfigFactory::getTenantHistoryForComboBox, "Выберите историю", 200),
                 new FieldConfig("serviceId", "Услуга", FieldConfig.FieldType.COMBOBOX, true,
                         ConfigFactory::getServicesForComboBox, "Выберите услугу", 200),
                 new FieldConfig("amount", "Количество", FieldConfig.FieldType.NUMBER, true)
@@ -415,6 +496,46 @@ public class ConfigFactory {
             e.printStackTrace();
             return FXCollections.observableArrayList();
         }
+    }
+
+    public static ObservableList<Object> getSocialStatusForComboBox() {
+        try {
+            AllDictionaries.initialiseSocialStatusMaps();
+            return FXCollections.observableArrayList(
+                    AllDictionaries.getSocialStatusIdMap().entrySet().stream()
+                            .map(entry -> new SocialStatus(entry.getValue(), entry.getKey()))
+                            .collect(Collectors.toList())
+            );
+        } catch (Exception e) {
+            System.err.println("Ошибка при загрузке социальных статусов для ComboBox: " + e.getMessage());
+            e.printStackTrace();
+            return FXCollections.observableArrayList();
+        }
+    }
+    
+    public static ObservableList<Object> getTenantHistoryForComboBox() {
+        ObservableList<Object> tenantHistory = FXCollections.observableArrayList();
+        try {
+            Connection connection = Session.getConnection();
+            ResultSet rs = Database_functions.callFunction(connection, "get_all_tenant_history");
+            while (rs.next()) {
+                tenantHistory.add(new TenantHistory(
+                        rs.getString("booking_number"),
+                        rs.getInt("room_id"),
+                        rs.getInt("tenant_id"),
+                        rs.getDate("booking_date").toLocalDate(),
+                        rs.getDate("check_in_date").toLocalDate(),
+                        rs.getString("check_in_status"),
+                        rs.getInt("occupied_space"),
+                        rs.getInt("amount_of_nights"),
+                        rs.getBoolean("can_be_split")
+                ));
+            }
+        } catch (Exception e) {
+            System.err.println("Ошибка при загрузке истории жильцов для ComboBox: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return tenantHistory;
     }
 
     public static ObservableList<?> getRoomsByHotelForComboBox(Map<String, Object> currentFilters) {
