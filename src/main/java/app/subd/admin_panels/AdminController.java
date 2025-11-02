@@ -1182,10 +1182,9 @@ public class AdminController {
     private Boolean saveRoomConvenience(RoomConvenience rc) {
         try {
             Connection connection = Session.getConnection();
-            // При добавлении roomId уже установлен в UniversalFormController
             if (rc.getId() == 0) {
                 Database_functions.callFunction(connection, "add_room_convenience",
-                        rc.getRoomId(), rc.getConvNameId(), rc.getPricePerOne(), // rc.getRoomId() теперь содержит правильное значение
+                        rc.getRoomId(), rc.getConvNameId(), rc.getPricePerOne(),
                         rc.getAmount(), rc.getStartDate());
                 showSuccess(statusLabel, "Удобство в комнате успешно добавлено");
             } else {

@@ -359,8 +359,6 @@ public class ConfigFactory {
             );
         } else { // EDIT
             fields = Arrays.asList(
-                    new FieldConfig("historyId", "ID Истории", FieldConfig.FieldType.COMBOBOX, true,
-                            ConfigFactory::getTenantHistoryForComboBox, "Выберите историю", 200),
                     new FieldConfig("serviceId", "Услуга", FieldConfig.FieldType.COMBOBOX, true,
                             ConfigFactory::getServicesForComboBox, "Выберите услугу", 200),
                     new FieldConfig("amount", "Количество", FieldConfig.FieldType.NUMBER, true)
@@ -594,30 +592,6 @@ public class ConfigFactory {
             System.err.println("Ошибка при загрузке социальных статусов для ComboBox: " + e.getMessage());
             return FXCollections.observableArrayList();
         }
-    }
-    
-    public static ObservableList<Object> getTenantHistoryForComboBox() {
-        ObservableList<Object> tenantHistory = FXCollections.observableArrayList();
-        try {
-            Connection connection = Session.getConnection();
-            ResultSet rs = Database_functions.callFunction(connection, "get_all_tenant_history");
-            while (rs.next()) {
-                tenantHistory.add(new TenantHistory(
-                        rs.getString("booking_number"),
-                        rs.getInt("room_id"),
-                        rs.getInt("tenant_id"),
-                        rs.getDate("booking_date").toLocalDate(),
-                        rs.getDate("check_in_date").toLocalDate(),
-                        rs.getString("check_in_status"),
-                        rs.getInt("occupied_space"),
-                        rs.getInt("amount_of_nights"),
-                        rs.getBoolean("can_be_split")
-                ));
-            }
-        } catch (Exception e) {
-            System.err.println("Ошибка при загрузке истории жильцов для ComboBox: " + e.getMessage());
-        }
-        return tenantHistory;
     }
 
     public static ObservableList<Object> getTenantHistoryByHotelForComboBox(Map<String, Object> currentFilters) {
