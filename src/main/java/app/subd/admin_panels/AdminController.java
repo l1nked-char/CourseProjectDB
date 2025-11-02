@@ -307,15 +307,15 @@ public class AdminController {
 
     private ObservableList<Object> loadServiceHistoryData(Map<String, Object> filters) {
         ObservableList<Object> serviceHistory = FXCollections.observableArrayList();
-        // Загружаем данные только если выбрано бронирование
+
         if (!(filters.get("booking") instanceof TenantHistory selectedBooking)) {
-            return serviceHistory; // Возвращаем пустой список, если бронирование не выбрано
+            return serviceHistory;
         }
 
         try {
             String bookingNumber = selectedBooking.getBookingNumber();
             Connection connection = Session.getConnection();
-            // Используем функцию для получения истории по конкретному бронированию
+
             ResultSet rs = Database_functions.callFunction(connection, "get_service_history_by_booking", bookingNumber);
 
             while (rs.next()) {

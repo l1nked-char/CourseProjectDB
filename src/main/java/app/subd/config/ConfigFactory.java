@@ -207,8 +207,7 @@ public class ConfigFactory {
             Callback<Void, Void> onAdd,
             Callback<Object, Void> onEdit) {
         List<ColumnConfig> columns = Arrays.asList(
-                new ColumnConfig("id", "ID", 80),
-                new ColumnConfig("historyId", "ID Истории", 150),
+                new ColumnConfig("historyId", "Номер бронирования", 150),
                 new ColumnConfig("serviceName", "Сервис", 200),
                 new ColumnConfig("amount", "Количество", 100)
         );
@@ -486,7 +485,6 @@ public class ConfigFactory {
             UniversalFormConfig.Mode mode) {
 
         List<FieldConfig> fields = Arrays.asList(
-                new FieldConfig("hotel", "Отель", FieldConfig.FieldType.COMBOBOX, true, ConfigFactory::getHotelsForComboBox, "Выберите отель", 400),
                 new FieldConfig("roomId", "Комната", FieldConfig.FieldType.COMBOBOX, true, ConfigFactory::getRoomsByHotelForComboBox, "Выберите комнату", 200, "hotel"),
                 new FieldConfig("tenantId", "Жилец", FieldConfig.FieldType.COMBOBOX, true, ConfigFactory::getTenantsForComboBox, "Выберите жильца", 400, "hotel"),
                 new FieldConfig("bookingDate", "Дата бронирования", FieldConfig.FieldType.DATE, true),
@@ -634,7 +632,7 @@ public class ConfigFactory {
         try {
             int hotelId = selectedHotel.getId();
             Connection connection = Session.getConnection();
-            ResultSet rs = Database_functions.callFunction(connection, "get_tenants_by_hotel", hotelId);
+            ResultSet rs = Database_functions.callFunction(connection, "get_all_tenants", hotelId);
             while (rs.next()) {
                 Tenant tenant = new Tenant(
                         rs.getInt("tenant_id"),
