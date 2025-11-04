@@ -125,8 +125,7 @@ public class AdminController {
         tableConfigs.put("Жильцы", ConfigFactory.createTenantTableConfig(
                 this::loadTenantsData,
                 this::handleAddTenant,
-                this::handleEditTenant,
-                true
+                this::handleEditTenant
         ));
 
         tableConfigs.put("История заселений", ConfigFactory.createTenantHistoryTableConfig(
@@ -277,32 +276,7 @@ public class AdminController {
     }
     
     private ObservableList<Object> loadHotelServicesData(Map<String, Object> filters) {
-        ObservableList<Object> hotelServices = FXCollections.observableArrayList();
-        try {
-            Hotel selectedHotel = (Hotel) filters.get("hotel");
-            if (selectedHotel == null) {
-                return hotelServices;
-            }
-            int hotelId = selectedHotel.getId();
-            Connection connection = Session.getConnection();
-            ResultSet rs = Database_functions.callFunction(connection, "get_hotel_services_by_hotel", hotelId);
-            while (rs.next()) {
-                int serv_name_id = rs.getInt("service_name_id");
-                hotelServices.add(new HotelService(
-                        rs.getInt("service_id"),
-                        hotelId,
-                        serv_name_id,
-                        rs.getDate("start_of_period").toLocalDate(),
-                        rs.getDate("end_of_period").toLocalDate(),
-                        rs.getBigDecimal("price_per_one"),
-                        rs.getBoolean("can_be_booked"),
-                        AllDictionaries.getServicesNameMap().get(serv_name_id)
-                ));
-            }
-        } catch (Exception e) {
-            System.err.println("Ошибка загрузки сервисов отеля: " + e.getMessage());
-        }
-        return hotelServices;
+        return ConfigFactory.getHotelServicesForComboBox(filters);
     }
 
     private ObservableList<Object> loadServiceHistoryData(Map<String, Object> filters) {
@@ -319,14 +293,15 @@ public class AdminController {
             ResultSet rs = Database_functions.callFunction(connection, "get_service_history_by_booking", bookingNumber);
 
             while (rs.next()) {
-                int serviceId = rs.getInt("service_id");
+                int service_name_id = rs.getInt("service_name_id");
                 ServiceHistory historyItem = new ServiceHistory(
                         rs.getInt("row_id"),
                         bookingNumber,
-                        serviceId,
-                        rs.getInt("amount")
+                        rs.getInt("service_id"),
+                        rs.getInt("amount"),
+                        AllDictionaries.getServicesNameMap().get(service_name_id),
+                        service_name_id
                 );
-                historyItem.setServiceName(AllDictionaries.getServicesNameMap().get(serviceId));
                 serviceHistory.add(historyItem);
             }
         } catch (Exception e) {
@@ -389,7 +364,7 @@ public class AdminController {
                         rs.getInt("social_status_id"),
                         rs.getInt("series"),
                         rs.getInt("number"),
-                        rs.getString("document_type"),
+                        DocumentType.getDocumentType(rs.getString("document_type")),
                         rs.getString("email")
                 );
                 tenant.setBirthDate(rs.getDate("birth_date").toLocalDate());
@@ -414,17 +389,19 @@ public class AdminController {
             Connection connection = Session.getConnection();
             ResultSet rs = Database_functions.callFunction(connection, "get_tenant_history_by_hotel", hotelId);
             while (rs.next()) {
-                tenantHistory.add(new TenantHistory(
+                TenantHistory th = new TenantHistory(
                         rs.getString("booking_number"),
                         rs.getInt("room_id"),
                         rs.getInt("tenant_id"),
                         rs.getDate("booking_date").toLocalDate(),
                         rs.getDate("check_in_date").toLocalDate(),
-                        rs.getString("check_in_status"),
+                        BookingStatus.getBookingStatus(rs.getString("check_in_status")),
                         rs.getInt("occupied_space"),
                         rs.getInt("amount_of_nights"),
                         rs.getBoolean("can_be_split")
-                ));
+                );
+                th.setHotelId(hotelId);
+                tenantHistory.add(th);
             }
         } catch (Exception e) {
             System.err.println("Ошибка загрузки истории заселений: " + e.getMessage());
@@ -649,6 +626,11 @@ public class AdminController {
                 t -> refreshActiveTable(),
                 UniversalFormConfig.Mode.EDIT
         );
+        UniversalTableController tableController = getActiveTableController();
+        if (tableController != null && tableController.getCurrentFilterValues().containsKey("hotel")) {
+            Hotel selectedHotel = (Hotel) tableController.getCurrentFilterValues().get("hotel");
+            th.setHotelId(selectedHotel.getId());
+        }
         FormManager.showForm(formConfig, FormController.Mode.EDIT, th, getActiveTableController());
         return null;
     }
@@ -808,17 +790,23 @@ public class AdminController {
     private Boolean saveTenant(Tenant tenant) {
         try {
             Connection connection = Session.getConnection();
+            String doc_type = tenant.getDocumentType();
+            Integer series = tenant.getSeries();
+            Integer number = tenant.getNumber();
+            if (tenant.getDocumentType().equals("Не указан")) {
+                doc_type = null;
+                series = null;
+                number = null;
+            }
             if (tenant.getId() == 0) {
                 Database_functions.callFunction(connection, "add_tenant",
                         tenant.getFirstName(), tenant.getName(), tenant.getPatronymic(), tenant.getCityId(),
-                        tenant.getBirthDate(), tenant.getSocialStatusId(), tenant.getSeries(), tenant.getNumber(),
-                        tenant.getDocumentType(), tenant.getEmail());
+                        tenant.getBirthDate(), tenant.getSocialStatusId(), tenant.getEmail(), series, number, doc_type);
                 showSuccess(statusLabel, "Жилец успешно добавлен");
             } else {
                 Database_functions.callFunction(connection, "edit_tenant",
                         tenant.getId(), tenant.getFirstName(), tenant.getName(), tenant.getPatronymic(), tenant.getCityId(),
-                        tenant.getBirthDate(), tenant.getSocialStatusId(), tenant.getSeries(), tenant.getNumber(),
-                        tenant.getDocumentType(), tenant.getEmail());
+                        tenant.getBirthDate(), tenant.getSocialStatusId(), tenant.getEmail(), series, number, doc_type);
                 showSuccess(statusLabel, "Жилец успешно обновлен");
             }
             return true;
@@ -833,13 +821,13 @@ public class AdminController {
             Connection connection = Session.getConnection();
             if (tenantHistory.getBookingNumber().isEmpty()) {
                 Database_functions.callFunction(connection, "add_tenant_history",
-                        tenantHistory.getRoomId(), tenantHistory.getTenantId(), tenantHistory.getBookingDate(),
+                        tenantHistory.getTenantId(), tenantHistory.getRoomId(), tenantHistory.getBookingDate(),
                         tenantHistory.getCheckInDate(), tenantHistory.getCheckInStatus(), tenantHistory.getOccupiedSpace(),
                         tenantHistory.getAmountOfNights(), tenantHistory.isCanBeSplit());
                 showSuccess(statusLabel, "История заселения успешно добавлена");
             } else {
                 Database_functions.callFunction(connection, "edit_tenant_history",
-                        tenantHistory.getBookingNumber(), tenantHistory.getRoomId(), tenantHistory.getTenantId(),
+                        tenantHistory.getBookingNumber(), tenantHistory.getTenantId(), tenantHistory.getRoomId(),
                         tenantHistory.getBookingDate(), tenantHistory.getCheckInDate(), tenantHistory.getCheckInStatus(),
                         tenantHistory.getOccupiedSpace(), tenantHistory.getAmountOfNights(), tenantHistory.isCanBeSplit());
                 showSuccess(statusLabel, "История заселения успешно обновлена");

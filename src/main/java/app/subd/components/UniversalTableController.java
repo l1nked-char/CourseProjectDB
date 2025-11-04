@@ -223,12 +223,10 @@ public class UniversalTableController implements AdminController.RefreshableCont
     private void loadData() {
         if (currentConfig != null && currentConfig.getDataLoader() != null) {
             try {
-                originalData = currentConfig.getDataLoader().apply(currentFilterValues);
-                filteredData = new FilteredList<>(originalData);
-                sortedData = new SortedList<>(filteredData);
-                tableView.setItems(sortedData);
+                ObservableList<Object> newData = currentConfig.getDataLoader().apply(currentFilterValues);
+                originalData.clear();
+                originalData.addAll(newData);
                 updateFilter();
-
                 if (statusLabel != null) {
                     showSuccess(statusLabel, "Загружено записей: " + originalData.size());
                 }

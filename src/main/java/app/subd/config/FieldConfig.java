@@ -16,38 +16,45 @@ public class FieldConfig {
     private final String dependentOn;
     private final String promptText;
     private final double width;
+    private final String validationRegex;
 
     public enum FieldType {
-        TEXT, NUMBER, COMBOBOX, DATE, TEXTAREA, CHECKBOX
+        TEXT, NUMBER, COMBOBOX, DATE, TEXTAREA, CHECKBOX, EMAIL
     }
 
     // Existing constructor for simple fields
     public FieldConfig(String propertyName, String label, FieldType type, boolean required) {
-        this(propertyName, label, type, required, null, null, -1, null, null);
+        this(propertyName, label, type, required, null, null, -1, null, null, null);
     }
 
     // Existing constructor for fields with prompt text
     public FieldConfig(String propertyName, String label, FieldType type, boolean required,
                        String promptText) {
-        this(propertyName, label, type, required, null, promptText, -1, null, null);
+        this(propertyName, label, type, required, null, promptText, -1, null, null, null);
+    }
+
+    // Existing constructor for fields with prompt text and validation
+    public FieldConfig(String propertyName, String label, FieldType type, boolean required,
+                       String promptText, String validationRegex) {
+        this(propertyName, label, type, required, null, promptText, -1, null, null, validationRegex);
     }
 
     // Existing constructor for simple ComboBox
     public FieldConfig(String propertyName, String label, FieldType type, boolean required,
                        Supplier<ObservableList<Object>> itemsSupplier, String promptText, double width) {
-        this(propertyName, label, type, required, itemsSupplier, promptText, width, null, null);
+        this(propertyName, label, type, required, itemsSupplier, promptText, width, null, null, null);
     }
 
     // New constructor for dependent ComboBox
     public FieldConfig(String propertyName, String label, FieldType type, boolean required,
                        Function<Map<String, Object>, ObservableList<Object>> itemsLoader, String promptText, double width, String dependentOn) {
-        this(propertyName, label, type, required, null, promptText, width, itemsLoader, dependentOn);
+        this(propertyName, label, type, required, null, promptText, width, itemsLoader, dependentOn, null);
     }
 
     // Private master constructor
     private FieldConfig(String propertyName, String label, FieldType type, boolean required,
                         Supplier<ObservableList<Object>> itemsSupplier, String promptText, double width,
-                        Function<Map<String, Object>, ObservableList<Object>> itemsLoader, String dependentOn) {
+                        Function<Map<String, Object>, ObservableList<Object>> itemsLoader, String dependentOn, String validationRegex) {
         this.propertyName = propertyName;
         this.label = label;
         this.type = type;
@@ -57,6 +64,7 @@ public class FieldConfig {
         this.width = width;
         this.itemsLoader = itemsLoader;
         this.dependentOn = dependentOn;
+        this.validationRegex = validationRegex;
     }
 
     // Getters
@@ -69,4 +77,5 @@ public class FieldConfig {
     public String getDependentOn() { return dependentOn; }
     public String getPromptText() { return promptText; }
     public double getWidth() { return width; }
+    public String getValidationRegex() { return validationRegex; }
 }

@@ -93,8 +93,6 @@ public class ConfigFactory {
             Callback<Object, Void> onEdit) {
 
         List<ColumnConfig> columns = Arrays.asList(
-                new ColumnConfig("id", "ID", 80),
-                new ColumnConfig("hotelInfo", "Отель", 200),
                 new ColumnConfig("roomNumber", "Номер комнаты", 120),
                 new ColumnConfig("maxPeople", "Макс. людей", 100),
                 new ColumnConfig("pricePerPerson", "Цена за человека", 120),
@@ -280,8 +278,7 @@ public class ConfigFactory {
     public static TableConfig createTenantTableConfig(
             Function<Map<String, Object>, ObservableList<Object>> dataLoader,
             Callback<Void, Void> onAdd,
-            Callback<Object, Void> onEdit,
-            boolean isAdmin) {
+            Callback<Object, Void> onEdit) {
 
         List<ColumnConfig> columns = Arrays.asList(
                 new ColumnConfig("firstName", "Фамилия", 150),
@@ -294,14 +291,7 @@ public class ConfigFactory {
                 new ColumnConfig("documentType", "Тип документа", 150)
         );
 
-        List<FilterConfig> filters = null;
-        if (isAdmin) {
-            filters = List.of(
-                    new FilterConfig("hotel", "Отель", (map) -> ConfigFactory.getHotelsForComboBox())
-            );
-        }
-
-        return new TableConfig("Жильцы", dataLoader, onAdd, onEdit, null, columns, filters, null);
+        return new TableConfig("Жильцы", dataLoader, onAdd, onEdit, null, columns, null, null);
     }
 
     public static UniversalFormConfig<Tenant> createTenantFormConfig(
@@ -310,16 +300,17 @@ public class ConfigFactory {
             UniversalFormConfig.Mode mode) {
 
         List<FieldConfig> fields = Arrays.asList(
-                new FieldConfig("firstName", "Фамилия", FieldConfig.FieldType.TEXT, true, "Введите фамилию"),
-                new FieldConfig("name", "Имя", FieldConfig.FieldType.TEXT, true, "Введите имя"),
-                new FieldConfig("patronymic", "Отчество", FieldConfig.FieldType.TEXT, false, "Введите отчество"),
+                new FieldConfig("firstName", "Фамилия", FieldConfig.FieldType.TEXT, true, "Введите фамилию", "^[а-яА-ЯёЁa-zA-Z]+$"),
+                new FieldConfig("name", "Имя", FieldConfig.FieldType.TEXT, true, "Введите имя", "^[а-яА-ЯёЁa-zA-Z]+$"),
+                new FieldConfig("patronymic", "Отчество", FieldConfig.FieldType.TEXT, false, "Введите отчество", "^[а-яА-ЯёЁa-zA-Z]+$"),
                 new FieldConfig("birthDate", "Дата рождения", FieldConfig.FieldType.DATE, true),
-                new FieldConfig("series", "Серия паспорта", FieldConfig.FieldType.NUMBER, true, "4 цифры"),
-                new FieldConfig("number", "Номер паспорта", FieldConfig.FieldType.NUMBER, true, "6 цифр"),
-                new FieldConfig("documentType", "Тип документа", FieldConfig.FieldType.TEXT, true, "Например, Паспорт РФ"),
-                new FieldConfig("email", "Email", FieldConfig.FieldType.TEXT, false, "example@mail.com"),
+                new FieldConfig("documentType", "Тип документа", FieldConfig.FieldType.COMBOBOX, false,
+                        DocumentType::getDocumentTypeValues, "Например, Паспорт РФ", 300),
+                new FieldConfig("series", "Серия паспорта", FieldConfig.FieldType.NUMBER, false, "4 цифры", "\\d{4}"),
+                new FieldConfig("number", "Номер паспорта", FieldConfig.FieldType.NUMBER, false, "6 цифр", "\\d{6}"),
+                new FieldConfig("email", "Email", FieldConfig.FieldType.TEXT, true, "example@mail.com", "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$"),
                 new FieldConfig("cityId", "Город", FieldConfig.FieldType.COMBOBOX, true,
-                        ConfigFactory::getCitiesForComboBox, "Выберите город", 200),
+                        ConfigFactory::getCitiesForComboBox, "Выберите город", 400),
                 new FieldConfig("socialStatusId", "Социальный статус", FieldConfig.FieldType.COMBOBOX, true,
                         ConfigFactory::getSocialStatusForComboBox, "Выберите социальный статус", 200)
         );
@@ -353,13 +344,13 @@ public class ConfigFactory {
         if (mode == UniversalFormConfig.Mode.ADD) {
             fields = Arrays.asList(
                 new FieldConfig("serviceId", "Услуга", FieldConfig.FieldType.COMBOBOX, true,
-                        ConfigFactory::getServicesForComboBox, "Выберите услугу", 200),
+                        ConfigFactory::getHotelServicesForComboBox, "Выберите услугу", 200, "hotel"),
                 new FieldConfig("amount", "Количество", FieldConfig.FieldType.NUMBER, true)
             );
-        } else { // EDIT
+        } else {
             fields = Arrays.asList(
                     new FieldConfig("serviceId", "Услуга", FieldConfig.FieldType.COMBOBOX, true,
-                            ConfigFactory::getServicesForComboBox, "Выберите услугу", 200),
+                            ConfigFactory::getHotelServicesForComboBox, "Выберите услугу", 200, "hotel"),
                     new FieldConfig("amount", "Количество", FieldConfig.FieldType.NUMBER, true)
             );
         }
@@ -390,8 +381,6 @@ public class ConfigFactory {
                 new FieldConfig("roomNumber", "Номер комнаты", FieldConfig.FieldType.NUMBER, true),
                 new FieldConfig("maxPeople", "Максимум людей", FieldConfig.FieldType.NUMBER, true),
                 new FieldConfig("pricePerPerson", "Цена за человека", FieldConfig.FieldType.NUMBER, true),
-                new FieldConfig("hotelId", "Отель", FieldConfig.FieldType.COMBOBOX, true,
-                        ConfigFactory::getHotelsForComboBox, "Выберите отель", 200),
                 new FieldConfig("typeOfRoomId", "Тип комнаты", FieldConfig.FieldType.COMBOBOX, true,
                         ConfigFactory::getRoomTypesForComboBox, "Выберите тип", 200)
         );
@@ -486,10 +475,10 @@ public class ConfigFactory {
 
         List<FieldConfig> fields = Arrays.asList(
                 new FieldConfig("roomId", "Комната", FieldConfig.FieldType.COMBOBOX, true, ConfigFactory::getRoomsByHotelForComboBox, "Выберите комнату", 200, "hotel"),
-                new FieldConfig("tenantId", "Жилец", FieldConfig.FieldType.COMBOBOX, true, ConfigFactory::getTenantsForComboBox, "Выберите жильца", 400, "hotel"),
+                new FieldConfig("tenantId", "Жилец", FieldConfig.FieldType.COMBOBOX, true, ConfigFactory::getTenantsForComboBox, "Выберите жильца", 400),
                 new FieldConfig("bookingDate", "Дата бронирования", FieldConfig.FieldType.DATE, true),
                 new FieldConfig("checkInDate", "Дата заезда", FieldConfig.FieldType.DATE, true),
-                new FieldConfig("checkInStatus", "Статус заезда", FieldConfig.FieldType.TEXT, true, "Введите статус"),
+                new FieldConfig("checkInStatus", "Статус заезда", FieldConfig.FieldType.COMBOBOX, true, BookingStatus::getBookingStatusValues, "Введите статус", 300),
                 new FieldConfig("occupiedSpace", "Занято мест", FieldConfig.FieldType.NUMBER, true, "Введите количество"),
                 new FieldConfig("amountOfNights", "Количество ночей", FieldConfig.FieldType.NUMBER, true, "Введите количество"),
                 new FieldConfig("canBeSplit", "Разделяемое бронирование", FieldConfig.FieldType.CHECKBOX, true)
@@ -578,6 +567,35 @@ public class ConfigFactory {
         }
     }
 
+    public static ObservableList<Object> getHotelServicesForComboBox(Map<String, Object> filters) {
+        ObservableList<Object> hotelServices = FXCollections.observableArrayList();
+        try {
+            Hotel selectedHotel = (Hotel) filters.get("hotel");
+            if (selectedHotel == null) {
+                return hotelServices;
+            }
+            int hotelId = selectedHotel.getId();
+            Connection connection = Session.getConnection();
+            ResultSet rs = Database_functions.callFunction(connection, "get_hotel_services_by_hotel", hotelId);
+            while (rs.next()) {
+                int serv_name_id = rs.getInt("service_name_id");
+                hotelServices.add(new HotelService(
+                        rs.getInt("service_id"),
+                        hotelId,
+                        serv_name_id,
+                        rs.getDate("start_of_period").toLocalDate(),
+                        rs.getDate("end_of_period").toLocalDate(),
+                        rs.getBigDecimal("price_per_one"),
+                        rs.getBoolean("can_be_booked"),
+                        AllDictionaries.getServicesNameMap().get(serv_name_id)
+                ));
+            }
+        } catch (Exception e) {
+            System.err.println("Ошибка загрузки сервисов отеля: " + e.getMessage());
+        }
+        return hotelServices;
+    }
+
     public static ObservableList<Object> getSocialStatusForComboBox() {
         try {
             AllDictionaries.initialiseSocialStatusMaps();
@@ -610,7 +628,7 @@ public class ConfigFactory {
                         rs.getInt("tenant_id"),
                         rs.getDate("booking_date").toLocalDate(),
                         rs.getDate("check_in_date").toLocalDate(),
-                        rs.getString("check_in_status"),
+                        BookingStatus.getBookingStatus(rs.getString("check_in_status")),
                         rs.getInt("occupied_space"),
                         rs.getInt("amount_of_nights"),
                         rs.getBoolean("can_be_split")
@@ -622,17 +640,12 @@ public class ConfigFactory {
         return tenantHistory;
     }
 
-    public static ObservableList<Object> getTenantsForComboBox(Map<String, Object> currentFilters) {
+    public static ObservableList<Object> getTenantsForComboBox() {
         ObservableList<Object> tenants = FXCollections.observableArrayList();
-        Object hotelFilterValue = currentFilters.get("hotel");
-        if (!(hotelFilterValue instanceof Hotel selectedHotel)) {
-            return tenants;
-        }
 
         try {
-            int hotelId = selectedHotel.getId();
             Connection connection = Session.getConnection();
-            ResultSet rs = Database_functions.callFunction(connection, "get_all_tenants", hotelId);
+            ResultSet rs = Database_functions.callFunction(connection, "get_all_tenants");
             while (rs.next()) {
                 Tenant tenant = new Tenant(
                         rs.getInt("tenant_id"),
@@ -643,7 +656,7 @@ public class ConfigFactory {
                         rs.getInt("social_status_id"),
                         rs.getInt("series"),
                         rs.getInt("number"),
-                        rs.getString("document_type"),
+                        DocumentType.getDocumentType(rs.getString("document_type")),
                         rs.getString("email")
                 );
                 tenant.setBirthDate(rs.getDate("birth_date").toLocalDate());

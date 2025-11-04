@@ -8,10 +8,11 @@ public class TenantHistory {
     private int tenantId;
     private LocalDate bookingDate;
     private LocalDate checkInDate;
-    private String checkInStatus;
+    private BookingStatus checkInStatus;
     private int occupiedSpace;
     private int amountOfNights;
     private boolean canBeSplit;
+    private int hotelId;
 
     public TenantHistory() {
         this.bookingNumber = "";
@@ -19,13 +20,13 @@ public class TenantHistory {
         this.tenantId = 0;
         this.bookingDate = null;
         this.checkInDate = null;
-        this.checkInStatus = "";
+        this.checkInStatus = null;
         this.occupiedSpace = 0;
         this.amountOfNights = 0;
         this.canBeSplit = false;
     }
 
-    public TenantHistory(String bookingNumber, int roomId, int tenantId, LocalDate bookingDate, LocalDate checkInDate, String checkInStatus, int occupiedSpace, int amountOfNights, boolean canBeSplit) {
+    public TenantHistory(String bookingNumber, int roomId, int tenantId, LocalDate bookingDate, LocalDate checkInDate, BookingStatus checkInStatus, int occupiedSpace, int amountOfNights, boolean canBeSplit) {
         this.bookingNumber = bookingNumber;
         this.roomId = roomId;
         this.tenantId = tenantId;
@@ -35,6 +36,14 @@ public class TenantHistory {
         this.occupiedSpace = occupiedSpace;
         this.amountOfNights = amountOfNights;
         this.canBeSplit = canBeSplit;
+    }
+
+    public int getHotelId() {
+        return hotelId;
+    }
+
+    public void setHotelId(int hotelId) {
+        this.hotelId = hotelId;
     }
 
     public String getBookingNumber() { return this.bookingNumber; }
@@ -47,8 +56,8 @@ public class TenantHistory {
     public void setBookingDate(LocalDate bookingDate) { this.bookingDate = bookingDate; }
     public LocalDate getCheckInDate() { return checkInDate; }
     public void setCheckInDate(LocalDate checkInDate) { this.checkInDate = checkInDate; }
-    public String getCheckInStatus() { return checkInStatus; }
-    public void setCheckInStatus(String checkInStatus) { this.checkInStatus = checkInStatus; }
+    public String getCheckInStatus() { return checkInStatus.getDescription(); }
+    public void setCheckInStatus(String checkInStatus) { this.checkInStatus = BookingStatus.getBookingStatus(checkInStatus); }
     public int getOccupiedSpace() { return occupiedSpace; }
     public void setOccupiedSpace(int occupiedSpace) { this.occupiedSpace = occupiedSpace; }
     public int getAmountOfNights() { return amountOfNights; }

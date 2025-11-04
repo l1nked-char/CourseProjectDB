@@ -4,13 +4,11 @@ import app.subd.admin_panels.AdminController;
 import app.subd.config.UniversalFormConfig;
 import app.subd.config.FieldConfig;
 import app.subd.models.*;
-import app.subd.tables.AllDictionaries;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-import net.synedra.validatorfx.Check;
 import net.synedra.validatorfx.Validator;
 
 import java.lang.reflect.Field;
@@ -40,6 +38,7 @@ public class UniversalFormController<T> implements FormController<T> {
 
     private final Validator validator = new Validator();
     private final Map<String, Control> formControls = new HashMap<>();
+    private final Map<String, Label> formLabels = new HashMap<>();
 
     @Override
     public void setMode(FormController.Mode mode) {
@@ -93,6 +92,7 @@ public class UniversalFormController<T> implements FormController<T> {
 
         formContainer.getChildren().clear();
         formControls.clear();
+        formLabels.clear();
 
         GridPane grid = new GridPane();
         grid.setHgap(10);
@@ -100,7 +100,6 @@ public class UniversalFormController<T> implements FormController<T> {
         grid.setStyle("-fx-padding: 10;");
 
         createFormFields(grid);
-        createChecks();
 
         formContainer.getChildren().add(grid);
 
@@ -116,6 +115,7 @@ public class UniversalFormController<T> implements FormController<T> {
         for (FieldConfig fieldConfig : config.getFields()) {
             Label label = new Label(fieldConfig.getLabel() + (fieldConfig.isRequired() ? " *" : ""));
             label.setStyle("-fx-font-weight: bold;");
+            formLabels.put(fieldConfig.getPropertyName(), label);
 
             Control control = createControl(fieldConfig);
 
@@ -125,83 +125,6 @@ public class UniversalFormController<T> implements FormController<T> {
             grid.add(control, 1, row);
 
             row++;
-        }
-    }
-
-    private void createChecks() {
-        for (FieldConfig fieldConfig : config.getFields()) {
-            if (fieldConfig.isRequired()) {
-                Control control = formControls.get(fieldConfig.getPropertyName());
-                Check check = validator.createCheck();
-                if (control instanceof TextInputControl) {
-                    check.dependsOn("value", ((TextInputControl) control).textProperty());
-                    check.withMethod(c -> {
-                        String text = c.get("value");
-                        if (text == null || text.trim().isEmpty()) {
-                            c.error("Поле не должно быть пустым");
-                        }
-                    });
-                } else if (control instanceof ComboBox) {
-                    check.dependsOn("value", ((ComboBox<?>) control).valueProperty());
-                    check.withMethod(c -> {
-                        if (c.get("value") == null) {
-                            c.error("Необходимо выбрать значение");
-                        }
-                    });
-                } else if (control instanceof DatePicker) {
-                    check.dependsOn("value", ((DatePicker) control).valueProperty());
-                    check.withMethod(c -> {
-                        if (c.get("value") == null) {
-                            c.error("Необходимо выбрать дату");
-                        }
-                    });
-                }
-            }
-        }
-
-        Class<?> entityClass = config.getEntityClass();
-        if (entityClass == Tenant.class) {
-            validator.createCheck()
-                    .dependsOn("email", ((TextField) formControls.get("email")).textProperty())
-                    .withMethod(c -> {
-                        String email = c.get("email");
-                        if (!email.matches("^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$")) {
-                            c.error("Неверный формат email");
-                        }
-                    });
-        } else if (entityClass == HotelService.class) {
-            validator.createCheck()
-                    .dependsOn("start", ((DatePicker) formControls.get("startOfPeriod")).valueProperty())
-                    .dependsOn("end", ((DatePicker) formControls.get("endOfPeriod")).valueProperty())
-                    .withMethod(c -> {
-                        LocalDate start = c.get("start");
-                        LocalDate end = c.get("end");
-                        if (start != null && end != null && !start.isBefore(end)) {
-                            c.error("Начало должно быть раньше конца");
-                        }
-                    });
-            validator.createCheck()
-                    .dependsOn("price", ((TextField) formControls.get("pricePerOne")).textProperty())
-                    .withMethod(c -> {
-                        try {
-                            if (new BigDecimal((String) c.get("price")).compareTo(BigDecimal.ZERO) <= 0) {
-                                c.error("Цена должна быть больше нуля");
-                            }
-                        } catch (Exception e) {
-                            c.error("Неверный формат цены");
-                        }
-                    });
-        } else if (entityClass == TenantHistory.class) {
-            validator.createCheck()
-                    .dependsOn("booking", ((DatePicker) formControls.get("bookingDate")).valueProperty())
-                    .dependsOn("checkin", ((DatePicker) formControls.get("checkInDate")).valueProperty())
-                    .withMethod(c -> {
-                        LocalDate booking = c.get("booking");
-                        LocalDate checkin = c.get("checkin");
-                        if (booking != null && checkin != null && !booking.isBefore(checkin)) {
-                            c.error("Бронь должна быть раньше заезда");
-                        }
-                    });
         }
     }
 
@@ -236,6 +159,9 @@ public class UniversalFormController<T> implements FormController<T> {
                 ComboBox<Object> comboBox = new ComboBox<>();
                 if (fieldConfig.getItemsSupplier() != null) {
                     comboBox.setItems(fieldConfig.getItemsSupplier().get());
+                }
+                if (fieldConfig.getItemsLoader() != null) {
+                    comboBox.setItems(fieldConfig.getItemsLoader().apply(parentController.getCurrentFilterValues()));
                 }
                 if (fieldConfig.getPromptText() != null) {
                     comboBox.setPromptText(fieldConfig.getPromptText());
@@ -311,14 +237,12 @@ public class UniversalFormController<T> implements FormController<T> {
             return ((TypeOfRoom) item).getName();
         } else if (item instanceof Convenience) {
             return ((Convenience) item).getName();
-        } else if (item instanceof Room room) {
-            return room.getHotelInfo() != null ? room.getHotelInfo() : "Комната " + room.getId();
         } else if (item instanceof SocialStatus) {
             return ((SocialStatus) item).getName();
         } else if (item instanceof Service) {
             return ((Service) item).getName();
-        } else if (item instanceof Tenant) {
-            return ((Tenant) item).getFirstName() + " " + ((Tenant) item).getName() + " " + ((Tenant) item).getPatronymic();
+        } else if (item instanceof DocumentType) {
+            return ((DocumentType) item).getDescription();
         }
         return item.toString();
     }
@@ -344,6 +268,7 @@ public class UniversalFormController<T> implements FormController<T> {
     }
 
 
+    @SuppressWarnings("unchecked")
     private void setControlValue(Control control, Object value) {
         if (control instanceof TextField && value != null) {
             ((TextField) control).setText(value.toString());
@@ -353,11 +278,8 @@ public class UniversalFormController<T> implements FormController<T> {
             Object itemToSelect = null;
 
             if (value instanceof Integer) {
-                // Поиск по ID для обычных сущностей
                 itemToSelect = findItemById(comboBox, (Integer) value);
-            } else if (value instanceof String) {
-                // Поиск по строковому представлению для User.hotelInfo
-                String stringValue = (String) value;
+            } else if (value instanceof String stringValue) {
                 for (Object item : comboBox.getItems()) {
                     String itemDisplay = getItemDisplayText(item);
                     if (stringValue.equals(itemDisplay)) {
@@ -366,7 +288,6 @@ public class UniversalFormController<T> implements FormController<T> {
                     }
                 }
             } else {
-                // Прямое сравнение объектов
                 for (Object item : comboBox.getItems()) {
                     if (value.equals(item)) {
                         itemToSelect = item;
@@ -378,7 +299,6 @@ public class UniversalFormController<T> implements FormController<T> {
             if (itemToSelect != null) {
                 comboBox.getSelectionModel().select(itemToSelect);
             } else {
-                // Если не нашли, устанавливаем значение напрямую (для обратной совместимости)
                 comboBox.setValue(value);
             }
         } else if (control instanceof DatePicker && value != null) {
@@ -400,6 +320,8 @@ public class UniversalFormController<T> implements FormController<T> {
                 return item;
             } else if (item instanceof Hotel && ((Hotel) item).getId() == id) {
                 return item;
+            } else if (item instanceof Room && ((Room) item).getId() == id) {
+                return item;
             } else if (item instanceof TypeOfRoom && ((TypeOfRoom) item).getId().equals(id)) {
                 return item;
             } else if (item instanceof Convenience && ((Convenience) item).getId() == id) {
@@ -410,7 +332,7 @@ public class UniversalFormController<T> implements FormController<T> {
                 return item;
             } else if (item instanceof Tenant && ((Tenant) item).getId() == id) {
                 return item;
-            } else if (item instanceof HotelService && ((HotelService) item).getServiceNameId() == id) {
+            } else if (item instanceof HotelService && ((HotelService) item).getId() == id) {
                 return item;
             } else if (item instanceof ServiceHistory && ((ServiceHistory) item).getServiceId() == id) {
                 return item;
@@ -459,7 +381,6 @@ public class UniversalFormController<T> implements FormController<T> {
 
         } catch (Exception e) {
             showError(statusLabel, "Ошибка сохранения: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 
@@ -473,6 +394,14 @@ public class UniversalFormController<T> implements FormController<T> {
         if (entity instanceof User) {
             populateUserFromForm((User) entity);
             return;
+        }
+
+        if (entity instanceof Room && controllerMode == FormController.Mode.ADD) {
+            Map<String, Object> filters = parentController.getCurrentFilterValues();
+            Object hotelObj = filters.get("hotel");
+            if (hotelObj instanceof Hotel selectedHotel) {
+                ((Room) entity).setHotelId(selectedHotel.getId());
+            }
         }
 
         if (entity instanceof RoomConvenience && controllerMode == Mode.ADD) {
@@ -502,9 +431,6 @@ public class UniversalFormController<T> implements FormController<T> {
                 Map<String, Object> filters = parentController.getCurrentFilterValues();
                 if (filters.get("booking") instanceof TenantHistory selectedBooking) {
                     ((ServiceHistory) entity).setHistoryId(selectedBooking.getBookingNumber());
-                } else {
-                    showError(statusLabel, "Ошибка: Бронирование не выбрано в фильтре.");
-                    return;
                 }
             }
         }
@@ -512,7 +438,7 @@ public class UniversalFormController<T> implements FormController<T> {
         for (FieldConfig fieldConfig : config.getFields()) {
             Control control = formControls.get(fieldConfig.getPropertyName());
             if (control != null) {
-                Object value = getControlValue(control, fieldConfig.getType(), fieldConfig.getPropertyName());
+                Object value = getControlValue(control, fieldConfig.getType());
 
                 Field field = entity.getClass().getDeclaredField(fieldConfig.getPropertyName());
                 field.setAccessible(true);
@@ -528,7 +454,7 @@ public class UniversalFormController<T> implements FormController<T> {
         for (FieldConfig fieldConfig : config.getFields()) {
             Control control = formControls.get(fieldConfig.getPropertyName());
             if (control != null) {
-                Object value = getControlValue(control, fieldConfig.getType(), fieldConfig.getPropertyName());
+                Object value = getControlValue(control, fieldConfig.getType());
 
                 switch (fieldConfig.getPropertyName()) {
                     case "username":
@@ -544,7 +470,7 @@ public class UniversalFormController<T> implements FormController<T> {
                         user.setRole(value != null ? value.toString() : "");
                         break;
                     case "hotelInfo":
-                        user.setHotelInfo(value != null ? AllDictionaries.getHotelsNameMap().get(value) : "");
+                        user.setHotelInfo(value != null ? value.toString() : "");
                         break;
                 }
             }
@@ -567,9 +493,10 @@ public class UniversalFormController<T> implements FormController<T> {
         if (fieldType == String.class) {
             return value.toString();
         } else if (fieldType == Integer.class || fieldType == int.class) {
-            if (value instanceof Double) { // Преобразование из Double в Integer
+            if (value instanceof Double) {
                 return ((Double) value).intValue();
             }
+            if (value.toString().isEmpty()) return null;
             return Integer.parseInt(value.toString());
         } else if (fieldType == BigDecimal.class) {
             return new BigDecimal(value.toString());
@@ -579,12 +506,25 @@ public class UniversalFormController<T> implements FormController<T> {
             return Boolean.parseBoolean(value.toString());
         } else if (fieldType == LocalDate.class) {
             return value;
+        } else if (fieldType == BookingStatus.class) {
+            if (value instanceof BookingStatus) {
+                return value;
+            } else if (value instanceof String) {
+                return BookingStatus.getBookingStatus((String) value);
+            }
+        } else if (fieldType == DocumentType.class) {
+            if (value instanceof DocumentType) {
+                return value;
+            } else if (value instanceof String) {
+                return DocumentType.getDocumentType((String) value);
+            }
         }
 
         return value;
     }
 
-    private Object getControlValue(Control control, FieldConfig.FieldType fieldType, String propertyName) {
+    @SuppressWarnings("unchecked")
+    private Object getControlValue(Control control, FieldConfig.FieldType fieldType) {
         if (control instanceof TextField) {
             String text = ((TextField) control).getText();
             if (fieldType == FieldConfig.FieldType.NUMBER && !text.isEmpty()) {
@@ -595,7 +535,7 @@ public class UniversalFormController<T> implements FormController<T> {
                         return Integer.parseInt(text);
                     }
                 } catch (NumberFormatException e) {
-                    return 0;
+                    return null;
                 }
             }
             return text;
@@ -603,9 +543,7 @@ public class UniversalFormController<T> implements FormController<T> {
             ComboBox<Object> comboBox = (ComboBox<Object>) control;
             Object selectedValue = comboBox.getValue();
 
-            // Универсальная обработка выбранного значения
             if (selectedValue != null) {
-                // Для сущностей с методом getId()
                 try {
                     Method getIdMethod = selectedValue.getClass().getMethod("getId");
                     Object idValue = getIdMethod.invoke(selectedValue);
@@ -613,10 +551,8 @@ public class UniversalFormController<T> implements FormController<T> {
                         return idValue;
                     }
                 } catch (Exception e) {
-                    // Игнорируем, если нет метода getId
+                    // Ignore
                 }
-
-                // Для сущностей с методом getCityId() (City)
                 try {
                     Method getCityIdMethod = selectedValue.getClass().getMethod("getCityId");
                     Object idValue = getCityIdMethod.invoke(selectedValue);
@@ -624,15 +560,13 @@ public class UniversalFormController<T> implements FormController<T> {
                         return idValue;
                     }
                 } catch (Exception e) {
-                    // Игнорируем, если нет метода getCityId
+                    // Ignore
                 }
 
-                // Для TenantHistory
                 if (selectedValue instanceof TenantHistory) {
                     return ((TenantHistory) selectedValue).getBookingNumber();
                 }
 
-                // Для строковых значений
                 if (selectedValue instanceof String) {
                     return selectedValue;
                 }

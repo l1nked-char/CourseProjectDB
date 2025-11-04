@@ -6,6 +6,7 @@ public class ServiceHistory {
     private int serviceId;
     private int amount;
     private String serviceName;
+    private int serviceNameId;
 
     public ServiceHistory() {
         this.id = 0;
@@ -13,14 +14,16 @@ public class ServiceHistory {
         this.serviceId = 0;
         this.amount = 0;
         this.serviceName = "";
+        this.serviceNameId = 0;
     }
 
-    public ServiceHistory(int id, String historyId, int serviceId, int amount) {
+    public ServiceHistory(int id, String historyId, int serviceId, int amount,  String serviceName,  int serviceNameId) {
         this.id = id;
         this.historyId = historyId;
         this.serviceId = serviceId;
         this.amount = amount;
-        this.serviceName = "";
+        this.serviceName = serviceName;
+        this.serviceNameId = serviceNameId;
     }
 
     public int getId() { return id; }
@@ -33,6 +36,8 @@ public class ServiceHistory {
     public void setAmount(int amount) { this.amount = amount; }
     public String getServiceName() { return serviceName; }
     public void setServiceName(String serviceName) { this.serviceName = serviceName; }
+    public int getServiceNameId() { return serviceNameId; }
+    public void setServiceNameId(int serviceNameId) { this.serviceNameId = serviceNameId; }
 
     @Override
     public String toString() {return serviceName; }

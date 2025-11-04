@@ -1,5 +1,7 @@
 package app.subd.models;
 
+import app.subd.tables.AllDictionaries;
+
 import java.math.BigDecimal;
 
 public class Room {
@@ -49,7 +51,10 @@ public class Room {
     public void setId(int id) { this.id = id; }
 
     public int getHotelId() { return hotelId; }
-    public void setHotelId(int hotelId) { this.hotelId = hotelId; }
+    public void setHotelId(int hotelId) {
+        this.hotelId = hotelId;
+        this.hotelInfo = AllDictionaries.getHotelsNameMap().get(hotelId);
+    }
 
     public int getMaxPeople() { return maxPeople; }
     public void setMaxPeople(int maxPeople) { this.maxPeople = maxPeople; }
@@ -61,7 +66,10 @@ public class Room {
     public void setRoomNumber(int roomNumber) { this.roomNumber = roomNumber; }
 
     public Integer getTypeOfRoomId() { return typeOfRoomId; }
-    public void setTypeOfRoomId(Integer typeOfRoomId) { this.typeOfRoomId = typeOfRoomId; }
+    public void setTypeOfRoomId(Integer typeOfRoomId) {
+        this.typeOfRoomId = typeOfRoomId;
+        this.typeOfRoomName = AllDictionaries.getTypesOfRoomNameMap().get(typeOfRoomId);
+    }
 
     public String getHotelInfo() { return hotelInfo; }
     public void setHotelInfo(String hotelInfo) { this.hotelInfo = hotelInfo; }
@@ -70,7 +78,15 @@ public class Room {
     public void setTypeOfRoomName(String typeOfRoomName) { this.typeOfRoomName = typeOfRoomName; }
 
     @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        Room room = (Room) obj;
+        return id == room.id;
+    }
+
+    @Override
     public String toString() {
-        return String.valueOf(roomNumber);
+        return "Комната №" + roomNumber + "(" + typeOfRoomName + ")";
     }
 }

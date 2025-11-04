@@ -11,9 +11,9 @@ public class Tenant {
     public LocalDate birthDate;
     public int socialStatusId;
     public String socialStatus;
-    public int series;
-    public int number;
-    public String documentType;
+    public Integer series;
+    public Integer number;
+    public DocumentType documentType;
     public String email;
     public int hotelId;
 
@@ -28,12 +28,13 @@ public class Tenant {
         this.socialStatus = "";
         this.series = 0;
         this.number = 0;
-        this.documentType = "";
+        this.documentType = null;
         this.email = "";
         this.hotelId = 0;
     }
 
-    public Tenant(int id, String firstName, String name, String patronymic, int cityId, int socialStatusId, int series, int number, String document_type, String email) {
+    public Tenant(int id, String firstName, String name, String patronymic, int cityId, int socialStatusId, Integer series, Integer number, DocumentType document_type, String email) {
+
         this.id = id;
         this.firstName = firstName;
         this.name = name;
@@ -41,9 +42,11 @@ public class Tenant {
         this.cityId = cityId;
         this.socialStatusId = socialStatusId;
         this.socialStatus = "";
-        this.series = series;
-        this.number = number;
         this.documentType = document_type;
+        if (documentType != null) {
+            this.series = series;
+            this.number = number;
+        }
         this.email = email;
         this.hotelId = 0;
     }
@@ -64,18 +67,23 @@ public class Tenant {
     public void setSocialStatusId(int socialStatusId) { this.socialStatusId = socialStatusId; }
     public String getSocialStatus() { return socialStatus; }
     public void setSocialStatus(String socialStatus) { this.socialStatus = socialStatus; }
-    public int getSeries() { return series; }
-    public void setSeries(int series) { this.series = series; }
-    public int getNumber() { return number; }
-    public void setNumber(int number) { this.number = number; }
-    public String getDocumentType() { return documentType; }
-    public void setDocumentType(String documentType) { this.documentType = documentType; }
+    public Integer getSeries() { return series; }
+    public void setSeries(Integer series) { this.series = series; }
+    public Integer getNumber() { return number; }
+    public void setNumber(Integer number) { this.number = number; }
+    public String getDocumentType() { return documentType != null ? documentType.getDescription() : ""; }
+    public void setDocumentType(String documentType) { this.documentType = DocumentType.getDocumentType(documentType); }
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
     public int getHotelId() { return hotelId; }
     public void setHotelId(int hotelId) { this.hotelId = hotelId; }
 
     public String getPassport() {
+        if (documentType == null || documentType == DocumentType.NOT_SPECIFIED) {
+            series = null;
+            number = null;
+            return "";
+        }
         return String.format("%04d %06d", series, number);
     }
 
