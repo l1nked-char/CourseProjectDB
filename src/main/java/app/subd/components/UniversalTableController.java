@@ -218,6 +218,24 @@ public class UniversalTableController implements AdminController.RefreshableCont
             toggleActiveButton.setVisible(currentConfig.getOnToggleActive() != null);
         }
 
+        if (currentConfig != null) {
+            // Для таблицы "Бронирования" меняем текст кнопки добавления
+            if ("Бронирования".equals(currentConfig.getTableName()) && addButton != null) {
+                addButton.setText("Заселение в номер");
+            }
+
+            // Для таблицы "Счета на оплату" меняем текст кнопки добавления
+            if ("Счета на оплату".equals(currentConfig.getTableName()) && addButton != null) {
+                addButton.setText("Формирование счетов");
+            }
+
+            // Настраиваем видимость кнопки бронирования (используем toggleActiveButton для этой цели)
+            if (toggleActiveButton != null && "Бронирования".equals(currentConfig.getTableName())) {
+                toggleActiveButton.setText("Бронирование номера");
+                toggleActiveButton.setVisible(true);
+            }
+        }
+
     }
 
     private void loadData() {

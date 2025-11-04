@@ -9,12 +9,14 @@
             <Menu text="Система">
                 <MenuItem text="Выход" onAction="#handleLogout" />
             </Menu>
-            <Menu text="Бронирования">
-                <MenuItem text="Новое бронирование" onAction="#showNewBooking" />
-                <MenuItem text="Текущие бронирования" onAction="#showCurrentBookings" />
+            <Menu text="Рабочее место">
+                <MenuItem text="Бронирования" onAction="#showBookings" />
+                <MenuItem text="Счета на оплату" onAction="#showPaymentInvoices" />
+                <MenuItem text="Клиенты" onAction="#showClients"/>
             </Menu>
-            <Menu text="Клиенты">
-                <MenuItem text="Регистрация клиента" onAction="#showClientRegistration" />
+            <Menu text="Информация">
+                <MenuItem text="О бронировании" onAction="#showBookingInfo"/>
+                <MenuItem text="О свободных комнатах" onAction="#showRoomsStatus"/>
             </Menu>
         </MenuBar>
     </top>
