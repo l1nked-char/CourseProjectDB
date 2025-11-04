@@ -27,8 +27,8 @@ public class FormManager {
             
             Stage stage = new Stage();
             stage.setTitle(getStageTitle(config, mode));
-            stage.setMinWidth(500);
-            stage.setMinHeight(400);
+            stage.setMinWidth(700);
+            stage.setMinHeight(600);
             stage.setScene(scene);
             stage.initModality(Modality.APPLICATION_MODAL);
             

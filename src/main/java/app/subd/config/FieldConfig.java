@@ -22,6 +22,20 @@ public class FieldConfig {
         TEXT, NUMBER, COMBOBOX, DATE, TEXTAREA, CHECKBOX, EMAIL
     }
 
+    public static FieldConfig createEmailField(String propertyName, String label, boolean required) {
+        return new FieldConfig(propertyName, label, FieldType.EMAIL, required,
+                "example@mail.com", "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$");
+    }
+
+    public static FieldConfig createPhoneField(String propertyName, String label, boolean required) {
+        return new FieldConfig(propertyName, label, FieldType.TEXT, required,
+                "+7 (XXX) XXX-XX-XX", "^\\+7\\s?\\(?\\d{3}\\)?\\s?\\d{3}-?\\d{2}-?\\d{2}$");
+    }
+
+    public static FieldConfig createRequiredNumberField(String propertyName, String label, String promptText) {
+        return new FieldConfig(propertyName, label, FieldType.NUMBER, true, promptText);
+    }
+
     // Existing constructor for simple fields
     public FieldConfig(String propertyName, String label, FieldType type, boolean required) {
         this(propertyName, label, type, required, null, null, -1, null, null, null);

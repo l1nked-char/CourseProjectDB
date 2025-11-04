@@ -4,11 +4,13 @@ import app.subd.admin_panels.AdminController;
 import app.subd.config.UniversalFormConfig;
 import app.subd.config.FieldConfig;
 import app.subd.models.*;
+import javafx.beans.value.ObservableValue;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import net.synedra.validatorfx.Check;
 import net.synedra.validatorfx.Validator;
 
 import java.lang.reflect.Field;
@@ -39,6 +41,7 @@ public class UniversalFormController<T> implements FormController<T> {
     private final Validator validator = new Validator();
     private final Map<String, Control> formControls = new HashMap<>();
     private final Map<String, Label> formLabels = new HashMap<>();
+    private final Map<Control, Check> validationChecks = new HashMap<>();
 
     @Override
     public void setMode(FormController.Mode mode) {
@@ -83,6 +86,10 @@ public class UniversalFormController<T> implements FormController<T> {
     private void initializeForm() {
         if (config == null) return;
 
+        // Очищаем предыдущие проверки валидатора
+        validator.clear();
+        validationChecks.clear();
+
         String title = config.getFormTitle();
         if (controllerMode != null) {
             title = (controllerMode == FormController.Mode.ADD ? "Добавление" : "Редактирование") +
@@ -107,25 +114,69 @@ public class UniversalFormController<T> implements FormController<T> {
             populateForm();
         }
 
+        // Биндим кнопку сохранения к состоянию валидатора
         saveButton.disableProperty().bind(validator.containsErrorsProperty());
+
+        // Настраиваем визуальное отображение ошибок
+        setupValidationVisuals();
     }
 
-    private void createFormFields(GridPane grid) {
-        int row = 0;
-        for (FieldConfig fieldConfig : config.getFields()) {
-            Label label = new Label(fieldConfig.getLabel() + (fieldConfig.isRequired() ? " *" : ""));
-            label.setStyle("-fx-font-weight: bold;");
-            formLabels.put(fieldConfig.getPropertyName(), label);
+    // Новая упрощенная система визуализации ошибок
+    private void setupValidationVisuals() {
+        // Слушаем изменения результатов валидации
+        validator.validationResultProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue == null) return;
 
-            Control control = createControl(fieldConfig);
+            // Сбрасываем стили для всех контролов
+            formControls.values().forEach(control -> control.setStyle(""));
 
-            formControls.put(fieldConfig.getPropertyName(), control);
+            // Для каждого сообщения об ошибке находим соответствующий контрол и подсвечиваем его
+            newValue.getMessages().forEach(message -> {
+                // Ищем контрол, к которому относится это сообщение об ошибке
+                validationChecks.entrySet().stream()
+                        .filter(entry -> {
+                            // Проверяем, относится ли это сообщение к данной проверке
+                            // Это упрощенный подход - мы предполагаем, что каждая проверка связана с одним контролом
+                            Check check = entry.getValue();
+                            // Проверяем, содержит ли текст ошибки информацию о поле
+                            String errorText = message.getText();
+                            String fieldName = getFieldNameFromError(errorText);
 
-            grid.add(label, 0, row);
-            grid.add(control, 1, row);
+                            if (fieldName != null) {
+                                // Если можем определить поле по тексту ошибки
+                                FieldConfig fieldConfig = config.getFields().stream()
+                                        .filter(f -> f.getLabel().contains(fieldName))
+                                        .findFirst()
+                                        .orElse(null);
+                                if (fieldConfig != null) {
+                                    Control expectedControl = formControls.get(fieldConfig.getPropertyName());
+                                    return expectedControl != null && expectedControl.equals(entry.getKey());
+                                }
+                            }
 
-            row++;
+                            // Если не можем определить по тексту, используем эвристику:
+                            // считаем, что проверка связана с контролом, если они в одной паре
+                            return true;
+                        })
+                        .findFirst()
+                        .ifPresent(entry -> {
+                            // Подсвечиваем контрол с ошибкой
+                            Control errorControl = entry.getKey();
+                            errorControl.setStyle("-fx-border-color: #d9534f; -fx-border-width: 1.5px;");
+                        });
+            });
+        });
+    }
+
+    // Вспомогательный метод для извлечения имени поля из текста ошибки
+    private String getFieldNameFromError(String errorText) {
+        if (errorText.contains("'")) {
+            String[] parts = errorText.split("'");
+            if (parts.length >= 2) {
+                return parts[1]; // Часть между кавычками - это имя поля
+            }
         }
+        return null;
     }
 
     private Control createControl(FieldConfig fieldConfig) {
@@ -612,4 +663,126 @@ public class UniversalFormController<T> implements FormController<T> {
             stage.close();
         }
     }
+
+    private void createFormFields(GridPane grid) {
+        int row = 0;
+        for (FieldConfig fieldConfig : config.getFields()) {
+            Label label = new Label(fieldConfig.getLabel() + (fieldConfig.isRequired() ? " *" : ""));
+            label.setStyle("-fx-font-weight: bold;");
+            formLabels.put(fieldConfig.getPropertyName(), label);
+
+            Control control = createControl(fieldConfig);
+
+            formControls.put(fieldConfig.getPropertyName(), control);
+
+            grid.add(label, 0, row);
+            grid.add(control, 1, row);
+
+            // Добавляем валидацию для поля
+            createFieldValidation(fieldConfig, control);
+
+            row++;
+        }
+    }
+
+    private void createFieldValidation(FieldConfig fieldConfig, Control control) {
+        Check check = validator.createCheck();
+
+        // Настраиваем зависимость от значения контрола
+        ObservableValue<?> observableValue = getObservableValue(control);
+        if (observableValue != null) {
+            check.dependsOn(fieldConfig.getPropertyName(), observableValue);
+        }
+
+        // Настраиваем проверки в зависимости от типа поля
+        configureValidationRules(check, fieldConfig, control);
+
+        // Декорируем контрол
+        check.decorates(control);
+        check.immediate();
+
+        // Сохраняем проверку для последующего использования
+        validationChecks.put(control, check);
+    }
+
+    private void configureValidationRules(Check check, FieldConfig fieldConfig, Control control) {
+        check.withMethod(context -> {
+            Object value = context.get(fieldConfig.getPropertyName());
+            boolean hasError = false;
+            String errorMessage = "";
+
+            // Проверка обязательности
+            if (fieldConfig.isRequired()) {
+                if (value == null ||
+                        (value instanceof String && ((String) value).trim().isEmpty()) ||
+                        (value instanceof Number && ((Number) value).doubleValue() == 0)) {
+                    hasError = true;
+                    errorMessage = "Поле '" + fieldConfig.getLabel() + "' обязательно для заполнения";
+                }
+            }
+
+            // Проверка по регулярному выражению
+            if (!hasError && fieldConfig.getValidationRegex() != null && value instanceof String text) {
+                if (!text.trim().isEmpty() && !text.matches(fieldConfig.getValidationRegex())) {
+                    hasError = true;
+                    errorMessage = "Некорректный формат для поля '" + fieldConfig.getLabel() + "'";
+                }
+            }
+
+            // Специфичные проверки по типу поля
+            if (!hasError) {
+                switch (fieldConfig.getType()) {
+                    case EMAIL:
+                        if (value instanceof String email && !email.trim().isEmpty()) {
+                            String emailRegex = "^[A-Za-z0-9+_.-]+@(.+)$";
+                            if (!email.matches(emailRegex)) {
+                                hasError = true;
+                                errorMessage = "Некорректный формат email";
+                            }
+                        }
+                        break;
+                    case NUMBER:
+                        if (value instanceof String text && !text.trim().isEmpty()) {
+                            try {
+                                Double.parseDouble(text);
+                            } catch (NumberFormatException e) {
+                                hasError = true;
+                                errorMessage = "Введите корректное число";
+                            }
+                        }
+                        break;
+                    case COMBOBOX:
+                        if (fieldConfig.isRequired() && value == null) {
+                            hasError = true;
+                            errorMessage = "Выберите значение из списка";
+                        }
+                        break;
+                    case DATE:
+                        if (fieldConfig.isRequired() && value == null) {
+                            hasError = true;
+                            errorMessage = "Выберите дату";
+                        }
+                        break;
+                }
+            }
+
+            if (hasError) {
+                context.error(errorMessage);
+            }
+        });
+    }
+
+    private ObservableValue<?> getObservableValue(Control control) {
+        if (control instanceof TextInputControl) {
+            return ((TextInputControl) control).textProperty();
+        } else if (control instanceof ComboBox) {
+            return ((ComboBox<?>) control).valueProperty();
+        } else if (control instanceof DatePicker) {
+            return ((DatePicker) control).valueProperty();
+        } else if (control instanceof CheckBox) {
+            return ((CheckBox) control).selectedProperty();
+        }
+        return null;
+    }
+
 }
