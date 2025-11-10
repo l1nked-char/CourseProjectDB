@@ -5,7 +5,7 @@ from datetime import date, timedelta, datetime
 
 # Настройки подключения к БД
 DB_CONFIG = {
-    'host': 'localhost',
+    'host': '192.168.50.82',
     'database': 'CourseProject2',
     'user': 'postgres',
     'password': '1357920_egor',
@@ -291,8 +291,8 @@ def generate_tenants_history(conn, count=200):
             tenant_id = random.choice(tenant_ids)
 
             # Определяем возможный диапазон дат для бронирования (последние 2 года)
-            end_date = date.today()
-            start_date = end_date - timedelta(days=730)  # 2 года назад
+            start_date = date.today()
+            end_date = start_date + timedelta(days=730)  # 2 года назад
 
             # Пытаемся найти свободный интервал для бронирования
             max_attempts = 50
@@ -300,7 +300,7 @@ def generate_tenants_history(conn, count=200):
                 # Генерируем случайную дату заезда
                 check_in_date = fake.date_between_dates(
                     date_start=start_date,
-                    date_end=end_date - timedelta(days=1)
+                    date_end=end_date + timedelta(days=1)
                 )
 
                 # Генерируем количество ночей (от 1 до 14)
@@ -344,7 +344,7 @@ def generate_tenants_history(conn, count=200):
                     cur.execute("""
                                 INSERT INTO tenants_history
                                 (room_id, booking_date, check_in_date, check_in_status,
-                                 occupied_space, amount_of_nights, can_be_split, tenant_id, вooking_number)
+                                 occupied_space, amount_of_nights, can_be_split, tenant_id, booking_number)
                                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                                 """, (room_id, booking_date, check_in_date, status, occupied_space,
                                       nights, can_be_split, tenant_id, booking_number))
@@ -365,7 +365,7 @@ def generate_tenants_history(conn, count=200):
 def generate_services_history(conn, count=300):
     """Генерация истории услуг"""
     with conn.cursor() as cur:
-        cur.execute("SELECT вooking_number FROM tenants_history")
+        cur.execute("SELECT booking_number FROM tenants_history")
         booking_numbers = [row[0] for row in cur.fetchall()]
 
         cur.execute("SELECT service_id FROM hotel_services")
@@ -425,7 +425,7 @@ def main():
         generate_room_conveniences(conn)
         generate_hotel_services(conn)
         generate_tenants(conn, count=150)
-        generate_tenants_history(conn, count=250)
+        generate_tenants_history(conn, count=1000)
         generate_services_history(conn, count=400)
         generate_users(conn, count=8)
 

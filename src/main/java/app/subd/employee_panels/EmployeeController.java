@@ -23,6 +23,7 @@ import javafx.stage.Stage;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -313,16 +314,33 @@ public class EmployeeController {
         ObservableList<Object> availableRooms = FXCollections.observableArrayList();
         try {
             Connection connection = Session.getConnection();
-            ResultSet rs = Database_functions.callFunction(connection, "get_available_rooms_by_hotel", currentHotelId);
+            ResultSet rs;
+
+            LocalDate checkInDate = (LocalDate) filters.get("checkInDate");
+            LocalDate checkOutDate = (LocalDate) filters.get("checkOutDate");
+
+            if (checkInDate == null || checkOutDate == null) {
+                // Если даты не указаны, получаем текущий статус комнат
+                rs = Database_functions.callFunction(connection, "get_current_room_statuses_view", currentHotelId);
+            } else {
+                // Иначе получаем статус на заданный период
+                rs = Database_functions.callFunction(connection, "get_rooms_statuses_on_period",
+                        currentHotelId, checkInDate, checkOutDate);
+            }
 
             while (rs.next()) {
+                // Адаптируем данные из запроса к модели AvailableRoom
+                String status = rs.getString("status");
+                boolean isAvailable = !status.equals("занят");
+
+                // В SQL-запросах используется price_per_person, а в модели - pricePerNight. Приводим в соответствие.
                 AvailableRoom room = new AvailableRoom(
                         rs.getInt("room_id"),
                         rs.getInt("room_number"),
-                        rs.getString("room_type"),
+                        rs.getString("room_type_name"),
                         rs.getInt("max_people"),
-                        rs.getBigDecimal("price_per_night"),
-                        rs.getBoolean("is_available")
+                        rs.getBigDecimal("price_per_person"), // Используем price_per_person из запроса
+                        isAvailable
                 );
                 availableRooms.add(room);
             }

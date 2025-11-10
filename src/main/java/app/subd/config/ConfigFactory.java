@@ -780,7 +780,13 @@ public class ConfigFactory {
                 new ColumnConfig("available", "Доступна", 100)
         );
 
-        return new TableConfig("Свободные комнаты", dataLoader, null, null, null, columns, null, null);
+        // Добавляем фильтры для дат заезда и выезда
+        List<FilterConfig> filters = Arrays.asList(
+                new FilterConfig("checkInDate", "Дата заезда", FilterConfig.FilterType.DATE, true),
+                new FilterConfig("checkOutDate", "Дата выезда", FilterConfig.FilterType.DATE, true)
+        );
+
+        return new TableConfig("Свободные комнаты", dataLoader, null, null, null, columns, filters, null);
     }
 
     // Формы для сотрудника
@@ -910,7 +916,6 @@ public class ConfigFactory {
         return new TableConfig("Счета на оплату", dataLoader, onGenerateInvoices, onEdit, null, columns, null, null);
     }
 
-    // Конфигурация для формы заселения (без предварительного бронирования)
     public static UniversalFormConfig<TenantHistory> createCheckInFormConfig(
             Function<TenantHistory, Boolean> saveFunction,
             java.util.function.Consumer<TenantHistory> onSuccess,
@@ -939,7 +944,6 @@ public class ConfigFactory {
         return new UniversalFormConfig<>("Заселение в номер", fields, saveFunction, onSuccess, mode, TenantHistory.class);
     }
 
-    // Конфигурация для формы бронирования
     public static UniversalFormConfig<TenantHistory> createBookingFormConfig(
             Function<TenantHistory, Boolean> saveFunction,
             java.util.function.Consumer<TenantHistory> onSuccess,

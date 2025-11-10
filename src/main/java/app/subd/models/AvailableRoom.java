@@ -10,12 +10,12 @@ public class AvailableRoom {
     private BigDecimal pricePerNight;
     private boolean isAvailable;
 
-    AvailableRoom() {
+    public AvailableRoom() {
         this.roomId = 0;
         this.roomNumber = 0;
         this.roomType = "";
         this.maxPeople = 0;
-        this.pricePerNight = null;
+        this.pricePerNight = BigDecimal.ZERO;
         this.isAvailable = false;
     }
 

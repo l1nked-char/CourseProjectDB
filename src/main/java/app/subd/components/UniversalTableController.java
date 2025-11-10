@@ -10,6 +10,7 @@ import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
 import javafx.fxml.FXML;
+import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.VBox;
@@ -36,7 +37,7 @@ public class UniversalTableController implements AdminController.RefreshableCont
     private ObservableList<Object> originalData;
     private FilteredList<Object> filteredData;
     private SortedList<Object> sortedData;
-    private final Map<String, ComboBox<Object>> activeFilters = new HashMap<>();
+    private Map<String, Node> activeFilterControls = new HashMap<>();
     private final Map<String, Object> currentFilterValues = new HashMap<>();
     private final Map<String, FilterConfig> filterConfigs = new HashMap<>();
 
@@ -64,13 +65,14 @@ public class UniversalTableController implements AdminController.RefreshableCont
     private void clearPreviousConfiguration() {
         tableView.getColumns().clear();
         filtersContainer.getChildren().clear();
-        activeFilters.clear();
+        activeFilterControls.clear();
         currentFilterValues.clear();
+        filterConfigs.clear();
         if (searchField != null) searchField.clear();
     }
 
     private void setupTable() {
-        originalData = javafx.collections.FXCollections.observableArrayList();
+        originalData = FXCollections.observableArrayList();
         filteredData = new FilteredList<>(originalData);
         sortedData = new SortedList<>(filteredData);
         tableView.setItems(sortedData);
@@ -102,42 +104,84 @@ public class UniversalTableController implements AdminController.RefreshableCont
         VBox filterBox = new VBox(5);
         Label label = new Label(filterConfig.getLabel());
 
-        ComboBox<Object> comboBox = new ComboBox<>();
-        comboBox.setPromptText("Выберите...");
+        Node control;
 
-        // Инициализируем комбобокс с текущими значениями фильтров
-        updateComboBoxItems(comboBox, filterConfig);
+        switch (filterConfig.getFilterType()) {
+            case COMBOBOX:
+                ComboBox<Object> comboBox = new ComboBox<>();
+                comboBox.setPromptText("Выберите...");
+                updateComboBoxItems(comboBox, filterConfig);
 
-        comboBox.valueProperty().addListener((observable, oldValue, newValue) -> {
-            handleFilterChange(filterConfig.getFilterKey(), newValue);
+                comboBox.valueProperty().addListener((observable, oldValue, newValue) -> {
+                    handleFilterChange(filterConfig.getFilterKey(), newValue);
+                    updateDependentFilters(filterConfig.getFilterKey());
+                });
 
-            // Обновляем зависимые фильтры
-            updateDependentFilters(filterConfig.getFilterKey());
-        });
+                control = comboBox;
+                break;
 
-        filterBox.getChildren().addAll(label, comboBox);
+            case DATE:
+                DatePicker datePicker = new DatePicker();
+                datePicker.setPromptText("Выберите дату...");
+
+                datePicker.valueProperty().addListener((observable, oldValue, newValue) -> {
+                    handleFilterChange(filterConfig.getFilterKey(), newValue);
+                });
+
+                control = datePicker;
+                break;
+
+            case TEXT:
+                TextField textField = new TextField();
+                textField.setPromptText("Введите текст...");
+
+                textField.textProperty().addListener((observable, oldValue, newValue) -> {
+                    handleFilterChange(filterConfig.getFilterKey(), newValue.isEmpty() ? null : newValue);
+                });
+
+                control = textField;
+                break;
+
+            case NUMBER:
+                TextField numberField = new TextField();
+                numberField.setPromptText("Введите число...");
+
+                numberField.textProperty().addListener((observable, oldValue, newValue) -> {
+                    if (newValue.matches("\\d*")) {
+                        handleFilterChange(filterConfig.getFilterKey(),
+                                newValue.isEmpty() ? null : Integer.parseInt(newValue));
+                    } else {
+                        numberField.setText(oldValue);
+                    }
+                });
+
+                control = numberField;
+                break;
+
+            default:
+                ComboBox<Object> defaultComboBox = new ComboBox<>();
+                defaultComboBox.setPromptText("Выберите...");
+                control = defaultComboBox;
+                break;
+        }
+
+        filterBox.getChildren().addAll(label, control);
         filtersContainer.getChildren().add(filterBox);
-        activeFilters.put(filterConfig.getFilterKey(), comboBox);
+        activeFilterControls.put(filterConfig.getFilterKey(), control);
         filterConfigs.put(filterConfig.getFilterKey(), filterConfig);
     }
 
     private void updateComboBoxItems(ComboBox<Object> comboBox, FilterConfig filterConfig) {
         try {
             ObservableList<?> rawItems = filterConfig.getItemsFunction().apply(currentFilterValues);
-            ObservableList<Object> items;
-            if (rawItems instanceof ObservableList) {
-                items = (ObservableList<Object>) rawItems;
-            } else {
-                items = FXCollections.observableArrayList();
-            }
+            ObservableList<Object> items = FXCollections.observableArrayList(rawItems);
 
             Object currentValue = comboBox.getValue();
-
             comboBox.setItems(items);
 
             if (currentValue != null && items.contains(currentValue)) {
                 comboBox.setValue(currentValue);
-            } else if (items.isEmpty()) {
+            } else {
                 comboBox.setValue(null);
             }
         } catch (Exception e) {
@@ -147,13 +191,14 @@ public class UniversalTableController implements AdminController.RefreshableCont
     }
 
     private void updateDependentFilters(String changedFilterKey) {
-        for (FilterConfig filterConfig : currentConfig.getFilters()) {
-            if (changedFilterKey.equals(filterConfig.getDependsOnFilter())) {
-                ComboBox<Object> dependentComboBox = activeFilters.get(filterConfig.getFilterKey());
-                if (dependentComboBox != null) {
-                    // Сбрасываем значение зависимого фильтра
+        for (FilterConfig filterConfig : filterConfigs.values()) {
+            if (changedFilterKey.equals(filterConfig.getDependsOnFilter()) &&
+                    filterConfig.getFilterType() == FilterConfig.FilterType.COMBOBOX) {
+
+                Node control = activeFilterControls.get(filterConfig.getFilterKey());
+                if (control instanceof ComboBox) {
+                    ComboBox<Object> dependentComboBox = (ComboBox<Object>) control;
                     dependentComboBox.setValue(null);
-                    // Обновляем список значений
                     updateComboBoxItems(dependentComboBox, filterConfig);
                 }
             }
@@ -166,17 +211,17 @@ public class UniversalTableController implements AdminController.RefreshableCont
         } else {
             currentFilterValues.remove(filterKey);
         }
-
         refreshData();
     }
 
     private void refreshAllFilters() {
-        for (Map.Entry<String, ComboBox<Object>> entry : activeFilters.entrySet()) {
+        for (Map.Entry<String, Node> entry : activeFilterControls.entrySet()) {
             String filterKey = entry.getKey();
-            ComboBox<Object> comboBox = entry.getValue();
+            Node control = entry.getValue();
             FilterConfig config = filterConfigs.get(filterKey);
 
-            if (config != null) {
+            if (config != null && control instanceof ComboBox) {
+                ComboBox<Object> comboBox = (ComboBox<Object>) control;
                 updateComboBoxItems(comboBox, config);
             }
         }
@@ -196,7 +241,6 @@ public class UniversalTableController implements AdminController.RefreshableCont
                         if (newValue instanceof User user) {
                             toggleActiveButton.setText(user.getUserLocked() ? "Разблокировать" : "Заблокировать");
                         } else {
-                            // Сбрасываем текст, если выбран не пользователь или ничего не выбрано
                             toggleActiveButton.setText("Блокировка");
                         }
                     }
@@ -207,35 +251,30 @@ public class UniversalTableController implements AdminController.RefreshableCont
     private void setupActionHandlers() {
         if (addButton != null) {
             addButton.setVisible(currentConfig.getOnAdd() != null);
+            if (currentConfig != null) {
+                if ("Бронирования".equals(currentConfig.getTableName())) {
+                    addButton.setText("Заселение в номер");
+                } else if ("Счета на оплату".equals(currentConfig.getTableName())) {
+                    addButton.setText("Формирование счетов");
+                }
+            }
         }
+
         if (editButton != null) {
             editButton.setVisible(currentConfig.getOnEdit() != null);
         }
+
         if (deleteButton != null) {
             deleteButton.setVisible(false);
         }
+
         if (toggleActiveButton != null) {
             toggleActiveButton.setVisible(currentConfig.getOnToggleActive() != null);
-        }
-
-        if (currentConfig != null) {
-            // Для таблицы "Бронирования" меняем текст кнопки добавления
-            if ("Бронирования".equals(currentConfig.getTableName()) && addButton != null) {
-                addButton.setText("Заселение в номер");
-            }
-
-            // Для таблицы "Счета на оплату" меняем текст кнопки добавления
-            if ("Счета на оплату".equals(currentConfig.getTableName()) && addButton != null) {
-                addButton.setText("Формирование счетов");
-            }
-
-            // Настраиваем видимость кнопки бронирования (используем toggleActiveButton для этой цели)
-            if (toggleActiveButton != null && "Бронирования".equals(currentConfig.getTableName())) {
+            if (currentConfig != null && "Бронирования".equals(currentConfig.getTableName())) {
                 toggleActiveButton.setText("Бронирование номера");
                 toggleActiveButton.setVisible(true);
             }
         }
-
     }
 
     private void loadData() {
@@ -266,7 +305,6 @@ public class UniversalTableController implements AdminController.RefreshableCont
             if (searchText.isEmpty()) {
                 return true;
             }
-
             return item.toString().toLowerCase().contains(searchText);
         });
     }
@@ -310,7 +348,6 @@ public class UniversalTableController implements AdminController.RefreshableCont
     private void handleDelete() {
         Object selected = tableView.getSelectionModel().getSelectedItem();
         if (selected != null) {
-            // Реализация удаления будет добавлена позже
             showError(statusLabel, "Функция удаления пока не реализована");
         }
     }
@@ -322,14 +359,28 @@ public class UniversalTableController implements AdminController.RefreshableCont
 
     @FXML
     private void handleClearFilters() {
+        clearFilters();
+        refreshData();
+    }
+
+    private void clearFilters() {
         currentFilterValues.clear();
 
         if (searchField != null) {
             searchField.clear();
         }
 
+        for (Node control : activeFilterControls.values()) {
+            if (control instanceof ComboBox) {
+                ((ComboBox<?>) control).setValue(null);
+            } else if (control instanceof DatePicker) {
+                ((DatePicker) control).setValue(null);
+            } else if (control instanceof TextField) {
+                ((TextField) control).setText("");
+            }
+        }
+
         refreshAllFilters();
-        refreshData();
     }
 
     public void refreshData() {
