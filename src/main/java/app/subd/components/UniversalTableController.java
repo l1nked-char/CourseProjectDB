@@ -394,4 +394,24 @@ public class UniversalTableController implements AdminController.RefreshableCont
     public Map<String, Object> getCurrentFilterValues() {
         return currentFilterValues;
     }
+
+    public Button getAddButton() {
+        return addButton;
+    }
+
+    public Button getEditButton() {
+        return editButton;
+    }
+
+    public Button getDeleteButton() {
+        return deleteButton;
+    }
+
+    public Button getToggleActiveButton() {
+        return toggleActiveButton;
+    }
+
+    public TableView<Object> getTableView() {
+        return tableView;
+    }
 }

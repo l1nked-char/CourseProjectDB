@@ -113,16 +113,6 @@ public class EmployeeController {
         ));
     }
 
-    private Void handleCheckIn(Void param) {
-        UniversalFormConfig<TenantHistory> formConfig = ConfigFactory.createCheckInFormConfig(
-                this::saveCheckIn,
-                booking -> refreshActiveTable(),
-                UniversalFormConfig.Mode.ADD
-        );
-        FormManager.showForm(formConfig, FormController.Mode.ADD, null, getActiveTableController());
-        return null;
-    }
-
     // Обработчик бронирования номера
     private Void handleBooking(Void param) {
         UniversalFormConfig<TenantHistory> formConfig = ConfigFactory.createBookingFormConfig(
@@ -161,13 +151,13 @@ public class EmployeeController {
             if (booking.getBookingNumber() == null || booking.getBookingNumber().isEmpty()) {
                 Database_functions.callFunction(connection, "add_tenant_history",
                         booking.getTenantId(), booking.getRoomId(), booking.getBookingDate(),
-                        booking.getCheckInDate(), booking.getCheckInStatus().toString(),
+                        booking.getCheckInDate(), booking.getCheckInStatus(),
                         booking.getOccupiedSpace(), booking.getAmountOfNights(), booking.isCanBeSplit());
                 showSuccess(statusLabel, "Заселение успешно оформлено");
             } else {
                 Database_functions.callFunction(connection, "edit_tenant_history",
                         booking.getBookingNumber(), booking.getTenantId(), booking.getRoomId(),
-                        booking.getBookingDate(), booking.getCheckInDate(), booking.getCheckInStatus().toString(),
+                        booking.getBookingDate(), booking.getCheckInDate(), booking.getCheckInStatus(),
                         booking.getOccupiedSpace(), booking.getAmountOfNights(), booking.isCanBeSplit());
                 showSuccess(statusLabel, "Данные заселения успешно обновлены");
             }
@@ -186,13 +176,13 @@ public class EmployeeController {
             if (booking.getBookingNumber() == null || booking.getBookingNumber().isEmpty()) {
                 Database_functions.callFunction(connection, "add_tenant_history",
                         booking.getTenantId(), booking.getRoomId(), booking.getBookingDate(),
-                        booking.getCheckInDate(), booking.getCheckInStatus().toString(),
+                        booking.getCheckInDate(), booking.getCheckInStatus(),
                         booking.getOccupiedSpace(), booking.getAmountOfNights(), booking.isCanBeSplit());
                 showSuccess(statusLabel, "Бронирование успешно создано");
             } else {
                 Database_functions.callFunction(connection, "edit_tenant_history",
                         booking.getBookingNumber(), booking.getTenantId(), booking.getRoomId(),
-                        booking.getBookingDate(), booking.getCheckInDate(), booking.getCheckInStatus().toString(),
+                        booking.getBookingDate(), booking.getCheckInDate(), booking.getCheckInStatus(),
                         booking.getOccupiedSpace(), booking.getAmountOfNights(), booking.isCanBeSplit());
                 showSuccess(statusLabel, "Бронирование успешно обновлено");
             }
@@ -340,7 +330,8 @@ public class EmployeeController {
                         rs.getString("room_type_name"),
                         rs.getInt("max_people"),
                         rs.getBigDecimal("price_per_person"), // Используем price_per_person из запроса
-                        isAvailable
+                        isAvailable,
+                        rs.getInt("available_space")
                 );
                 availableRooms.add(room);
             }
@@ -541,5 +532,10 @@ public class EmployeeController {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private Void handleCheckIn(Void param) {
+        CheckInWizardController.startCheckInWizard();
+        return null;
     }
 }

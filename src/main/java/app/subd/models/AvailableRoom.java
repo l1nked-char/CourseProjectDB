@@ -9,6 +9,7 @@ public class AvailableRoom {
     private int maxPeople;
     private BigDecimal pricePerNight;
     private boolean isAvailable;
+    private int availableSpace;
 
     public AvailableRoom() {
         this.roomId = 0;
@@ -17,15 +18,17 @@ public class AvailableRoom {
         this.maxPeople = 0;
         this.pricePerNight = BigDecimal.ZERO;
         this.isAvailable = false;
+        this.availableSpace = 0;
     }
 
-    public AvailableRoom(int roomId, int roomNumber, String roomType, int maxPeople, BigDecimal pricePerNight, boolean isAvailable) {
+    public AvailableRoom(int roomId, int roomNumber, String roomType, int maxPeople, BigDecimal pricePerNight, boolean isAvailable, int availableSpace) {
         this.roomId = roomId;
         this.roomNumber = roomNumber;
         this.roomType = roomType;
         this.maxPeople = maxPeople;
         this.pricePerNight = pricePerNight;
         this.isAvailable = isAvailable;
+        this.availableSpace = availableSpace;
     }
 
     public int getRoomId() {
@@ -74,5 +77,13 @@ public class AvailableRoom {
 
     public void setAvailable(boolean available) {
         isAvailable = available;
+    }
+
+    public int getAvailableSpace() {
+        return availableSpace;
+    }
+
+    public void setAvailableSpace(int availableSpace) {
+        this.availableSpace = availableSpace;
     }
 }

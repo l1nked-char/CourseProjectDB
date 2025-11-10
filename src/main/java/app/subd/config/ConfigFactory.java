@@ -777,7 +777,8 @@ public class ConfigFactory {
                 new ColumnConfig("roomType", "Тип комнаты", 150),
                 new ColumnConfig("maxPeople", "Макс. людей", 100),
                 new ColumnConfig("pricePerNight", "Цена за ночь", 120),
-                new ColumnConfig("available", "Доступна", 100)
+                new ColumnConfig("available", "Доступна", 100),
+                new ColumnConfig("availableSpace", "Свободных мест", 150)
         );
 
         // Добавляем фильтры для дат заезда и выезда
