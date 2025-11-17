@@ -38,4 +38,4 @@ build/
 ### Mac OS ###
 .DS_Store
 
-/src/main/java/app/subd/Database_functions.java
+src/main/java/app/subd/Database_functions.java
