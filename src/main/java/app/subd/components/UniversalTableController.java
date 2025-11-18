@@ -56,6 +56,7 @@ public class UniversalTableController implements AdminController.RefreshableCont
         if (currentConfig == null) return;
 
         clearPreviousConfiguration();
+        tableView.getSelectionModel().setSelectionMode(currentConfig.isMultiSelect() ? SelectionMode.MULTIPLE : SelectionMode.SINGLE);
         setupTableColumns();
         setupFilters();
         refreshData();
@@ -317,12 +318,20 @@ public class UniversalTableController implements AdminController.RefreshableCont
             deleteButton.setDisable(!hasSelection);
         }
         if (toggleActiveButton != null) {
-            toggleActiveButton.setDisable(!hasSelection);
+            if (currentConfig != null && "Бронирования".equals(currentConfig.getTableName()) && currentConfig.getOnBooking() != null) {
+                toggleActiveButton.setDisable(false);
+            } else {
+                toggleActiveButton.setDisable(!hasSelection);
+            }
         }
     }
 
     @FXML
     private void handleToggleActive() {
+        if (currentConfig != null && "Бронирования".equals(currentConfig.getTableName()) && currentConfig.getOnBooking() != null) {
+            currentConfig.getOnBooking().call(null);
+            return;
+        }
         Object selected = tableView.getSelectionModel().getSelectedItem();
         if (selected != null && currentConfig != null && currentConfig.getOnToggleActive() != null) {
             currentConfig.getOnToggleActive().call(selected);

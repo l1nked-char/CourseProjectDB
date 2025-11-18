@@ -825,16 +825,24 @@ public class ConfigFactory {
             Function<Tenant, Boolean> saveFunction,
             java.util.function.Consumer<Tenant> onSuccess,
             UniversalFormConfig.Mode mode) {
+        return createEmployeeClientFormConfig(saveFunction, onSuccess, mode, false);
+    }
+
+    public static UniversalFormConfig<Tenant> createEmployeeClientFormConfig(
+            Function<Tenant, Boolean> saveFunction,
+            java.util.function.Consumer<Tenant> onSuccess,
+            UniversalFormConfig.Mode mode,
+            boolean requireDocuments) {
 
         List<FieldConfig> fields = Arrays.asList(
                 new FieldConfig("firstName", "Фамилия", FieldConfig.FieldType.TEXT, true, "Введите фамилию", "^[а-яА-ЯёЁa-zA-Z]+$"),
                 new FieldConfig("name", "Имя", FieldConfig.FieldType.TEXT, true, "Введите имя", "^[а-яА-ЯёЁa-zA-Z]+$"),
                 new FieldConfig("patronymic", "Отчество", FieldConfig.FieldType.TEXT, false, "Введите отчество", "^[а-яА-ЯёЁa-zA-Z]+$"),
                 new FieldConfig("birthDate", "Дата рождения", FieldConfig.FieldType.DATE, true),
-                new FieldConfig("documentType", "Тип документа", FieldConfig.FieldType.COMBOBOX, false,
+                new FieldConfig("documentType", "Тип документа", FieldConfig.FieldType.COMBOBOX, requireDocuments,
                         DocumentType::getDocumentTypeValues, "Например, Паспорт РФ", 300),
-                new FieldConfig("series", "Серия паспорта", FieldConfig.FieldType.NUMBER, false, "4 цифры", "\\d{4}"),
-                new FieldConfig("number", "Номер паспорта", FieldConfig.FieldType.NUMBER, false, "6 цифр", "\\d{6}"),
+                new FieldConfig("series", "Серия паспорта", FieldConfig.FieldType.NUMBER, requireDocuments, "4 цифры", "\\d{4}"),
+                new FieldConfig("number", "Номер паспорта", FieldConfig.FieldType.NUMBER, requireDocuments, "6 цифр", "\\d{6}"),
                 new FieldConfig("email", "Email", FieldConfig.FieldType.TEXT, true, "example@mail.com", "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$"),
                 new FieldConfig("cityId", "Город", FieldConfig.FieldType.COMBOBOX, true,
                         ConfigFactory::getCitiesForComboBox, "Выберите город", 400),

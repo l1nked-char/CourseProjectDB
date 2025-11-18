@@ -9,24 +9,51 @@ import app.subd.Database_functions;
 import app.subd.models.*;
 import app.subd.tables.AllDictionaries;
 import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Orientation;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 import static app.subd.MessageController.*;
 
 public class CheckInWizardController {
+
+    public enum WizardMode {
+        CHECK_IN("Прямое заселение", "занят"),
+        BOOKING("Бронирование номера", "забронирован");
+
+        private final String title;
+        private final String dbStatus;
+
+        WizardMode(String title, String dbStatus) {
+            this.title = title;
+            this.dbStatus = dbStatus;
+        }
+
+        public String getTitle() {
+            return title;
+        }
+
+        public String getDbStatus() {
+            return dbStatus;
+        }
+    }
 
     @FXML private TabPane wizardTabPane;
     @FXML private Tab roomTab;
@@ -44,16 +71,22 @@ public class CheckInWizardController {
     @FXML private VBox confirmationInfo;
 
     // Данные процесса заселения
-    private Tenant currentTenant;
+    private WizardMode mode;
+    private final List<Tenant> selectedTenants = new ArrayList<>();
     private AvailableRoom selectedRoom;
     private LocalDate checkInDate;
     private LocalDate checkOutDate;
     private Integer peopleCount;
     private Integer currentHotelId;
+    private CheckBox occupyRoomCheckBox;
 
     // Контроллеры таблиц
     private UniversalTableController clientsController;
     private UniversalTableController roomsController;
+
+    public void setMode(WizardMode mode) {
+        this.mode = mode;
+    }
 
     @FXML
     public void initialize() {
@@ -82,38 +115,34 @@ public class CheckInWizardController {
 
     private void setupWizardTabs() {
         try {
-            // Настраиваем таблицу клиентов
             FXMLLoader clientLoader = new FXMLLoader(getClass().getResource("/app/subd/tables/universal_table.fxml"));
             Parent clientContent = clientLoader.load();
             clientsController = clientLoader.getController();
 
-            // Специальная конфигурация без стандартных кнопок действий
             TableConfig clientConfig = createClientSelectionConfig();
             clientsController.configure(clientConfig);
 
-            // Скрываем стандартные кнопки таблицы
             hideTableButtons(clientsController);
-
             clientTableContainer.getChildren().add(clientContent);
 
-            // Настраиваем таблицу комнат
             FXMLLoader roomLoader = new FXMLLoader(getClass().getResource("/app/subd/tables/universal_table.fxml"));
             Parent roomContent = roomLoader.load();
             roomsController = roomLoader.getController();
-
             TableConfig roomConfig = createRoomSelectionConfig();
             roomsController.configure(roomConfig);
 
-            // Скрываем стандартные кнопки таблицы
             hideTableButtons(roomsController);
-
+            occupyRoomCheckBox = new CheckBox("Занять номер целиком (без подселения)");
+            occupyRoomCheckBox.setStyle("-fx-padding: 5 0 10 5;");
+            roomTableContainer.getChildren().addFirst(occupyRoomCheckBox);
             roomTableContainer.getChildren().add(roomContent);
-
         } catch (Exception e) {
             showError(statusLabel, "Ошибка инициализации мастера заселения: " + e.getMessage());
             e.printStackTrace();
         }
     }
+
+
 
     private void hideTableButtons(UniversalTableController controller) {
         javafx.scene.Node addButton = controller.getAddButton();
@@ -126,23 +155,17 @@ public class CheckInWizardController {
     }
 
     private void setupTableSelectionListeners() {
-        // Слушатель выбора в таблице клиентов
         if (clientsController != null) {
-            clientsController.getTableView().getSelectionModel().selectedItemProperty().addListener(
-                    (obs, oldValue, newValue) -> {
-                        boolean hasSelection = newValue != null;
-                        selectClientButton.setDisable(!hasSelection);
-                        editClientButton.setDisable(!hasSelection);
-                    }
-            );
+            clientsController.getTableView().getSelectionModel().getSelectedItems().addListener((ListChangeListener<Object>) c -> {
+                int selectedCount = c.getList().size();
+                selectClientButton.setDisable(selectedCount == 0);
+                editClientButton.setDisable(selectedCount != 1);
+            });
         }
 
-        // Слушатель выбора в таблице комнат
         if (roomsController != null) {
             roomsController.getTableView().getSelectionModel().selectedItemProperty().addListener(
-                    (obs, oldValue, newValue) -> {
-                        selectRoomButton.setDisable(newValue == null);
-                    }
+                    (obs, oldValue, newValue) -> selectRoomButton.setDisable(newValue == null)
             );
         }
     }
@@ -150,7 +173,8 @@ public class CheckInWizardController {
     private TableConfig createClientSelectionConfig() {
         return new TableConfig("Клиенты",
                 this::loadClientsForCheckIn,
-                null, // Убираем стандартные обработчики
+                null,
+                null,
                 null,
                 null,
                 Arrays.asList(
@@ -164,7 +188,8 @@ public class CheckInWizardController {
                         new ColumnConfig("documentType", "Тип документа", 130)
                 ),
                 null,
-                null
+                null,
+                true
         );
     }
 
@@ -281,14 +306,15 @@ public class CheckInWizardController {
 
     @FXML
     private void handleAddClientInWizard() {
+        boolean documentsRequired = (this.mode == WizardMode.CHECK_IN);
         UniversalFormConfig<Tenant> formConfig = ConfigFactory.createEmployeeClientFormConfig(
                 this::saveClientInWizard,
                 client -> {
-                    this.currentTenant = client;
                     clientsController.refreshData();
                     showSuccess(statusLabel, "Клиент добавлен. Теперь выберите его из списка.");
                 },
-                UniversalFormConfig.Mode.ADD
+                UniversalFormConfig.Mode.ADD,
+                documentsRequired
         );
 
         FormManager.showForm(formConfig, FormController.Mode.ADD, null, clientsController);
@@ -297,24 +323,28 @@ public class CheckInWizardController {
     @FXML
     private void handleEditClientInWizard() {
         Object selected = clientsController.getSelectedItem();
-        if (!(selected instanceof Tenant)) {
+        if (!(selected instanceof Tenant clientToEdit)) {
             showError(statusLabel, "Выберите клиента для редактирования");
             return;
         }
 
-        Tenant clientToEdit = (Tenant) selected;
+        boolean documentsRequired = (this.mode == WizardMode.CHECK_IN);
         UniversalFormConfig<Tenant> formConfig = ConfigFactory.createEmployeeClientFormConfig(
                 this::saveEditedClientInWizard,
                 updatedClient -> {
                     clientsController.refreshData();
                     showSuccess(statusLabel, "Данные клиента обновлены");
 
-                    // Если редактировали выбранного клиента, обновляем текущего
-                    if (currentTenant != null && currentTenant.getId() == updatedClient.getId()) {
-                        currentTenant = updatedClient;
+                    // Обновляем клиента в списке, если он был выбран
+                    for (int i = 0; i < selectedTenants.size(); i++) {
+                        if (selectedTenants.get(i).getId() == updatedClient.getId()) {
+                            selectedTenants.set(i, updatedClient);
+                            break;
+                        }
                     }
                 },
-                UniversalFormConfig.Mode.EDIT
+                UniversalFormConfig.Mode.EDIT,
+                documentsRequired
         );
 
         FormManager.showForm(formConfig, FormController.Mode.EDIT, clientToEdit, clientsController);
@@ -322,22 +352,35 @@ public class CheckInWizardController {
 
     @FXML
     private void handleSelectClient() {
-        Object selected = clientsController.getSelectedItem();
-        if (selected instanceof Tenant) {
-            this.currentTenant = (Tenant) selected;
-            showSuccess(statusLabel, "Клиент выбран: " + currentTenant.getFirstName() + " " + currentTenant.getName());
+        this.selectedTenants.clear();
+        ObservableList<Object> selectedItems = clientsController.getTableView().getSelectionModel().getSelectedItems();
+        for (Object item : selectedItems) {
+            if (item instanceof Tenant) {
+                this.selectedTenants.add((Tenant) item);
+            }
+        }
 
-            // Активируем следующую вкладку
+        if (!this.selectedTenants.isEmpty()) {
+            showSuccess(statusLabel, "Выбрано клиентов: " + this.selectedTenants.size());
             roomTab.setDisable(false);
             updateNavigation();
+        } else {
+            showError(statusLabel, "Клиенты не выбраны");
         }
     }
 
     @FXML
     private void handleSelectRoom() {
         Object selected = roomsController.getSelectedItem();
-        if (selected instanceof AvailableRoom) {
-            this.selectedRoom = (AvailableRoom) selected;
+        if (selected instanceof AvailableRoom room) {
+            peopleCount = selectedTenants.size();
+
+            if (peopleCount > room.getAvailableSpace()) {
+                showError(statusLabel, "В комнате недостаточно места для " + peopleCount + " гостей.");
+                return;
+            }
+
+            this.selectedRoom = room;
             showSuccess(statusLabel, "Комната выбрана: №" + selectedRoom.getRoomNumber());
 
             // Активируем следующую вкладку
@@ -401,74 +444,74 @@ public class CheckInWizardController {
 
     private void updateConfirmationInfo() {
         confirmationInfo.getChildren().clear();
+        confirmationInfo.setStyle("-fx-padding: 10;");
 
-        if (currentTenant != null) {
-            Label clientTitle = new Label("Данные клиента:");
-            clientTitle.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #2c3e50;");
+        HBox mainLayout = new HBox(20);
 
-            Label clientName = new Label("ФИО: " + currentTenant.getFirstName() + " " +
-                    currentTenant.getName() + " " + currentTenant.getPatronymic());
-            Label clientPassport = new Label("Паспорт: " + currentTenant.getPassport());
-            Label clientEmail = new Label("Email: " + currentTenant.getEmail());
-            Label clientBirthDate = new Label("Дата рождения: " + currentTenant.getBirthDate());
-            Label clientSocialStatus = new Label("Социальный статус: " + currentTenant.getSocialStatus());
-            Label clientDocumentType = new Label("Тип документа: " + currentTenant.getDocumentType());
+        // --- Левая панель: Список клиентов ---
+        VBox clientsBox = new VBox(10);
+        clientsBox.setMinWidth(300);
+        Label clientsTitle = new Label("Выбранные клиенты:");
+        clientsTitle.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
 
-            VBox clientBox = new VBox(5, clientTitle, clientName, clientPassport, clientEmail,
-                    clientBirthDate, clientSocialStatus, clientDocumentType);
-            clientBox.setStyle("-fx-padding: 0 0 10 0;");
-            confirmationInfo.getChildren().add(clientBox);
+        ListView<String> clientsListView = new ListView<>();
+        if (!selectedTenants.isEmpty()) {
+            ObservableList<String> tenantNames = FXCollections.observableArrayList();
+            for (Tenant tenant : selectedTenants) {
+                tenantNames.add(String.format("%s %s %s (%s)",
+                        tenant.getFirstName(), tenant.getName(), tenant.getPatronymic(), tenant.getBirthDate()));
+            }
+            clientsListView.setItems(tenantNames);
         }
+        clientsBox.getChildren().addAll(clientsTitle, clientsListView);
+
+        // --- Правая панель: Информация о номере и стоимость ---
+        VBox detailsBox = new VBox(10);
 
         if (selectedRoom != null) {
             Label roomTitle = new Label("Данные комнаты:");
-            roomTitle.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #2c3e50;");
+            roomTitle.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
 
             Label roomNumber = new Label("Номер комнаты: " + selectedRoom.getRoomNumber());
             Label roomType = new Label("Тип комнаты: " + selectedRoom.getRoomType());
             Label maxPeople = new Label("Максимум людей: " + selectedRoom.getMaxPeople());
-            Label pricePerNight = new Label("Цена за ночь: " + selectedRoom.getPricePerNight() + " руб.");
-
-            VBox roomBox = new VBox(5, roomTitle, roomNumber, roomType, maxPeople, pricePerNight);
-            roomBox.setStyle("-fx-padding: 0 0 10 0;");
-            confirmationInfo.getChildren().add(roomBox);
+            Label pricePerNight = new Label("Цена за ночь (за 1 чел): " + selectedRoom.getPricePerNight() + " руб.");
+            detailsBox.getChildren().addAll(roomTitle, roomNumber, roomType, maxPeople, pricePerNight);
         }
 
-        if (checkInDate != null && checkOutDate != null && selectedRoom != null) {
+        if (checkInDate != null && checkOutDate != null && selectedRoom != null && peopleCount != null && peopleCount > 0) {
             Label bookingTitle = new Label("Детали проживания:");
-            bookingTitle.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #2c3e50;");
+            bookingTitle.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-padding: 10 0 0 0;");
 
             Label checkInLabel = new Label("Дата заезда: " + checkInDate);
             Label checkOutLabel = new Label("Дата выезда: " + checkOutDate);
-
             long nightsCount = java.time.temporal.ChronoUnit.DAYS.between(checkInDate, checkOutDate);
             Label nightsLabel = new Label("Количество ночей: " + nightsCount);
+            Label peopleLabel = new Label("Количество людей: " + peopleCount);
 
-            if (peopleCount != null) {
-                Label peopleLabel = new Label("Количество людей: " + peopleCount);
-
-                // Расчет стоимости
-                java.math.BigDecimal totalCost = selectedRoom.getPricePerNight()
-                        .multiply(java.math.BigDecimal.valueOf(peopleCount))
-                        .multiply(java.math.BigDecimal.valueOf(nightsCount));
-                Label costLabel = new Label("Общая стоимость: " + totalCost + " руб.");
-                costLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 16px; -fx-text-fill: #e74c3c;");
-
-                VBox bookingBox = new VBox(5, bookingTitle, checkInLabel, checkOutLabel,
-                        nightsLabel, peopleLabel, costLabel);
-                confirmationInfo.getChildren().add(bookingBox);
-            } else {
-                // Расчет стоимости без учета количества людей (минимальная стоимость)
-                java.math.BigDecimal minCost = selectedRoom.getPricePerNight()
-                        .multiply(java.math.BigDecimal.valueOf(nightsCount));
-                Label costLabel = new Label("Минимальная стоимость: " + minCost + " руб.");
-                costLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 16px; -fx-text-fill: #e74c3c;");
-
-                VBox bookingBox = new VBox(5, bookingTitle, checkInLabel, checkOutLabel,
-                        nightsLabel, costLabel);
-                confirmationInfo.getChildren().add(bookingBox);
+            BigDecimal totalCost = java.math.BigDecimal.ZERO;
+            try {
+                Connection connection = Session.getConnection();
+                ResultSet rs = Database_functions.callFunction(connection, "calculate_booking_cost",
+                        selectedRoom.getRoomId(),
+                        checkInDate,
+                        checkOutDate,
+                        peopleCount,
+                        occupyRoomCheckBox.isSelected());
+                while (rs.next())
+                    totalCost = rs.getBigDecimal(1);
+            } catch (Exception e) {
+                showError(statusLabel, "Ошибка расчета стоимости: " + e.getMessage());
             }
+
+            Label costLabel = new Label("Общая стоимость: " + totalCost + " руб.");
+            costLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 16px; -fx-text-fill: #e74c3c;");
+
+            detailsBox.getChildren().addAll(bookingTitle, checkInLabel, checkOutLabel, nightsLabel, peopleLabel, new Separator(), costLabel);
         }
+
+        mainLayout.getChildren().addAll(clientsBox, new Separator(Orientation.VERTICAL), detailsBox);
+        confirmationInfo.getChildren().add(mainLayout);
     }
 
     @FXML
@@ -497,44 +540,54 @@ public class CheckInWizardController {
 
     @FXML
     private void handleConfirmCheckIn() {
-        if (currentTenant == null || selectedRoom == null || checkInDate == null || checkOutDate == null) {
-            showError(statusLabel, "Заполните все данные для заселения");
+        if (selectedTenants.isEmpty() || selectedRoom == null || checkInDate == null || checkOutDate == null) {
+            showError(statusLabel, "Заполните все данные для оформления");
             return;
         }
 
         try {
             Connection connection = Session.getConnection();
-
-            // Рассчитываем количество ночей
             long nightsCount = java.time.temporal.ChronoUnit.DAYS.between(checkInDate, checkOutDate);
             if (nightsCount <= 0) {
                 showError(statusLabel, "Некорректный период проживания");
                 return;
             }
 
-            // Если количество людей не указано, используем 1 по умолчанию
-            int occupiedSpace = (peopleCount != null) ? peopleCount : 1;
+            boolean canBeSplit = !occupyRoomCheckBox.isSelected();
+            int totalTenants = selectedTenants.size();
+            int spaceTakenByPreviousTenants = 0;
 
-            // Создаем бронирование (заселение) со статусом "занят"
-            Database_functions.callFunction(connection, "add_tenant_history_direct_checkin",
-                    currentTenant.getId(),
-                    selectedRoom.getRoomId(),
-                    java.sql.Date.valueOf(LocalDate.now()), // Дата бронирования = сегодня
-                    java.sql.Date.valueOf(checkInDate),     // Дата заселения
-                    "занят",                               // Статус - занят
-                    occupiedSpace,
-                    (int) nightsCount,
-                    false                                  // canBeSplit
-            );
+            for (int i = 0; i < totalTenants; i++) {
+                Tenant currentTenant = selectedTenants.get(i);
+                int occupiedSpace;
 
-            showSuccess(statusLabel, "Заселение успешно оформлено!");
+                if (occupyRoomCheckBox.isSelected() && i == totalTenants - 1) {
+                    // Последний жилец занимает все оставшееся место
+                    occupiedSpace = selectedRoom.getMaxPeople() - spaceTakenByPreviousTenants;
+                } else {
+                    occupiedSpace = 1;
+                }
+                spaceTakenByPreviousTenants++;
 
-            // Закрываем окно мастера
+                Database_functions.callFunction(connection, "add_tenant_history",
+                        currentTenant.getId(),
+                        selectedRoom.getRoomId(),
+                        java.sql.Date.valueOf(LocalDate.now()),
+                        java.sql.Date.valueOf(checkInDate),
+                        mode.getDbStatus(),
+                        occupiedSpace,
+                        (int) nightsCount,
+                        canBeSplit
+                );
+            }
+
+            showSuccess(statusLabel, mode.getTitle() + " успешно оформлено для " + totalTenants + " гостей!");
+
             Stage stage = (Stage) wizardTabPane.getScene().getWindow();
             stage.close();
 
         } catch (Exception e) {
-            showError(statusLabel, "Ошибка оформления заселения: " + e.getMessage());
+            showError(statusLabel, "Ошибка оформления: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -542,41 +595,40 @@ public class CheckInWizardController {
     private void updateNavigation() {
         int currentIndex = wizardTabPane.getSelectionModel().getSelectedIndex();
 
-        // Обновляем текст шага
         String[] stepNames = {"Выбор клиента", "Выбор комнаты", "Подтверждение"};
         stepLabel.setText("Шаг " + (currentIndex + 1) + " из 3: " + stepNames[currentIndex]);
 
-        // Управление кнопками
         prevButton.setDisable(currentIndex == 0);
-        nextButton.setDisable(true); // По умолчанию отключена
+        nextButton.setDisable(true);
 
         // Активируем кнопку "Далее" только при выполнении условий
         switch (currentIndex) {
             case 0: // Выбор клиента
-                nextButton.setDisable(currentTenant == null);
+                nextButton.setDisable(selectedTenants.isEmpty());
                 break;
-            case 1: // Выбор комнаты
+            case 1:
                 nextButton.setDisable(selectedRoom == null);
                 break;
-            case 2: // Подтверждение
+            case 2:
                 nextButton.setDisable(true);
                 break;
         }
 
-        // Обновляем подтверждение на последнем шаге
         if (currentIndex == 2) {
             updateConfirmationInfo();
         }
     }
 
-    // Статический метод для запуска мастера заселения
-    public static void startCheckInWizard() {
+    public static void startWizard(WizardMode mode) {
         try {
             FXMLLoader loader = new FXMLLoader(CheckInWizardController.class.getResource("/app/subd/employee_panels/checkin_wizard.fxml"));
             Parent root = loader.load();
 
+            CheckInWizardController controller = loader.getController();
+            controller.setMode(mode);
+
             Stage stage = new Stage();
-            stage.setTitle("Мастер заселения - Прямое заселение");
+            stage.setTitle("Мастер - " + mode.getTitle());
             stage.setScene(new Scene(root, 900, 700));
             stage.setMinWidth(800);
             stage.setMinHeight(600);
@@ -584,24 +636,15 @@ public class CheckInWizardController {
 
         } catch (Exception e) {
             e.printStackTrace();
-            showAlert(Alert.AlertType.ERROR, "Ошибка", "Не удалось открыть мастер заселения: " + e.getMessage());
+            showAlert("Не удалось открыть мастер: " + e.getMessage());
         }
     }
 
-    private static void showAlert(Alert.AlertType type, String title, String message) {
-        Alert alert = new Alert(type);
-        alert.setTitle(title);
+    private static void showAlert(String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Ошибка");
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();
-    }
-
-    // Геттер для таблицы
-    public UniversalTableController getClientsController() {
-        return clientsController;
-    }
-
-    public UniversalTableController getRoomsController() {
-        return roomsController;
     }
 }
