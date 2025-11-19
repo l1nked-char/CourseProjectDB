@@ -24,6 +24,7 @@ import javafx.stage.Stage;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -540,13 +541,14 @@ public class CheckInWizardController {
 
     @FXML
     private void handleConfirmCheckIn() {
+        Connection connection = null;
         if (selectedTenants.isEmpty() || selectedRoom == null || checkInDate == null || checkOutDate == null) {
             showError(statusLabel, "Заполните все данные для оформления");
             return;
         }
 
         try {
-            Connection connection = Session.getConnection();
+            connection = Session.getConnection();
             long nightsCount = java.time.temporal.ChronoUnit.DAYS.between(checkInDate, checkOutDate);
             if (nightsCount <= 0) {
                 showError(statusLabel, "Некорректный период проживания");
@@ -557,12 +559,13 @@ public class CheckInWizardController {
             int totalTenants = selectedTenants.size();
             int spaceTakenByPreviousTenants = 0;
 
+            connection.setAutoCommit(false);
+
             for (int i = 0; i < totalTenants; i++) {
                 Tenant currentTenant = selectedTenants.get(i);
                 int occupiedSpace;
 
                 if (occupyRoomCheckBox.isSelected() && i == totalTenants - 1) {
-                    // Последний жилец занимает все оставшееся место
                     occupiedSpace = selectedRoom.getMaxPeople() - spaceTakenByPreviousTenants;
                 } else {
                     occupiedSpace = 1;
@@ -583,10 +586,21 @@ public class CheckInWizardController {
 
             showSuccess(statusLabel, mode.getTitle() + " успешно оформлено для " + totalTenants + " гостей!");
 
+            connection.commit();
+            connection.close();
+
             Stage stage = (Stage) wizardTabPane.getScene().getWindow();
             stage.close();
 
         } catch (Exception e) {
+            if (connection != null) {
+                try {
+                    connection.rollback();
+                    connection.close();
+                } catch (SQLException ignored) {
+
+                }
+            }
             showError(statusLabel, "Ошибка оформления: " + e.getMessage());
             e.printStackTrace();
         }
@@ -601,9 +615,8 @@ public class CheckInWizardController {
         prevButton.setDisable(currentIndex == 0);
         nextButton.setDisable(true);
 
-        // Активируем кнопку "Далее" только при выполнении условий
         switch (currentIndex) {
-            case 0: // Выбор клиента
+            case 0:
                 nextButton.setDisable(selectedTenants.isEmpty());
                 break;
             case 1:
