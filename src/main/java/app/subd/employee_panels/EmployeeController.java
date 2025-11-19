@@ -115,29 +115,14 @@ public class EmployeeController {
 
     // Обработчик бронирования номера
     private Void handleBooking(Void param) {
-        UniversalFormConfig<TenantHistory> formConfig = ConfigFactory.createBookingFormConfig(
-                this::saveBooking,
-                booking -> refreshActiveTable(),
-                UniversalFormConfig.Mode.ADD
-        );
-        FormManager.showForm(formConfig, FormController.Mode.ADD, null, getActiveTableController());
+        CheckInWizardController.startWizard(CheckInWizardController.WizardMode.BOOKING);
         return null;
     }
 
     // Обработчик формирования счетов
     private Void handleGenerateInvoices(Void param) {
-        try {
-            Connection connection = Session.getConnection();
-
-            // Вызываем функцию формирования счетов
-            Database_functions.callFunction(connection, "generate_invoices_for_hotel", currentHotelId);
-
-            showSuccess(statusLabel, "Счета успешно сформированы");
-            refreshActiveTable();
-
-        } catch (Exception e) {
-            showError(statusLabel, "Ошибка формирования счетов: " + e.getMessage());
-        }
+        showSuccess(statusLabel, "Список счетов обновлен");
+        refreshActiveTable();
         return null;
     }
 
@@ -225,7 +210,7 @@ public class EmployeeController {
         ObservableList<Object> invoices = FXCollections.observableArrayList();
         try {
             Connection connection = Session.getConnection();
-            ResultSet rs = Database_functions.callFunction(connection, "get_invoices_by_hotel", currentHotelId);
+            ResultSet rs = Database_functions.callFunction(connection, "get_daily_invoices_by_hotel", currentHotelId);
 
             while (rs.next()) {
                 Invoice invoice = new Invoice(
@@ -372,7 +357,29 @@ public class EmployeeController {
     }
 
     private Void handleEditInvoice(Object invoiceObj) {
-        showInfo(statusLabel, "Функция редактирования счета будет реализована в следующей версии");
+        if (!(invoiceObj instanceof Invoice selectedInvoice)) {
+            showError(statusLabel, "Выберите счет для просмотра деталей.");
+            return null;
+        }
+
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/app/subd/employee_panels/invoice_details.fxml"));
+            Parent root = loader.load();
+
+            InvoiceDetailsController controller = loader.getController();
+            controller.loadInvoiceData(selectedInvoice);
+
+            Stage stage = new Stage();
+            stage.setTitle("Детали счета");
+            stage.setScene(new Scene(root));
+            stage.setMinWidth(600);
+            stage.setMinHeight(400);
+            stage.show();
+
+        } catch (Exception e) {
+            showError(statusLabel, "Не удалось открыть детали счета: " + e.getMessage());
+            e.printStackTrace();
+        }
         return null;
     }
 
@@ -535,7 +542,7 @@ public class EmployeeController {
     }
 
     private Void handleCheckIn(Void param) {
-        CheckInWizardController.startCheckInWizard();
+        CheckInWizardController.startWizard(CheckInWizardController.WizardMode.CHECK_IN);
         return null;
     }
 }
