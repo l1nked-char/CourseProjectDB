@@ -13,9 +13,9 @@
                 <MenuItem text="Бронирования" onAction="#showBookings" />
                 <MenuItem text="Счета на оплату" onAction="#showPaymentInvoices" />
                 <MenuItem text="Клиенты" onAction="#showClients"/>
+                <MenuItem text="Дополнительные услуги" onAction="#showAdditionalServices"/>
             </Menu>
             <Menu text="Информация">
-                <MenuItem text="О бронировании" onAction="#showBookingInfo"/>
                 <MenuItem text="О свободных комнатах" onAction="#showRoomsStatus"/>
             </Menu>
         </MenuBar>

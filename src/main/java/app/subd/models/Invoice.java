@@ -58,6 +58,10 @@ public class Invoice {
         this.issueDate = issueDate;
     }
 
+    public String getStatus() {
+        return isPaid ? "Оплачен" : "Не оплачен";
+    }
+
     public boolean isPaid() {
         return isPaid;
     }

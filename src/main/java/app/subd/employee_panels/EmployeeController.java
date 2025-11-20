@@ -94,7 +94,8 @@ public class EmployeeController {
         tableConfigs.put("Счета на оплату", ConfigFactory.createEmployeeInvoicesTableConfig(
                 this::loadInvoicesData,
                 this::handleGenerateInvoices,  // Формирование счетов
-                this::handleEditInvoice
+                this::handleEditInvoice,
+                this::handleToggleInvoiceStatus
         ));
 
         // Остальные конфигурации остаются без изменений
@@ -111,6 +112,118 @@ public class EmployeeController {
         tableConfigs.put("Свободные комнаты", ConfigFactory.createAvailableRoomsTableConfig(
                 this::loadAvailableRoomsData
         ));
+        
+        tableConfigs.put("Дополнительные услуги", ConfigFactory.createEmployeeServiceHistoryTableConfig(
+                this::loadAdditionalServicesData,
+                this::handleAddAdditionalService,
+                this::handleEditAdditionalService
+        ));
+    }
+
+    private ObservableList<Object> loadAdditionalServicesData(Map<String, Object> filters) {
+        ObservableList<Object> services = FXCollections.observableArrayList();
+        Object roomObj = filters.get("room");
+        Object clientObj = filters.get("client");
+
+        if (roomObj instanceof Room room && clientObj instanceof Tenant client) {
+            try {
+                Connection connection = Session.getConnection();
+                ResultSet rsBooking = Database_functions.callFunction(connection, "get_active_booking",
+                        room.getId(), client.getId());
+
+                if (rsBooking.next()) {
+                    String bookingNumber = rsBooking.getString(1);
+                    if (bookingNumber != null) {
+                        ResultSet rsServices = Database_functions.callFunction(connection, "get_service_history_by_booking", bookingNumber);
+                        while (rsServices.next()) {
+                            ServiceHistory service = new ServiceHistory();
+                            service.setId(rsServices.getInt("row_id"));
+                            service.setHistoryId(bookingNumber);
+                            service.setServiceId(rsServices.getInt("service_id"));
+                            service.setAmount(rsServices.getInt("amount"));
+                            int a = rsServices.getInt("service_name_id");
+                            service.setServiceNameId(a);
+                            service.setServiceName(AllDictionaries.getServicesNameMap().get(a));
+                            services.add(service);
+                        }
+                    }
+                } else {
+                    showInfo(statusLabel, "Активное бронирование для выбранных комнаты и клиента не найдено.");
+                }
+            } catch (Exception e) {
+                showError(statusLabel, "Ошибка загрузки дополнительных услуг: " + e.getMessage());
+            }
+        }
+        return services;
+    }
+    
+    private Void handleAddAdditionalService(Void param) {
+        UniversalTableController tableController = getActiveTableController();
+        if (tableController == null) return null;
+        Map<String, Object> filters = tableController.getCurrentFilterValues();
+        Object roomObj = filters.get("room");
+        Object clientObj = filters.get("client");
+
+        if (roomObj instanceof Room room && clientObj instanceof Tenant client) {
+            try {
+                Connection connection = Session.getConnection();
+                ResultSet rs = Database_functions.callFunction(connection, "get_active_booking", room.getId(), client.getId());
+                if (rs.next()) {
+                    String bookingNumber = rs.getString(1);
+                    if (bookingNumber != null) {
+                        ServiceHistory newService = new ServiceHistory();
+                        newService.setHistoryId(bookingNumber);
+                        
+                        UniversalFormConfig<ServiceHistory> formConfig = ConfigFactory.createServiceHistoryFormConfig(
+                                this::saveAdditionalService,
+                                sh -> refreshActiveTable(),
+                                UniversalFormConfig.Mode.ADD
+                        );
+                        FormManager.showForm(formConfig, FormController.Mode.ADD, newService, getActiveTableController());
+                    } else {
+                        showError(statusLabel, "Не удалось найти активное бронирование для добавления услуги.");
+                    }
+                }
+            } catch (Exception e) {
+                showError(statusLabel, "Ошибка при добавлении услуги: " + e.getMessage());
+            }
+        } else {
+            showError(statusLabel, "Пожалуйста, выберите комнату и клиента для добавления услуги.");
+        }
+        return null;
+    }
+
+    private Void handleEditAdditionalService(Object serviceObj) {
+        if (!(serviceObj instanceof ServiceHistory service)) {
+            showError(statusLabel, "Неверный тип данных для редактирования услуги.");
+            return null;
+        }
+        UniversalFormConfig<ServiceHistory> formConfig = ConfigFactory.createServiceHistoryFormConfig(
+                this::saveAdditionalService,
+                sh -> refreshActiveTable(),
+                UniversalFormConfig.Mode.EDIT
+        );
+        FormManager.showForm(formConfig, FormController.Mode.EDIT, service, getActiveTableController());
+        return null;
+    }
+
+    private Boolean saveAdditionalService(ServiceHistory service) {
+        try {
+            Connection connection = Session.getConnection();
+            if (service.getId() == 0) { // Новая услуга
+                Database_functions.callFunction(connection, "add_service_history",
+                        service.getHistoryId(), service.getServiceId(), service.getAmount());
+                showSuccess(statusLabel, "Услуга успешно добавлена.");
+            } else { // Редактирование существующей
+                Database_functions.callFunction(connection, "edit_service_history",
+                        service.getId(), service.getHistoryId(), service.getServiceId(), service.getAmount());
+                showSuccess(statusLabel, "Услуга успешно обновлена.");
+            }
+            return true;
+        } catch (Exception e) {
+            showError(statusLabel, "Ошибка сохранения услуги: " + e.getMessage());
+            return false;
+        }
     }
 
     // Обработчик бронирования номера
@@ -131,7 +244,7 @@ public class EmployeeController {
         try {
             Connection connection = Session.getConnection();
 
-            booking.setCheckInStatus("занят");
+            booking.setCheckInStatus(BookingStatus.getBookingStatus("занят"));
 
             if (booking.getBookingNumber() == null || booking.getBookingNumber().isEmpty()) {
                 Database_functions.callFunction(connection, "add_tenant_history",
@@ -179,6 +292,18 @@ public class EmployeeController {
     }
 
     // Методы загрузки данных
+    private Void handleToggleInvoiceStatus(Object invoiceObj) {
+        if (invoiceObj instanceof Invoice invoice) {
+            invoice.setPaid(!invoice.isPaid());
+            UniversalTableController controller = getActiveTableController();
+            if (controller != null) {
+                controller.getTableView().refresh();
+            }
+            showSuccess(statusLabel, "Статус счета изменен (клиент)");
+        }
+        return null;
+    }
+
     private ObservableList<Object> loadBookingsData(Map<String, Object> filters) {
         ObservableList<Object> bookings = FXCollections.observableArrayList();
         try {
@@ -233,6 +358,7 @@ public class EmployeeController {
         try {
             Connection connection = Session.getConnection();
             ResultSet rs = Database_functions.callFunction(connection, "get_tenants_by_hotel", currentHotelId);
+
 
             while (rs.next()) {
                 Tenant tenant = new Tenant(
@@ -294,6 +420,7 @@ public class EmployeeController {
             LocalDate checkInDate = (LocalDate) filters.get("checkInDate");
             LocalDate checkOutDate = (LocalDate) filters.get("checkOutDate");
 
+
             if (checkInDate == null || checkOutDate == null) {
                 // Если даты не указаны, получаем текущий статус комнат
                 rs = Database_functions.callFunction(connection, "get_current_room_statuses_view", currentHotelId);
@@ -322,6 +449,7 @@ public class EmployeeController {
             }
         } catch (Exception e) {
             showError(statusLabel, "Ошибка загрузки свободных комнат: " + e.getMessage());
+            e.printStackTrace();
         }
         return availableRooms;
     }
@@ -511,13 +639,13 @@ public class EmployeeController {
     }
 
     @FXML
-    private void showBookingInfo() {
-        openTableTab("Информация о бронировании");
+    private void showRoomsStatus() {
+        openTableTab("Свободные комнаты");
     }
 
     @FXML
-    private void showRoomsStatus() {
-        openTableTab("Свободные комнаты");
+    private void showAdditionalServices() {
+        openTableTab("Дополнительные услуги");
     }
 
     // Обработчик выхода (уже есть в FXML)

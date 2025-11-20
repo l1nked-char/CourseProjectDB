@@ -10,9 +10,12 @@ import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 
 import java.util.HashMap;
@@ -23,7 +26,6 @@ import static app.subd.MessageController.*;
 public class UniversalTableController implements AdminController.RefreshableController {
 
     @FXML private VBox filtersContainer;
-    @FXML private TextField searchField;
     @FXML private TableView<Object> tableView;
     @FXML private Button addButton;
     @FXML private Button editButton;
@@ -35,7 +37,6 @@ public class UniversalTableController implements AdminController.RefreshableCont
 
     private TableConfig currentConfig;
     private ObservableList<Object> originalData;
-    private FilteredList<Object> filteredData;
     private SortedList<Object> sortedData;
     private Map<String, Node> activeFilterControls = new HashMap<>();
     private final Map<String, Object> currentFilterValues = new HashMap<>();
@@ -45,6 +46,32 @@ public class UniversalTableController implements AdminController.RefreshableCont
     public void initialize() {
         setupTable();
         setupEventHandlers();
+        setupPaginationStub();
+    }
+
+    private void setupPaginationStub() {
+        Pagination pagination = new Pagination();
+        pagination.setPageCount(1); // Stub
+        pagination.setCurrentPageIndex(0); // Stub
+        pagination.setMaxPageIndicatorCount(5);
+
+        pagination.currentPageIndexProperty().addListener((obs, oldIndex, newIndex) -> {
+            // TODO: Implement pagination logic. This is a stub.
+            // It should pass the new page index to the data loader.
+            if (statusLabel != null) {
+                showSuccess(statusLabel, "Переход на страницу " + (newIndex.intValue() + 1) + ". Пагинация еще не реализована.");
+            }
+            // In a real implementation, you would call:
+            // refreshData();
+        });
+
+        // Add the pagination control to the layout, typically below the table.
+        Node parentNode = tableView.getParent();
+        if (parentNode instanceof VBox) {
+            ((VBox) parentNode).getChildren().add(pagination);
+        } else if (parentNode != null && parentNode.getParent() instanceof VBox) {
+            ((VBox) parentNode.getParent()).getChildren().add(pagination);
+        }
     }
 
     public void configure(TableConfig config) {
@@ -69,12 +96,11 @@ public class UniversalTableController implements AdminController.RefreshableCont
         activeFilterControls.clear();
         currentFilterValues.clear();
         filterConfigs.clear();
-        if (searchField != null) searchField.clear();
     }
 
     private void setupTable() {
         originalData = FXCollections.observableArrayList();
-        filteredData = new FilteredList<>(originalData);
+        FilteredList<Object> filteredData = new FilteredList<>(originalData, p -> true);
         sortedData = new SortedList<>(filteredData);
         tableView.setItems(sortedData);
         sortedData.comparatorProperty().bind(tableView.comparatorProperty());
@@ -94,16 +120,21 @@ public class UniversalTableController implements AdminController.RefreshableCont
     }
 
     private void setupFilters() {
-        if (currentConfig.getFilters() != null) {
+        filtersContainer.getChildren().clear();
+        if (currentConfig.getFilters() != null && !currentConfig.getFilters().isEmpty()) {
+            FlowPane filtersPane = new FlowPane(15, 5); // hgap, vgap
+            filtersPane.setPadding(new Insets(5));
             for (FilterConfig filterConfig : currentConfig.getFilters()) {
-                createFilter(filterConfig);
+                createFilter(filterConfig, filtersPane);
             }
+            filtersContainer.getChildren().add(filtersPane);
         }
     }
 
-    private void createFilter(FilterConfig filterConfig) {
+
+    private void createFilter(FilterConfig filterConfig, Pane container) {
         VBox filterBox = new VBox(5);
-        Label label = new Label(filterConfig.getLabel());
+        Label label = new Label(filterConfig.getLabel() + (filterConfig.isRequired() ? " *" : ""));
 
         Node control;
 
@@ -167,7 +198,7 @@ public class UniversalTableController implements AdminController.RefreshableCont
         }
 
         filterBox.getChildren().addAll(label, control);
-        filtersContainer.getChildren().add(filterBox);
+        container.getChildren().add(filterBox);
         activeFilterControls.put(filterConfig.getFilterKey(), control);
         filterConfigs.put(filterConfig.getFilterKey(), filterConfig);
     }
@@ -229,21 +260,17 @@ public class UniversalTableController implements AdminController.RefreshableCont
     }
 
     private void setupEventHandlers() {
-        if (searchField != null) {
-            searchField.textProperty().addListener((observable, oldValue, newValue) -> {
-                updateFilter();
-            });
-        }
-
         tableView.getSelectionModel().selectedItemProperty().addListener(
                 (observable, oldValue, newValue) -> {
                     updateButtonsState(newValue != null);
                     if (toggleActiveButton != null && toggleActiveButton.isVisible()) {
                         if (newValue instanceof User user) {
                             toggleActiveButton.setText(user.getUserLocked() ? "Разблокировать" : "Заблокировать");
+                        }/* else if (currentConfig != null && !"Пользователи".equals(currentConfig.getTableName())) {
+                            // Do nothing, keep the text set in setupActionHandlers
                         } else {
                             toggleActiveButton.setText("Блокировка");
-                        }
+                        }*/
                     }
                 }
         );
@@ -263,6 +290,9 @@ public class UniversalTableController implements AdminController.RefreshableCont
 
         if (editButton != null) {
             editButton.setVisible(currentConfig.getOnEdit() != null);
+            if (currentConfig != null && "Счета на оплату".equals(currentConfig.getTableName())) {
+                editButton.setText("Детальная информация");
+            }
         }
 
         if (deleteButton != null) {
@@ -275,6 +305,10 @@ public class UniversalTableController implements AdminController.RefreshableCont
                 toggleActiveButton.setText("Бронирование номера");
                 toggleActiveButton.setVisible(true);
             }
+            if (currentConfig != null && "Счета на оплату".equals(currentConfig.getTableName())) {
+                toggleActiveButton.setText("Изменить статус оплаты");
+                toggleActiveButton.setVisible(currentConfig.getOnToggleActive() != null);
+            }
         }
     }
 
@@ -284,7 +318,6 @@ public class UniversalTableController implements AdminController.RefreshableCont
                 ObservableList<Object> newData = currentConfig.getDataLoader().apply(currentFilterValues);
                 originalData.clear();
                 originalData.addAll(newData);
-                updateFilter();
                 if (statusLabel != null) {
                     showSuccess(statusLabel, "Загружено записей: " + originalData.size());
                 }
@@ -295,19 +328,6 @@ public class UniversalTableController implements AdminController.RefreshableCont
                 e.printStackTrace();
             }
         }
-    }
-
-    private void updateFilter() {
-        if (searchField == null) return;
-
-        String searchText = searchField.getText().toLowerCase();
-
-        filteredData.setPredicate(item -> {
-            if (searchText.isEmpty()) {
-                return true;
-            }
-            return item.toString().toLowerCase().contains(searchText);
-        });
     }
 
     private void updateButtonsState(boolean hasSelection) {
@@ -374,10 +394,6 @@ public class UniversalTableController implements AdminController.RefreshableCont
 
     private void clearFilters() {
         currentFilterValues.clear();
-
-        if (searchField != null) {
-            searchField.clear();
-        }
 
         for (Node control : activeFilterControls.values()) {
             if (control instanceof ComboBox) {

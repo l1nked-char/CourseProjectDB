@@ -587,7 +587,6 @@ public class CheckInWizardController {
             showSuccess(statusLabel, mode.getTitle() + " успешно оформлено для " + totalTenants + " гостей!");
 
             connection.commit();
-            connection.close();
 
             Stage stage = (Stage) wizardTabPane.getScene().getWindow();
             stage.close();
@@ -596,7 +595,6 @@ public class CheckInWizardController {
             if (connection != null) {
                 try {
                     connection.rollback();
-                    connection.close();
                 } catch (SQLException ignored) {
 
                 }

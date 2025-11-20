@@ -1,5 +1,6 @@
 package app.subd.components;
 
+import app.subd.Database_functions;
 import app.subd.admin_panels.AdminController;
 import app.subd.config.UniversalFormConfig;
 import app.subd.config.FieldConfig;
@@ -16,6 +17,8 @@ import net.synedra.validatorfx.Validator;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
+import java.sql.Connection;
+import java.sql.ResultSet;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
@@ -480,8 +483,30 @@ public class UniversalFormController<T> implements FormController<T> {
         if (entity instanceof ServiceHistory && controllerMode == Mode.ADD) {
             if (parentController != null) {
                 Map<String, Object> filters = parentController.getCurrentFilterValues();
-                if (filters.get("booking") instanceof TenantHistory selectedBooking) {
-                    ((ServiceHistory) entity).setHistoryId(selectedBooking.getBookingNumber());
+                Object roomObj = filters.get("room");
+                Object clientObj = filters.get("client");
+
+                if (roomObj instanceof Room selectedRoom && clientObj instanceof Tenant selectedClient) {
+                    try {
+                        Connection connection = Session.getConnection();
+                        ResultSet rs = Database_functions.callFunction(connection, "get_active_booking_by_room_and_tenant",
+                                selectedRoom.getId(), selectedClient.getId());
+
+                        if (rs.next()) {
+                            String bookingNumber = rs.getString(1);
+                            if (bookingNumber != null && !bookingNumber.isEmpty()) {
+                                ((ServiceHistory) entity).setHistoryId(bookingNumber);
+                            } else {
+                                throw new Exception("Активное бронирование для данной комнаты и клиента не найдено.");
+                            }
+                        } else {
+                            throw new Exception("Активное бронирование не найдено.");
+                        }
+                    } catch (Exception e) {
+                        showError(statusLabel, "Ошибка: " + e.getMessage());
+                    }
+                } else {
+                    showError(statusLabel, "Ошибка: Комната или клиент не выбраны в фильтре.");
                 }
             }
         }
