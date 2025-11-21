@@ -19,17 +19,17 @@ import java.util.stream.Collectors;
 public class ConfigFactory {
 
     public static TableConfig createUserTableConfig(
-            Function<Map<String, Object>, javafx.collections.ObservableList<Object>> dataLoader,
+            Function<Map<String, Object>, ObservableList<Object>> dataLoader,
             Callback<Void, Void> onAdd,
             Callback<Object, Void> onEdit,
             Callback<Object, Void> onToggleActive) {
 
         List<ColumnConfig> columns = Arrays.asList(
                 new ColumnConfig("id", "ID", 80),
-                new ColumnConfig("username", "Логин", 150),
-                new ColumnConfig("role", "Роль", 120),
-                new ColumnConfig("hotelInfo", "Отель", 200),
-                new ColumnConfig("userLocked", "Заблокирован", 100)
+                new ColumnConfig("username", "Логин", 150, true, FieldConfig.FieldType.TEXT, "Логин пользователя"),
+                new ColumnConfig("role", "Роль", 120, true, FieldConfig.FieldType.TEXT, "Роль пользователя"),
+                new ColumnConfig("hotelInfo", "Отель", 200, true, FieldConfig.FieldType.TEXT, "Информация об отеле отеля"),
+                new ColumnConfig("userLocked", "Заблокирован", 100, true, FieldConfig.FieldType.CHECKBOX, "Статус блокировки")
         );
 
         return new TableConfig("Пользователи", dataLoader, onAdd, onEdit, null, columns, null, onToggleActive);
@@ -74,14 +74,14 @@ public class ConfigFactory {
     }
 
     public static TableConfig createHotelTableConfig(
-            Function<Map<String, Object>, javafx.collections.ObservableList<Object>> dataLoader,
+            Function<Map<String, Object>, ObservableList<Object>> dataLoader,
             Callback<Void, Void> onAdd,
             Callback<Object, Void> onEdit) {
 
         List<ColumnConfig> columns = Arrays.asList(
                 new ColumnConfig("id", "ID", 80),
-                new ColumnConfig("cityName", "Город", 150),
-                new ColumnConfig("address", "Адрес", 250)
+                new ColumnConfig("cityName", "Город", 150, true, FieldConfig.FieldType.TEXT, "Название города"),
+                new ColumnConfig("address", "Адрес", 250, true, FieldConfig.FieldType.TEXT, "Адрес отеля")
         );
 
         return new TableConfig("Отели", dataLoader, onAdd, onEdit, null, columns, null, null);
@@ -111,44 +111,44 @@ public class ConfigFactory {
     }
 
     public static TableConfig createTypeOfRoomTableConfig(
-            Function<Map<String, Object>, javafx.collections.ObservableList<Object>> dataLoader,
+            Function<Map<String, Object>, ObservableList<Object>> dataLoader,
             Callback<Void, Void> onAdd,
             Callback<Object, Void> onEdit) {
 
         List<ColumnConfig> columns = Arrays.asList(
                 new ColumnConfig("id", "ID", 80),
-                new ColumnConfig("name", "Название типа", 200)
+                new ColumnConfig("name", "Название типа", 200, true, FieldConfig.FieldType.TEXT, "Название типа комнаты")
         );
 
         return new TableConfig("Типы комнат", dataLoader, onAdd, onEdit, null, columns, null, null);
     }
 
     public static TableConfig createConvenienceTableConfig(
-            Function<Map<String, Object>, javafx.collections.ObservableList<Object>> dataLoader,
+            Function<Map<String, Object>, ObservableList<Object>> dataLoader,
             Callback<Void, Void> onAdd,
             Callback<Object, Void> onEdit) {
 
         List<ColumnConfig> columns = Arrays.asList(
                 new ColumnConfig("id", "ID", 80),
-                new ColumnConfig("name", "Название удобства", 200)
+                new ColumnConfig("name", "Название удобства", 200, true, FieldConfig.FieldType.TEXT, "Название удобства")
         );
 
         return new TableConfig("Удобства", dataLoader, onAdd, onEdit, null, columns, null, null);
     }
 
-    // Обновите метод createCityTableConfig:
     public static TableConfig createCityTableConfig(
-            Function<Map<String, Object>, javafx.collections.ObservableList<Object>> dataLoader,
+            Function<Map<String, Object>, ObservableList<Object>> dataLoader,
             Callback<Void, Void> onAdd,
             Callback<Object, Void> onEdit) {
 
         List<ColumnConfig> columns = Arrays.asList(
                 new ColumnConfig("cityId", "ID", 80),
-                new ColumnConfig("cityName", "Название города", 200)
+                new ColumnConfig("cityName", "Название города", 200, true, FieldConfig.FieldType.TEXT, "Название города")
         );
 
         return new TableConfig("Города", dataLoader, onAdd, onEdit, null, columns, null, null);
     }
+
 
     public static TableConfig createRoomConvenienceTableConfig(
             Function<Map<String, Object>, ObservableList<Object>> dataLoader,
@@ -224,7 +224,7 @@ public class ConfigFactory {
         );
         return new TableConfig("История заказов услуг", dataLoader, onAdd, onEdit, null, columns, filters, null);
     }
-    
+
     public static TableConfig createSocialStatusTableConfig(
             Function<Map<String, Object>, ObservableList<Object>> dataLoader,
             Callback<Void, Void> onAdd,
@@ -232,7 +232,7 @@ public class ConfigFactory {
 
         List<ColumnConfig> columns = Arrays.asList(
                 new ColumnConfig("id", "ID", 80),
-                new ColumnConfig("name", "Название статуса", 200)
+                new ColumnConfig("name", "Название статуса", 200, true, FieldConfig.FieldType.TEXT, "Название статуса")
         );
 
         return new TableConfig("Социальные статусы", dataLoader, onAdd, onEdit, null, columns, null, null);
@@ -257,7 +257,7 @@ public class ConfigFactory {
 
         List<ColumnConfig> columns = Arrays.asList(
                 new ColumnConfig("id", "ID", 80),
-                new ColumnConfig("name", "Название услуги", 200)
+                new ColumnConfig("name", "Название услуги", 200, true, FieldConfig.FieldType.TEXT, "Название услуги")
         );
 
         return new TableConfig("Услуги", dataLoader, onAdd, onEdit, null, columns, null, null);
@@ -281,14 +281,14 @@ public class ConfigFactory {
             Callback<Object, Void> onEdit) {
 
         List<ColumnConfig> columns = Arrays.asList(
-                new ColumnConfig("firstName", "Фамилия", 150),
-                new ColumnConfig("name", "Имя", 150),
-                new ColumnConfig("patronymic", "Отчество", 150),
-                new ColumnConfig("birthDate", "Дата рождения", 120),
-                new ColumnConfig("passport", "Паспорт", 150),
-                new ColumnConfig("socialStatus", "Социальный статус", 150),
-                new ColumnConfig("email", "Email", 200),
-                new ColumnConfig("documentType", "Тип документа", 150)
+                new ColumnConfig("firstName", "Фамилия", 150, true, FieldConfig.FieldType.TEXT, "Фамилия"),
+                new ColumnConfig("name", "Имя", 150, true, FieldConfig.FieldType.TEXT, "Имя"),
+                new ColumnConfig("patronymic", "Отчество", 150, true, FieldConfig.FieldType.TEXT, "Отчество"),
+                new ColumnConfig("birthDate", "Дата рождения", 120, true, FieldConfig.FieldType.TEXT, "Дата рождения"),
+                new ColumnConfig("passport", "Паспорт", 150, false, FieldConfig.FieldType.TEXT, "Паспортные данные"),
+                new ColumnConfig("socialStatus", "Социальный статус", 150, true, FieldConfig.FieldType.TEXT, "Социальный статус"),
+                new ColumnConfig("email", "Email", 200, true, FieldConfig.FieldType.TEXT, "Email"),
+                new ColumnConfig("documentType", "Тип документа", 150, false, FieldConfig.FieldType.TEXT, "Тип документа")
         );
 
         return new TableConfig("Жильцы", dataLoader, onAdd, onEdit, null, columns, null, null);
@@ -446,15 +446,15 @@ public class ConfigFactory {
             Callback<Object, Void> onEdit) {
 
         List<ColumnConfig> columns = Arrays.asList(
-                new ColumnConfig("bookingNumber", "Номер брони", 150),
-                new ColumnConfig("roomId", "ID комнаты", 100),
-                new ColumnConfig("tenantId", "ID жильца", 100),
-                new ColumnConfig("bookingDate", "Дата брони", 120),
-                new ColumnConfig("checkInDate", "Дата заезда", 120),
-                new ColumnConfig("checkInStatus", "Статус заезда", 120),
-                new ColumnConfig("occupiedSpace", "Занято мест", 100),
-                new ColumnConfig("amountOfNights", "Кол-во ночей", 100),
-                new ColumnConfig("canBeSplit", "Разделяемая", 100)
+                new ColumnConfig("bookingNumber", "Номер брони", 150, true, FieldConfig.FieldType.TEXT, "Номер бронирования"),
+                new ColumnConfig("roomId", "ID комнаты", 100, false, FieldConfig.FieldType.NUMBER, "ID комнаты"),
+                new ColumnConfig("tenantId", "ID жильца", 100, false, FieldConfig.FieldType.NUMBER, "ID жильца"),
+                new ColumnConfig("bookingDate", "Дата брони", 120, true, FieldConfig.FieldType.TEXT, "Дата бронирования"),
+                new ColumnConfig("checkInDate", "Дата заезда", 120, true, FieldConfig.FieldType.TEXT, "Дата заезда"),
+                new ColumnConfig("checkInStatus", "Статус заезда", 120, true, FieldConfig.FieldType.TEXT, "Статус заезда"),
+                new ColumnConfig("occupiedSpace", "Занято мест", 100, false, FieldConfig.FieldType.NUMBER, "Занято мест"),
+                new ColumnConfig("amountOfNights", "Кол-во ночей", 100, false, FieldConfig.FieldType.NUMBER, "Количество ночей"),
+                new ColumnConfig("canBeSplit", "Разделяемая", 100, false, FieldConfig.FieldType.CHECKBOX, "Разделяемое бронирование")
         );
 
         List<FilterConfig> filters = List.of(
@@ -743,223 +743,194 @@ public class ConfigFactory {
         return rooms;
     }
 
-    // В ConfigFactory.java добавляем следующие методы:
-
-    // Конфигурации для сотрудника
-    public static TableConfig createEmployeeBookingsTableConfig(
+    public static TableConfig createEmployeeClientsTableConfig(
             Function<Map<String, Object>, ObservableList<Object>> dataLoader,
             Callback<Void, Void> onAdd,
-                                   Callback<Object, Void> onEdit) {
-            
-                    List<ColumnConfig> columns = Arrays.asList(
-                            new ColumnConfig("bookingNumber", "Номер брони", 150),
-                            new ColumnConfig("roomId", "ID комнаты", 100),
-                            new ColumnConfig("tenantId", "ID жильца", 100),
-                            new ColumnConfig("bookingDate", "Дата брони", 120),
-                            new ColumnConfig("checkInDate", "Дата заезда", 120),
-                            new ColumnConfig("checkInStatus", "Статус заезда", 120),
-                            new ColumnConfig("occupiedSpace", "Занято мест", 100),
-                            new ColumnConfig("amountOfNights", "Кол-во ночей", 100),
-                            new ColumnConfig("canBeSplit", "Разделяемая", 100)
-                    );
-            
-                    List<FilterConfig> filters = Arrays.asList(
-                            new FilterConfig("bookingNumber", "Номер брони", FilterConfig.FilterType.TEXT, false),
-                            new FilterConfig("checkInStatus", "Статус заезда",
-                                    (map) -> BookingStatus.getBookingStatusValues())
-                    );
-            
-                    return new TableConfig("Бронирования", dataLoader, onAdd, onEdit, null, columns, filters, null);
-                }
-            
-                    public static TableConfig createEmployeeClientsTableConfig(
-                            Function<Map<String, Object>, ObservableList<Object>> dataLoader,
-                            Callback<Void, Void> onAdd,
-                            Callback<Object, Void> onEdit) {
-                
-                        List<ColumnConfig> columns = Arrays.asList(
-                                new ColumnConfig("firstName", "Фамилия", 150),
-                                new ColumnConfig("name", "Имя", 150),
-                                new ColumnConfig("patronymic", "Отчество", 150),
-                                new ColumnConfig("birthDate", "Дата рождения", 120),
-                                new ColumnConfig("passport", "Паспорт", 150),
-                                new ColumnConfig("socialStatus", "Социальный статус", 150),
-                                new ColumnConfig("email", "Email", 200),
-                                new ColumnConfig("documentType", "Тип документа", 150)
-                        );
-                
-                        return new TableConfig("Клиенты", dataLoader, onAdd, onEdit, null, columns, null, null);
-                    }
-                
-                    public static TableConfig createBookingInfoTableConfig(
-                            Function<Map<String, Object>, ObservableList<Object>> dataLoader) {
-                
-                        List<ColumnConfig> columns = Arrays.asList(
-                                new ColumnConfig("bookingNumber", "Номер брони", 150),
-                                new ColumnConfig("tenantName", "Имя клиента", 150),
-                                new ColumnConfig("roomNumber", "Номер комнаты", 120),
-                                new ColumnConfig("checkInDate", "Дата заезда", 120),
-                                new ColumnConfig("checkOutDate", "Дата выезда", 120),
-                                new ColumnConfig("status", "Статус", 100),
-                                new ColumnConfig("totalCost", "Общая стоимость", 120)
-                        );
-                
-                        List<FilterConfig> filters = List.of(
-                                new FilterConfig(
-                                        "bookingNumber",
-                                        "Номер брони",
-                                        (map) -> {
-                                            // Здесь можно загрузить список активных бронирований
-                                            // Пока возвращаем пустой список, так как фильтр будет текстовым
-                                            return FXCollections.observableArrayList();
-                                        }
-                                )
-                        );
-                
-                        return new TableConfig("Информация о бронировании", dataLoader, null, null, null, columns, filters, null);
-                    }            
-                public static TableConfig createAvailableRoomsTableConfig(
-                        Function<Map<String, Object>, ObservableList<Object>> dataLoader) {
-            
-                    List<ColumnConfig> columns = Arrays.asList(
-                            new ColumnConfig("roomNumber", "Номер комнаты", 120),
-                            new ColumnConfig("roomType", "Тип комнаты", 150),
-                            new ColumnConfig("maxPeople", "Макс. людей", 100),
-                            new ColumnConfig("pricePerNight", "Цена за ночь", 120),
-                            new ColumnConfig("available", "Доступна", 100),
-                            new ColumnConfig("availableSpace", "Свободных мест", 150)
-                    );
-            
-                    // Добавляем фильтры для дат заезда и выезда
-                    List<FilterConfig> filters = Arrays.asList(
-                            new FilterConfig("checkInDate", "Дата заезда", FilterConfig.FilterType.DATE, true),
-                            new FilterConfig("checkOutDate", "Дата выезда", FilterConfig.FilterType.DATE, true),
-                            new FilterConfig("typeOfRoom", "Тип комнаты", (map) -> ConfigFactory.getRoomTypesForComboBox()),
-                            new FilterConfig("numberOfPeople", "Количество людей", FilterConfig.FilterType.NUMBER, false)
-                    );
-            
-                    return new TableConfig("Свободные комнаты", dataLoader, null, null, null, columns, filters, null);
-                }
-            
-                public static TableConfig createEmployeeServiceHistoryTableConfig(
-                        Function<Map<String, Object>, ObservableList<Object>> dataLoader,
-                        Callback<Void, Void> onAdd,
-                        Callback<Object, Void> onEdit) {
-                    List<ColumnConfig> columns = Arrays.asList(
-                            new ColumnConfig("serviceName", "Сервис", 200),
-                            new ColumnConfig("amount", "Количество", 100)
-                    );
-                    List<FilterConfig> filters = Arrays.asList(
-                            new FilterConfig(
-                                    "room",
-                                    "Комната",
-                                    ConfigFactory::getRoomsForCurrentHotel,
-                                    null
-                            ),
-                            new FilterConfig(
-                                    "client",
-                                    "Клиент",
-                                    (map) -> ConfigFactory.getTenantsForComboBox(),
-                                    null
-                            )
-                    );
-                    return new TableConfig("Дополнительные услуги", dataLoader, onAdd, onEdit, null, columns, filters, null);
-                }
-            
-                // Формы для сотрудника
-                public static UniversalFormConfig<TenantHistory> createEmployeeBookingFormConfig(
-                        Function<TenantHistory, Boolean> saveFunction,
-                        java.util.function.Consumer<TenantHistory> onSuccess,
-                        UniversalFormConfig.Mode mode) {
-            
-                    List<FieldConfig> fields = Arrays.asList(
-                            new FieldConfig("roomId", "Комната", FieldConfig.FieldType.COMBOBOX, true,
-                                    ConfigFactory::getRoomsByHotelForComboBox, "Выберите комнату", 200, "hotel"),
-                            new FieldConfig("tenantId", "Клиент", FieldConfig.FieldType.COMBOBOX, true,
-                                    ConfigFactory::getTenantsForComboBox, "Выберите клиента", 400),
-                            new FieldConfig("bookingDate", "Дата бронирования", FieldConfig.FieldType.DATE, true),
-                            new FieldConfig("checkInDate", "Дата заезда", FieldConfig.FieldType.DATE, true),
-                            new FieldConfig("checkInStatus", "Статус", FieldConfig.FieldType.COMBOBOX, true,
-                                    BookingStatus::getBookingStatusValues, "Выберите статус", 200),
-                            new FieldConfig("occupiedSpace", "Занято мест", FieldConfig.FieldType.NUMBER, true, "Введите количество"),
-                            new FieldConfig("amountOfNights", "Количество ночей", FieldConfig.FieldType.NUMBER, true, "Введите количество"),
-                            new FieldConfig("canBeSplit", "Разделяемое бронирование", FieldConfig.FieldType.CHECKBOX, false)
-                    );
-            
-                    List<FilterConfig> filters = List.of(
-                            new FilterConfig(
-                                    "hotel",
-                                    "Отель",
-                                    (map) -> ConfigFactory.getHotelsForComboBox()
-                            )
-                    );
-            
-                    return new UniversalFormConfig<>("Бронирование", fields, saveFunction, onSuccess, mode, TenantHistory.class);
-                }
-            
-                public static UniversalFormConfig<Tenant> createEmployeeClientFormConfig(
-                        Function<Tenant, Boolean> saveFunction,
-                        java.util.function.Consumer<Tenant> onSuccess,
-                        UniversalFormConfig.Mode mode) {
-                    return createEmployeeClientFormConfig(saveFunction, onSuccess, mode, false);
-                }
-            
-                public static UniversalFormConfig<Tenant> createEmployeeClientFormConfig(
-                        Function<Tenant, Boolean> saveFunction,
-                        java.util.function.Consumer<Tenant> onSuccess,
-                        UniversalFormConfig.Mode mode,
-                        boolean requireDocuments) {
-            
-                    List<FieldConfig> fields = Arrays.asList(
-                            new FieldConfig("firstName", "Фамилия", FieldConfig.FieldType.TEXT, true, "Введите фамилию", "^[а-яА-ЯёЁa-zA-Z]+$"),
-                            new FieldConfig("name", "Имя", FieldConfig.FieldType.TEXT, true, "Введите имя", "^[а-яА-ЯёЁa-zA-Z]+$"),
-                            new FieldConfig("patronymic", "Отчество", FieldConfig.FieldType.TEXT, false, "Введите отчество", "^[а-яА-ЯёЁa-zA-Z]+$"),
-                            new FieldConfig("birthDate", "Дата рождения", FieldConfig.FieldType.DATE, true),
-                            new FieldConfig("documentType", "Тип документа", FieldConfig.FieldType.COMBOBOX, requireDocuments,
-                                    DocumentType::getDocumentTypeValues, "Например, Паспорт РФ", 300),
-                            new FieldConfig("series", "Серия паспорта", FieldConfig.FieldType.NUMBER, requireDocuments, "4 цифры", "\\d{4}"),
-                            new FieldConfig("number", "Номер паспорта", FieldConfig.FieldType.NUMBER, requireDocuments, "6 цифр", "\\d{6}"),
-                            new FieldConfig("email", "Email", FieldConfig.FieldType.TEXT, true, "example@mail.com", "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$"),
-                            new FieldConfig("cityId", "Город", FieldConfig.FieldType.COMBOBOX, true,
-                                    ConfigFactory::getCitiesForComboBox, "Выберите город", 400),
-                            new FieldConfig("socialStatusId", "Социальный статус", FieldConfig.FieldType.COMBOBOX, true,
-                                    ConfigFactory::getSocialStatusForComboBox, "Выберите социальный статус", 200)
-                    );
-            
-                    return new UniversalFormConfig<>("Клиент", fields, saveFunction, onSuccess, mode, Tenant.class);
-                }
-            
-                // Вспомогательные методы для сотрудника
-                public static ObservableList<Object> getRoomsForCurrentHotel(Map<String, Object> filters) {
-                    ObservableList<Object> rooms = FXCollections.observableArrayList();
-                    try {
-                        Connection connection = Session.getConnection();
-            
-                        // Получаем ID текущего отеля сотрудника
-                        ResultSet hotelRs = Database_functions.callFunction(connection, "get_current_hotel_id");
-                        if (hotelRs.next()) {
-                            int hotelId = hotelRs.getInt(1);
-            
-                            ResultSet rs = Database_functions.callFunction(connection, "get_rooms_by_hotel", hotelId);
-                            while (rs.next()) {
-                                rooms.add(new Room(
-                                        rs.getInt("room_id"),
-                                        rs.getInt("hotel_id"),
-                                        rs.getInt("max_people"),
-                                        rs.getBigDecimal("price_per_person"),
-                                        rs.getInt("room_number"),
-                                        rs.getInt("type_of_room_id"),
-                                        rs.getString("hotel_info"),
-                                        rs.getString("room_type_name")
-                                ));
+            Callback<Object, Void> onEdit) {
+
+        List<ColumnConfig> columns = Arrays.asList(
+                new ColumnConfig("firstName", "Фамилия", 150, true, FieldConfig.FieldType.TEXT, "Фамилия"),
+                new ColumnConfig("name", "Имя", 150, true, FieldConfig.FieldType.TEXT, "Имя"),
+                new ColumnConfig("patronymic", "Отчество", 150, true, FieldConfig.FieldType.TEXT, "Отчество"),
+                new ColumnConfig("birthDate", "Дата рождения", 120, true, FieldConfig.FieldType.TEXT, "Дата рождения"),
+                new ColumnConfig("passport", "Паспорт", 150, false, FieldConfig.FieldType.TEXT, "Паспортные данные"),
+                new ColumnConfig("socialStatus", "Социальный статус", 150, true, FieldConfig.FieldType.TEXT, "Социальный статус"),
+                new ColumnConfig("email", "Email", 200, true, FieldConfig.FieldType.TEXT, "Email"),
+                new ColumnConfig("documentType", "Тип документа", 150, false, FieldConfig.FieldType.TEXT, "Тип документа")
+        );
+
+        return new TableConfig("Клиенты", dataLoader, onAdd, onEdit, null, columns, null, null);
+    }
+
+        public static TableConfig createBookingInfoTableConfig(
+                Function<Map<String, Object>, ObservableList<Object>> dataLoader) {
+
+            List<ColumnConfig> columns = Arrays.asList(
+                    new ColumnConfig("bookingNumber", "Номер брони", 150),
+                    new ColumnConfig("tenantName", "Имя клиента", 150),
+                    new ColumnConfig("roomNumber", "Номер комнаты", 120),
+                    new ColumnConfig("checkInDate", "Дата заезда", 120),
+                    new ColumnConfig("checkOutDate", "Дата выезда", 120),
+                    new ColumnConfig("status", "Статус", 100),
+                    new ColumnConfig("totalCost", "Общая стоимость", 120)
+            );
+
+            List<FilterConfig> filters = List.of(
+                    new FilterConfig(
+                            "bookingNumber",
+                            "Номер брони",
+                            (map) -> {
+                                // Здесь можно загрузить список активных бронирований
+                                // Пока возвращаем пустой список, так как фильтр будет текстовым
+                                return FXCollections.observableArrayList();
                             }
-                        }
-                    } catch (Exception e) {
-                        System.err.println("Ошибка загрузки комнат текущего отеля: " + e.getMessage());
-                    }
-                    return rooms;
+                    )
+            );
+
+            return new TableConfig("Информация о бронировании", dataLoader, null, null, null, columns, filters, null);
+        }
+    public static TableConfig createAvailableRoomsTableConfig(
+            Function<Map<String, Object>, ObservableList<Object>> dataLoader) {
+
+        List<ColumnConfig> columns = Arrays.asList(
+                new ColumnConfig("roomNumber", "Номер комнаты", 120),
+                new ColumnConfig("roomType", "Тип комнаты", 150),
+                new ColumnConfig("maxPeople", "Макс. людей", 100),
+                new ColumnConfig("pricePerNight", "Цена за ночь", 120),
+                new ColumnConfig("available", "Доступна", 100),
+                new ColumnConfig("availableSpace", "Свободных мест", 150)
+        );
+
+        // Добавляем фильтры для дат заезда и выезда
+        List<FilterConfig> filters = Arrays.asList(
+                new FilterConfig("checkInDate", "Дата заезда", FilterConfig.FilterType.DATE, true),
+                new FilterConfig("checkOutDate", "Дата выезда", FilterConfig.FilterType.DATE, true),
+                new FilterConfig("typeOfRoom", "Тип комнаты", (map) -> ConfigFactory.getRoomTypesForComboBox()),
+                new FilterConfig("numberOfPeople", "Количество людей", FilterConfig.FilterType.NUMBER, false)
+        );
+
+        return new TableConfig("Свободные комнаты", dataLoader, null, null, null, columns, filters, null);
+    }
+
+    public static TableConfig createEmployeeServiceHistoryTableConfig(
+            Function<Map<String, Object>, ObservableList<Object>> dataLoader,
+            Callback<Void, Void> onAdd,
+            Callback<Object, Void> onEdit) {
+        List<ColumnConfig> columns = Arrays.asList(
+                new ColumnConfig("serviceName", "Сервис", 200),
+                new ColumnConfig("amount", "Количество", 100)
+        );
+        List<FilterConfig> filters = Arrays.asList(
+                new FilterConfig(
+                        "room",
+                        "Комната",
+                        ConfigFactory::getRoomsForCurrentHotel,
+                        null
+                ),
+                new FilterConfig(
+                        "client",
+                        "Клиент",
+                        (map) -> ConfigFactory.getTenantsForComboBox(),
+                        null
+                )
+        );
+        return new TableConfig("Дополнительные услуги", dataLoader, onAdd, onEdit, null, columns, filters, null);
+    }
+
+    // Формы для сотрудника
+    public static UniversalFormConfig<TenantHistory> createEmployeeBookingFormConfig(
+            Function<TenantHistory, Boolean> saveFunction,
+            java.util.function.Consumer<TenantHistory> onSuccess,
+            UniversalFormConfig.Mode mode) {
+
+        List<FieldConfig> fields = Arrays.asList(
+                new FieldConfig("roomId", "Комната", FieldConfig.FieldType.COMBOBOX, true,
+                        ConfigFactory::getRoomsByHotelForComboBox, "Выберите комнату", 200, "hotel"),
+                new FieldConfig("tenantId", "Клиент", FieldConfig.FieldType.COMBOBOX, true,
+                        ConfigFactory::getTenantsForComboBox, "Выберите клиента", 400),
+                new FieldConfig("bookingDate", "Дата бронирования", FieldConfig.FieldType.DATE, true),
+                new FieldConfig("checkInDate", "Дата заезда", FieldConfig.FieldType.DATE, true),
+                new FieldConfig("checkInStatus", "Статус", FieldConfig.FieldType.COMBOBOX, true,
+                        BookingStatus::getBookingStatusValues, "Выберите статус", 200),
+                new FieldConfig("occupiedSpace", "Занято мест", FieldConfig.FieldType.NUMBER, true, "Введите количество"),
+                new FieldConfig("amountOfNights", "Количество ночей", FieldConfig.FieldType.NUMBER, true, "Введите количество"),
+                new FieldConfig("canBeSplit", "Разделяемое бронирование", FieldConfig.FieldType.CHECKBOX, false)
+        );
+
+        List<FilterConfig> filters = List.of(
+                new FilterConfig(
+                        "hotel",
+                        "Отель",
+                        (map) -> ConfigFactory.getHotelsForComboBox()
+                )
+        );
+
+        return new UniversalFormConfig<>("Бронирование", fields, saveFunction, onSuccess, mode, TenantHistory.class);
+    }
+
+    public static UniversalFormConfig<Tenant> createEmployeeClientFormConfig(
+            Function<Tenant, Boolean> saveFunction,
+            java.util.function.Consumer<Tenant> onSuccess,
+            UniversalFormConfig.Mode mode) {
+        return createEmployeeClientFormConfig(saveFunction, onSuccess, mode, false);
+    }
+
+    public static UniversalFormConfig<Tenant> createEmployeeClientFormConfig(
+            Function<Tenant, Boolean> saveFunction,
+            java.util.function.Consumer<Tenant> onSuccess,
+            UniversalFormConfig.Mode mode,
+            boolean requireDocuments) {
+
+        List<FieldConfig> fields = Arrays.asList(
+                new FieldConfig("firstName", "Фамилия", FieldConfig.FieldType.TEXT, true, "Введите фамилию", "^[а-яА-ЯёЁa-zA-Z]+$"),
+                new FieldConfig("name", "Имя", FieldConfig.FieldType.TEXT, true, "Введите имя", "^[а-яА-ЯёЁa-zA-Z]+$"),
+                new FieldConfig("patronymic", "Отчество", FieldConfig.FieldType.TEXT, false, "Введите отчество", "^[а-яА-ЯёЁa-zA-Z]+$"),
+                new FieldConfig("birthDate", "Дата рождения", FieldConfig.FieldType.DATE, true),
+                new FieldConfig("documentType", "Тип документа", FieldConfig.FieldType.COMBOBOX, requireDocuments,
+                        DocumentType::getDocumentTypeValues, "Например, Паспорт РФ", 300),
+                new FieldConfig("series", "Серия паспорта", FieldConfig.FieldType.NUMBER, requireDocuments, "4 цифры", "\\d{4}"),
+                new FieldConfig("number", "Номер паспорта", FieldConfig.FieldType.NUMBER, requireDocuments, "6 цифр", "\\d{6}"),
+                new FieldConfig("email", "Email", FieldConfig.FieldType.TEXT, true, "example@mail.com", "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$"),
+                new FieldConfig("cityId", "Город", FieldConfig.FieldType.COMBOBOX, true,
+                        ConfigFactory::getCitiesForComboBox, "Выберите город", 400),
+                new FieldConfig("socialStatusId", "Социальный статус", FieldConfig.FieldType.COMBOBOX, true,
+                        ConfigFactory::getSocialStatusForComboBox, "Выберите социальный статус", 200)
+        );
+
+        return new UniversalFormConfig<>("Клиент", fields, saveFunction, onSuccess, mode, Tenant.class);
+    }
+
+    // Вспомогательные методы для сотрудника
+    public static ObservableList<Object> getRoomsForCurrentHotel(Map<String, Object> filters) {
+        ObservableList<Object> rooms = FXCollections.observableArrayList();
+        try {
+            Connection connection = Session.getConnection();
+
+            // Получаем ID текущего отеля сотрудника
+            ResultSet hotelRs = Database_functions.callFunction(connection, "get_current_hotel_id");
+            if (hotelRs.next()) {
+                int hotelId = hotelRs.getInt(1);
+
+                ResultSet rs = Database_functions.callFunction(connection, "get_rooms_by_hotel", hotelId);
+                while (rs.next()) {
+                    rooms.add(new Room(
+                            rs.getInt("room_id"),
+                            rs.getInt("hotel_id"),
+                            rs.getInt("max_people"),
+                            rs.getBigDecimal("price_per_person"),
+                            rs.getInt("room_number"),
+                            rs.getInt("type_of_room_id"),
+                            rs.getString("hotel_info"),
+                            rs.getString("room_type_name")
+                    ));
                 }
-            
+            }
+        } catch (Exception e) {
+            System.err.println("Ошибка загрузки комнат текущего отеля: " + e.getMessage());
+        }
+        return rooms;
+    }
+
     public static TableConfig createEmployeeBookingsTableConfig(
             Function<Map<String, Object>, ObservableList<Object>> dataLoader,
             Callback<Void, Void> onCheckIn,
@@ -967,19 +938,24 @@ public class ConfigFactory {
             Callback<Object, Void> onEdit) {
 
         List<ColumnConfig> columns = Arrays.asList(
-                new ColumnConfig("bookingNumber", "Номер брони", 150),
-                new ColumnConfig("roomId", "ID комнаты", 100),
-                new ColumnConfig("tenantId", "ID жильца", 100),
-                new ColumnConfig("bookingDate", "Дата брони", 120),
-                new ColumnConfig("checkInDate", "Дата заезда", 120),
-                new ColumnConfig("checkInStatus", "Статус заезда", 120),
-                new ColumnConfig("occupiedSpace", "Занято мест", 100),
-                new ColumnConfig("amountOfNights", "Кол-во ночей", 100),
-                new ColumnConfig("canBeSplit", "Разделяемая", 100)
+                new ColumnConfig("bookingNumber", "Номер брони", 150, true, FieldConfig.FieldType.TEXT, "Номер бронирования"),
+                new ColumnConfig("roomId", "ID комнаты", 100, false, FieldConfig.FieldType.NUMBER, "ID комнаты"),
+                new ColumnConfig("tenantId", "ID жильца", 100, false, FieldConfig.FieldType.NUMBER, "ID жильца"),
+                new ColumnConfig("bookingDate", "Дата брони", 120, true, FieldConfig.FieldType.TEXT, "Дата бронирования"),
+                new ColumnConfig("checkInDate", "Дата заезда", 120, true, FieldConfig.FieldType.TEXT, "Дата заезда"),
+                new ColumnConfig("checkInStatus", "Статус заезда", 120, true, FieldConfig.FieldType.TEXT, "Статус заезда"),
+                new ColumnConfig("occupiedSpace", "Занято мест", 100, false, FieldConfig.FieldType.NUMBER, "Занято мест"),
+                new ColumnConfig("amountOfNights", "Кол-во ночей", 100, false, FieldConfig.FieldType.NUMBER, "Количество ночей"),
+                new ColumnConfig("canBeSplit", "Разделяемая", 100, false, FieldConfig.FieldType.CHECKBOX, "Разделяемое бронирование")
         );
 
-        // Используем onCheckIn как основной callback для кнопки "Добавить"
-        return new TableConfig("Бронирования", dataLoader, onCheckIn, onEdit, null, onBooking, columns, null);
+        List<FilterConfig> filters = Arrays.asList(
+                new FilterConfig("bookingNumber", "Номер брони", FilterConfig.FilterType.TEXT, false),
+                new FilterConfig("checkInStatus", "Статус заезда",
+                        (map) -> BookingStatus.getBookingStatusValues())
+        );
+
+        return new TableConfig("Бронирования", dataLoader, onCheckIn, onEdit, onBooking, columns, filters, null);
     }
 
     // Конфигурация для счетов с кнопкой формирования

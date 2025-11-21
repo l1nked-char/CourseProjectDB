@@ -140,7 +140,19 @@ public class AdminController {
         ObservableList<Object> hotels = FXCollections.observableArrayList();
         try {
             Connection connection = Session.getConnection();
-            ResultSet rs = Database_functions.callFunction(connection, "get_all_hotels");
+            ResultSet rs;
+
+            // Извлекаем параметры фильтрации
+            String cityFilter = getStringFilter(filters, "cityName");
+            String addressFilter = getStringFilter(filters, "address");
+
+            if (hasActiveFilters(cityFilter, addressFilter)) {
+                rs = Database_functions.callFunction(connection, "get_all_hotels_filtered",
+                        cityFilter, addressFilter);
+            } else {
+                rs = Database_functions.callFunction(connection, "get_all_hotels");
+            }
+
             while (rs.next()) {
                 hotels.add(new Hotel(
                         rs.getInt("hotel_id"),
@@ -165,7 +177,14 @@ public class AdminController {
 
             int hotelId = selectedHotel.getId();
             Connection connection = Session.getConnection();
-            ResultSet rs = Database_functions.callFunction(connection, "get_rooms_by_hotel", hotelId);
+
+            String roomNumber = (String) filters.get("roomNumber");
+            String roomTypeName = (String) filters.get("roomTypeName");
+            String maxPeople = (String) filters.get("maxPeople");
+            String pricePerPerson = (String) filters.get("pricePerPerson");
+
+            ResultSet rs = Database_functions.callFunction(connection, "get_rooms_by_hotel_filtered",
+                    hotelId, roomNumber, roomTypeName, maxPeople, pricePerPerson);
 
             while (rs.next()) {
                 rooms.add(new Room(
@@ -185,12 +204,20 @@ public class AdminController {
         return rooms;
     }
 
-    // Аналогичные методы для других сущностей...
     private ObservableList<Object> loadTypesOfRoomData(Map<String, Object> filters) {
         ObservableList<Object> types = FXCollections.observableArrayList();
         try {
             Connection connection = Session.getConnection();
-            ResultSet rs = Database_functions.callFunction(connection, "get_all_types_of_room");
+            ResultSet rs;
+
+            String typeNameFilter = getStringFilter(filters, "name");
+
+            if (hasActiveFilters(typeNameFilter)) {
+                rs = Database_functions.callFunction(connection, "get_all_types_of_room_filtered", typeNameFilter);
+            } else {
+                rs = Database_functions.callFunction(connection, "get_all_types_of_room");
+            }
+
             while (rs.next()) {
                 types.add(new TypeOfRoom(
                         rs.getInt("type_id"),
@@ -207,7 +234,16 @@ public class AdminController {
         ObservableList<Object> conveniences = FXCollections.observableArrayList();
         try {
             Connection connection = Session.getConnection();
-            ResultSet rs = Database_functions.callFunction(connection, "get_all_conveniences");
+            ResultSet rs;
+
+            String convNameFilter = getStringFilter(filters, "name");
+
+            if (hasActiveFilters(convNameFilter)) {
+                rs = Database_functions.callFunction(connection, "get_all_conveniences_filtered", convNameFilter);
+            } else {
+                rs = Database_functions.callFunction(connection, "get_all_conveniences");
+            }
+
             while (rs.next()) {
                 conveniences.add(new Convenience(
                         rs.getInt("conv_name_id"),
@@ -224,7 +260,16 @@ public class AdminController {
         ObservableList<Object> cities = FXCollections.observableArrayList();
         try {
             Connection connection = Session.getConnection();
-            ResultSet rs = Database_functions.callFunction(connection, "get_all_cities");
+            ResultSet rs;
+
+            String cityNameFilter = getStringFilter(filters, "cityName");
+
+            if (hasActiveFilters(cityNameFilter)) {
+                rs = Database_functions.callFunction(connection, "get_all_cities_filtered", cityNameFilter);
+            } else {
+                rs = Database_functions.callFunction(connection, "get_all_cities");
+            }
+
             while (rs.next()) {
                 cities.add(new City(
                         rs.getInt("city_id"),
@@ -314,7 +359,16 @@ public class AdminController {
         ObservableList<Object> socialStatuses = FXCollections.observableArrayList();
         try {
             Connection connection = Session.getConnection();
-            ResultSet rs = Database_functions.callFunction(connection, "get_all_social_statuses");
+            ResultSet rs;
+
+            String statusNameFilter = getStringFilter(filters, "name");
+
+            if (hasActiveFilters(statusNameFilter)) {
+                rs = Database_functions.callFunction(connection, "get_all_social_statuses_filtered", statusNameFilter);
+            } else {
+                rs = Database_functions.callFunction(connection, "get_all_social_statuses");
+            }
+
             while (rs.next()) {
                 socialStatuses.add(new SocialStatus(
                         rs.getInt("status_id"),
@@ -331,7 +385,16 @@ public class AdminController {
         ObservableList<Object> services = FXCollections.observableArrayList();
         try {
             Connection connection = Session.getConnection();
-            ResultSet rs = Database_functions.callFunction(connection, "get_all_services");
+            ResultSet rs;
+
+            String serviceNameFilter = getStringFilter(filters, "name");
+
+            if (hasActiveFilters(serviceNameFilter)) {
+                rs = Database_functions.callFunction(connection, "get_all_services_filtered", serviceNameFilter);
+            } else {
+                rs = Database_functions.callFunction(connection, "get_all_services");
+            }
+
             while (rs.next()) {
                 services.add(new Service(
                         rs.getInt("service_name_id"),
@@ -352,8 +415,32 @@ public class AdminController {
                 return tenants;
             }
             int hotelId = selectedHotel.getId();
+
             Connection connection = Session.getConnection();
-            ResultSet rs = Database_functions.callFunction(connection, "get_tenants_by_hotel", hotelId);
+            ResultSet rs;
+
+            // Извлекаем параметры фильтрации для жильцов
+            String firstNameFilter = getStringFilter(filters, "firstName");
+            String nameFilter = getStringFilter(filters, "name");
+            String patronymicFilter = getStringFilter(filters, "patronymic");
+            String cityNameFilter = getStringFilter(filters, "cityName");
+            String birthDateFilter = getStringFilter(filters, "birthDate");
+            String socialStatusFilter = getStringFilter(filters, "socialStatus");
+            String seriesFilter = getStringFilter(filters, "series");
+            String numberFilter = getStringFilter(filters, "number");
+            String documentTypeFilter = getStringFilter(filters, "documentType");
+            String emailFilter = getStringFilter(filters, "email");
+
+            if (hasActiveFilters(firstNameFilter, nameFilter, patronymicFilter, cityNameFilter,
+                    birthDateFilter, socialStatusFilter, seriesFilter, numberFilter,
+                    documentTypeFilter, emailFilter)) {
+                rs = Database_functions.callFunction(connection, "get_all_tenants_filtered",
+                        firstNameFilter, nameFilter, patronymicFilter, cityNameFilter, birthDateFilter,
+                        socialStatusFilter, seriesFilter, numberFilter, documentTypeFilter, emailFilter);
+            } else {
+                rs = Database_functions.callFunction(connection, "get_tenants_by_hotel", hotelId);
+            }
+
             while (rs.next()) {
                 Tenant tenant = new Tenant(
                         rs.getInt("tenant_id"),
@@ -386,8 +473,32 @@ public class AdminController {
                 return tenantHistory;
             }
             int hotelId = selectedHotel.getId();
+
             Connection connection = Session.getConnection();
-            ResultSet rs = Database_functions.callFunction(connection, "get_tenant_history_by_hotel", hotelId);
+            ResultSet rs;
+
+            // Извлекаем параметры фильтрации для истории заселений
+            String bookingNumberFilter = getStringFilter(filters, "bookingNumber");
+            String roomInfoFilter = getStringFilter(filters, "roomInfo");
+            String tenantInfoFilter = getStringFilter(filters, "tenantInfo");
+            String bookingDateFilter = getStringFilter(filters, "bookingDate");
+            String checkInDateFilter = getStringFilter(filters, "checkInDate");
+            String checkInStatusFilter = getStringFilter(filters, "checkInStatus");
+            String occupiedSpaceFilter = getStringFilter(filters, "occupiedSpace");
+            String amountOfNightsFilter = getStringFilter(filters, "amountOfNights");
+            Boolean canBeSplitFilter = getBooleanFilter(filters, "canBeSplit");
+
+            if (hasActiveFilters(bookingNumberFilter, roomInfoFilter, tenantInfoFilter, bookingDateFilter,
+                    checkInDateFilter, checkInStatusFilter, occupiedSpaceFilter,
+                    amountOfNightsFilter) || canBeSplitFilter != null) {
+                rs = Database_functions.callFunction(connection, "get_tenant_history_by_hotel_filtered",
+                        hotelId, bookingNumberFilter, roomInfoFilter, tenantInfoFilter, bookingDateFilter,
+                        checkInDateFilter, checkInStatusFilter, occupiedSpaceFilter, amountOfNightsFilter,
+                        canBeSplitFilter != null ? canBeSplitFilter : false);
+            } else {
+                rs = Database_functions.callFunction(connection, "get_tenant_history_by_hotel", hotelId);
+            }
+
             while (rs.next()) {
                 TenantHistory th = new TenantHistory(
                         rs.getString("booking_number"),
@@ -949,7 +1060,19 @@ public class AdminController {
         ObservableList<Object> users = FXCollections.observableArrayList();
         try {
             Connection connection = Session.getConnection();
-            ResultSet rs = Database_functions.callFunction(connection, "get_all_users");
+            ResultSet rs;
+
+            String usernameFilter = getStringFilter(filters, "username");
+            String roleFilter = getStringFilter(filters, "role");
+            String hotelInfoFilter = getStringFilter(filters, "hotelInfo");
+            Boolean userLockedFilter = getBooleanFilter(filters, "userLocked");
+
+            if (hasActiveFilters(usernameFilter, roleFilter, hotelInfoFilter) || userLockedFilter != null) {
+                rs = Database_functions.callFunction(connection, "get_all_users_filtered",
+                        usernameFilter, roleFilter, hotelInfoFilter, userLockedFilter != null ? userLockedFilter : false);
+            } else {
+                rs = Database_functions.callFunction(connection, "get_all_users");
+            }
 
             while (rs.next()) {
                 users.add(new User(
@@ -1196,5 +1319,34 @@ public class AdminController {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    private String getStringFilter(Map<String, Object> filters, String key) {
+        Object value = filters.get(key);
+        return (value instanceof String) ? (String) value : "";
+    }
+
+    private Boolean getBooleanFilter(Map<String, Object> filters, String key) {
+        Object value = filters.get(key);
+        return (value instanceof Boolean) ? (Boolean) value : null;
+    }
+
+    private boolean hasActiveFilters(String... filters) {
+        for (String filter : filters) {
+            if (filter != null && !filter.isEmpty()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean hasActiveFilters(String filter1, String filter2) {
+        return (filter1 != null && !filter1.isEmpty()) || (filter2 != null && !filter2.isEmpty());
+    }
+
+    private boolean hasActiveFilters(String filter1, String filter2, String filter3) {
+        return (filter1 != null && !filter1.isEmpty()) ||
+                (filter2 != null && !filter2.isEmpty()) ||
+                (filter3 != null && !filter3.isEmpty());
     }
 }

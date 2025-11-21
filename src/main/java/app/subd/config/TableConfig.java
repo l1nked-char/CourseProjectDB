@@ -6,6 +6,7 @@ import javafx.util.Callback;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class TableConfig {
     private final String tableName;
@@ -94,4 +95,14 @@ public class TableConfig {
     public List<FilterConfig> getFilters() { return filters; }
     public Callback<Void, Void> getOnBooking() { return onBooking; }
     public boolean isMultiSelect() { return multiSelect; }
+
+    public List<ColumnConfig> getFilterableColumns() {
+        return columns.stream()
+                .filter(ColumnConfig::isFilterable)
+                .collect(Collectors.toList());
+    }
+
+    public boolean hasFilterableColumns() {
+        return columns.stream().anyMatch(ColumnConfig::isFilterable);
+    }
 }

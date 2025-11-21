@@ -10,14 +10,21 @@ import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
 
+import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -32,22 +39,28 @@ public class UniversalTableController implements AdminController.RefreshableCont
     @FXML private Button deleteButton;
     @FXML private Button refreshButton;
     @FXML private Button clearFiltersButton;
+    @FXML private Button filterButton;
     @FXML private Button toggleActiveButton;
     @FXML private Label statusLabel;
 
     private TableConfig currentConfig;
     private ObservableList<Object> originalData;
     private SortedList<Object> sortedData;
-    private Map<String, Node> activeFilterControls = new HashMap<>();
+    private FilteredList<Object> filteredData;
+    private final Map<String, Node> activeFilterControls = new HashMap<>();
     private final Map<String, Object> currentFilterValues = new HashMap<>();
     private final Map<String, FilterConfig> filterConfigs = new HashMap<>();
+    private final Map<String, Object> columnFilters = new HashMap<>();
+
 
     @FXML
     public void initialize() {
         setupTable();
         setupEventHandlers();
         setupPaginationStub();
+        setupFilterButton();
     }
+
 
     private void setupPaginationStub() {
         Pagination pagination = new Pagination();
@@ -100,7 +113,7 @@ public class UniversalTableController implements AdminController.RefreshableCont
 
     private void setupTable() {
         originalData = FXCollections.observableArrayList();
-        FilteredList<Object> filteredData = new FilteredList<>(originalData, p -> true);
+        filteredData = new FilteredList<>(originalData, p -> true);
         sortedData = new SortedList<>(filteredData);
         tableView.setItems(sortedData);
         sortedData.comparatorProperty().bind(tableView.comparatorProperty());
@@ -312,24 +325,6 @@ public class UniversalTableController implements AdminController.RefreshableCont
         }
     }
 
-    private void loadData() {
-        if (currentConfig != null && currentConfig.getDataLoader() != null) {
-            try {
-                ObservableList<Object> newData = currentConfig.getDataLoader().apply(currentFilterValues);
-                originalData.clear();
-                originalData.addAll(newData);
-                if (statusLabel != null) {
-                    showSuccess(statusLabel, "Загружено записей: " + originalData.size());
-                }
-            } catch (Exception e) {
-                if (statusLabel != null) {
-                    showError(statusLabel, "Ошибка загрузки данных: " + e.getMessage());
-                }
-                e.printStackTrace();
-            }
-        }
-    }
-
     private void updateButtonsState(boolean hasSelection) {
         if (editButton != null) {
             editButton.setDisable(!hasSelection);
@@ -386,12 +381,6 @@ public class UniversalTableController implements AdminController.RefreshableCont
         refreshData();
     }
 
-    @FXML
-    private void handleClearFilters() {
-        clearFilters();
-        refreshData();
-    }
-
     private void clearFilters() {
         currentFilterValues.clear();
 
@@ -408,8 +397,121 @@ public class UniversalTableController implements AdminController.RefreshableCont
         refreshAllFilters();
     }
 
+    private void setupFilterButton() {
+        // Заменяем searchField на кнопку фильтра
+        filterButton = new Button("Фильтр");
+        filterButton.setOnAction(e -> openColumnFilterDialog());
+
+        // Находим HBox с кнопками и заменяем searchField на filterButton
+        Node parentNode = tableView.getParent();
+        if (parentNode instanceof VBox vbox) {
+            for (Node node : vbox.getChildren()) {
+                if (node instanceof HBox buttonBox) {
+                    // Удаляем searchField если есть
+                    buttonBox.getChildren().removeIf(n -> n instanceof TextField &&
+                            n.getId() != null &&
+                            n.getId().equals("searchField"));
+                    // Добавляем кнопку фильтра
+                    buttonBox.getChildren().add(0, filterButton);
+                    break;
+                }
+            }
+        }
+    }
+
+    private void openColumnFilterDialog() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/app/subd/tables/column_filter.fxml"));
+            Parent root = loader.load();
+
+            ColumnFilterController controller = loader.getController();
+            controller.configure(currentConfig, this);
+
+            Stage stage = new Stage();
+            stage.setTitle("Фильтрация - " + currentConfig.getTableName());
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.setScene(new Scene(root));
+            stage.setResizable(true);
+            stage.setMinHeight(400);
+            stage.setMinWidth(400);
+
+            controller.setStage(stage);
+            stage.showAndWait();
+        } catch (Exception e) {
+            showError(statusLabel, "Ошибка открытия формы фильтрации: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    public void applyColumnFilters(Map<String, Object> filters) {
+        this.columnFilters.clear();
+        this.columnFilters.putAll(filters);
+        refreshData();
+    }
+
+    private void applyColumnFiltering() {
+        showSuccess(statusLabel, "Фильтры применены. Записей: " + sortedData.size());
+    }
+
+    private Object getPropertyValue(Object item, String propertyName) throws Exception {
+        // Используем рефлексию для получения значения свойства
+        Field field = item.getClass().getDeclaredField(propertyName);
+        field.setAccessible(true);
+        return field.get(item);
+    }
+
+    private boolean matchesFilter(Object cellValue, Object filterValue) {
+        if (filterValue == null) return true;
+        if (cellValue == null) return false;
+
+        if (filterValue instanceof String) {
+            String filterString = ((String) filterValue).toLowerCase();
+            String cellString = cellValue.toString().toLowerCase();
+            return cellString.contains(filterString);
+        } else if (filterValue instanceof java.time.LocalDate) {
+            return filterValue.equals(cellValue);
+        } else if (filterValue instanceof Boolean) {
+            return filterValue.equals(cellValue);
+        } else if (filterValue instanceof Number) {
+            // Для числовых значений
+            try {
+                double cellNumber = Double.parseDouble(cellValue.toString());
+                double filterNumber = ((Number) filterValue).doubleValue();
+                return cellNumber == filterNumber;
+            } catch (NumberFormatException e) {
+                return false;
+            }
+        }
+
+        return cellValue.equals(filterValue);
+    }
+
     public void refreshData() {
-        loadData();
+        Map<String, Object> allFilters = new HashMap<>();
+        allFilters.putAll(currentFilterValues);
+        allFilters.putAll(columnFilters);
+
+        loadData(allFilters);
+    }
+
+
+    private void loadData(Map<String, Object> allFilters) {
+        if (currentConfig != null && currentConfig.getDataLoader() != null) {
+            try {
+                ObservableList<Object> newData = currentConfig.getDataLoader().apply(allFilters);
+                originalData.clear();
+                originalData.addAll(newData);
+
+                if (statusLabel != null) {
+                    showSuccess(statusLabel, "Загружено записей: " + sortedData.size());
+                }
+            } catch (Exception e) {
+                if (statusLabel != null) {
+                    showError(statusLabel, "Ошибка загрузки данных: " + e.getMessage());
+                }
+                e.printStackTrace();
+            }
+        }
     }
 
     public Object getSelectedItem() {
@@ -438,5 +540,12 @@ public class UniversalTableController implements AdminController.RefreshableCont
 
     public TableView<Object> getTableView() {
         return tableView;
+    }
+
+    @FXML
+    private void handleClearFilters() {
+        clearFilters();
+        columnFilters.clear();
+        refreshData();
     }
 }

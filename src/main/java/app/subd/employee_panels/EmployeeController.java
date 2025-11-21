@@ -239,33 +239,6 @@ public class EmployeeController {
         return null;
     }
 
-    // Методы сохранения для разных типов операций
-    private Boolean saveCheckIn(TenantHistory booking) {
-        try {
-            Connection connection = Session.getConnection();
-
-            booking.setCheckInStatus(BookingStatus.getBookingStatus("занят"));
-
-            if (booking.getBookingNumber() == null || booking.getBookingNumber().isEmpty()) {
-                Database_functions.callFunction(connection, "add_tenant_history",
-                        booking.getTenantId(), booking.getRoomId(), booking.getBookingDate(),
-                        booking.getCheckInDate(), booking.getCheckInStatus(),
-                        booking.getOccupiedSpace(), booking.getAmountOfNights(), booking.isCanBeSplit());
-                showSuccess(statusLabel, "Заселение успешно оформлено");
-            } else {
-                Database_functions.callFunction(connection, "edit_tenant_history",
-                        booking.getBookingNumber(), booking.getTenantId(), booking.getRoomId(),
-                        booking.getBookingDate(), booking.getCheckInDate(), booking.getCheckInStatus(),
-                        booking.getOccupiedSpace(), booking.getAmountOfNights(), booking.isCanBeSplit());
-                showSuccess(statusLabel, "Данные заселения успешно обновлены");
-            }
-            return true;
-        } catch (Exception e) {
-            showError(statusLabel, "Ошибка сохранения заселения: " + e.getMessage());
-            return false;
-        }
-    }
-
     private Boolean saveBooking(TenantHistory booking) {
         try {
             Connection connection = Session.getConnection();
@@ -308,7 +281,36 @@ public class EmployeeController {
         ObservableList<Object> bookings = FXCollections.observableArrayList();
         try {
             Connection connection = Session.getConnection();
-            ResultSet rs = Database_functions.callFunction(connection, "get_tenant_history_by_hotel", currentHotelId);
+            ResultSet rs;
+
+            // Извлекаем параметры фильтрации
+            String bookingNumberFilter = getStringFilter(filters, "bookingNumber");
+            String checkInStatusFilter = getStringFilter(filters, "checkInStatus");
+
+            if (hasActiveFilters(bookingNumberFilter, checkInStatusFilter)) {
+                // Для Employee используем фильтрацию по текущему отелю
+                String roomInfo = "";
+                String tenantInfo = "";
+                String bookingDate = "";
+                String checkInDate = "";
+                String occupiedSpace = "";
+                String amountOfNights = "";
+                Boolean canBeSplit = null;
+
+                rs = Database_functions.callFunction(connection, "get_tenant_history_by_hotel_filtered",
+                        currentHotelId,
+                        bookingNumberFilter,
+                        roomInfo,
+                        tenantInfo,
+                        bookingDate,
+                        checkInDate,
+                        checkInStatusFilter,
+                        occupiedSpace,
+                        amountOfNights,
+                        canBeSplit != null ? canBeSplit : false);
+            } else {
+                rs = Database_functions.callFunction(connection, "get_tenant_history_by_hotel", currentHotelId);
+            }
 
             while (rs.next()) {
                 TenantHistory booking = new TenantHistory(
@@ -335,6 +337,7 @@ public class EmployeeController {
         ObservableList<Object> invoices = FXCollections.observableArrayList();
         try {
             Connection connection = Session.getConnection();
+            // Пока оставляем без фильтрации, так как нет функции с фильтрацией для счетов
             ResultSet rs = Database_functions.callFunction(connection, "get_daily_invoices_by_hotel", currentHotelId);
 
             while (rs.next()) {
@@ -357,8 +360,29 @@ public class EmployeeController {
         ObservableList<Object> clients = FXCollections.observableArrayList();
         try {
             Connection connection = Session.getConnection();
-            ResultSet rs = Database_functions.callFunction(connection, "get_tenants_by_hotel", currentHotelId);
+            ResultSet rs;
 
+            // Извлекаем параметры фильтрации для клиентов
+            String firstNameFilter = getStringFilter(filters, "firstName");
+            String nameFilter = getStringFilter(filters, "name");
+            String patronymicFilter = getStringFilter(filters, "patronymic");
+            String cityNameFilter = getStringFilter(filters, "cityName");
+            String birthDateFilter = getStringFilter(filters, "birthDate");
+            String socialStatusFilter = getStringFilter(filters, "socialStatus");
+            String seriesFilter = getStringFilter(filters, "series");
+            String numberFilter = getStringFilter(filters, "number");
+            String documentTypeFilter = getStringFilter(filters, "documentType");
+            String emailFilter = getStringFilter(filters, "email");
+
+            if (hasActiveFilters(firstNameFilter, nameFilter, patronymicFilter, cityNameFilter,
+                    birthDateFilter, socialStatusFilter, seriesFilter, numberFilter,
+                    documentTypeFilter, emailFilter)) {
+                rs = Database_functions.callFunction(connection, "get_all_tenants_filtered",
+                        firstNameFilter, nameFilter, patronymicFilter, cityNameFilter, birthDateFilter,
+                        socialStatusFilter, seriesFilter, numberFilter, documentTypeFilter, emailFilter);
+            } else {
+                rs = Database_functions.callFunction(connection, "get_tenants_by_hotel", currentHotelId);
+            }
 
             while (rs.next()) {
                 Tenant tenant = new Tenant(
@@ -454,17 +478,6 @@ public class EmployeeController {
         return availableRooms;
     }
 
-    // Обработчики действий
-    private Void handleAddBooking(Void param) {
-        UniversalFormConfig<TenantHistory> formConfig = ConfigFactory.createEmployeeBookingFormConfig(
-                this::saveBooking,
-                booking -> refreshActiveTable(),
-                UniversalFormConfig.Mode.ADD
-        );
-        FormManager.showForm(formConfig, FormController.Mode.ADD, null, getActiveTableController());
-        return null;
-    }
-
     private Void handleEditBooking(Object bookingObj) {
         if (!(bookingObj instanceof TenantHistory booking)) {
             showError(statusLabel, "Неверный тип данных для редактирования бронирования");
@@ -476,11 +489,6 @@ public class EmployeeController {
                 UniversalFormConfig.Mode.EDIT
         );
         FormManager.showForm(formConfig, FormController.Mode.EDIT, booking, getActiveTableController());
-        return null;
-    }
-
-    private Void handleAddInvoice(Void param) {
-        showInfo(statusLabel, "Функция добавления счета будет реализована в следующей версии");
         return null;
     }
 
@@ -672,5 +680,19 @@ public class EmployeeController {
     private Void handleCheckIn(Void param) {
         CheckInWizardController.startWizard(CheckInWizardController.WizardMode.CHECK_IN);
         return null;
+    }
+
+    private String getStringFilter(Map<String, Object> filters, String key) {
+        Object value = filters.get(key);
+        return (value instanceof String) ? (String) value : "";
+    }
+
+    private boolean hasActiveFilters(String... filters) {
+        for (String filter : filters) {
+            if (filter != null && !filter.isEmpty()) {
+                return true;
+            }
+        }
+        return false;
     }
 }
