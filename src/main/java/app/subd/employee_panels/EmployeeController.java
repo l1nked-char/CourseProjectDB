@@ -24,6 +24,7 @@ import javafx.stage.Stage;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.time.LocalDate;
+import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -134,7 +135,14 @@ public class EmployeeController {
                 if (rsBooking.next()) {
                     String bookingNumber = rsBooking.getString(1);
                     if (bookingNumber != null) {
-                        ResultSet rsServices = Database_functions.callFunction(connection, "get_service_history_by_booking", bookingNumber);
+                        String serviceNameFilter = getStringFilter(filters, "serviceName");
+                        String amountFilter = getStringFilter(filters, "amount");
+                        Map.Entry<Integer, Integer> pagination = getPaginationParams(filters);
+                        Integer lastId = pagination.getKey();
+                        Integer limit = pagination.getValue();
+
+                        ResultSet rsServices = Database_functions.callFunctionWithPagination(connection, "get_service_history_by_booking_filtered",
+                                "row_id", lastId, limit, bookingNumber, serviceNameFilter, amountFilter);
                         while (rsServices.next()) {
                             ServiceHistory service = new ServiceHistory();
                             service.setId(rsServices.getInt("row_id"));
@@ -281,44 +289,32 @@ public class EmployeeController {
         ObservableList<Object> bookings = FXCollections.observableArrayList();
         try {
             Connection connection = Session.getConnection();
-            ResultSet rs;
-
-            // Извлекаем параметры фильтрации
+            
             String bookingNumberFilter = getStringFilter(filters, "bookingNumber");
             String checkInStatusFilter = getStringFilter(filters, "checkInStatus");
+            // For Employee, we always filter by currentHotelId
+            String roomInfo = getStringFilter(filters, "roomInfo");
+            String tenantInfo = getStringFilter(filters, "tenantInfo");
+            String bookingDate = getStringFilter(filters, "bookingDate");
+            String checkInDate = getStringFilter(filters, "checkInDate");
+            String occupiedSpace = getStringFilter(filters, "occupiedSpace");
+            String amountOfNights = getStringFilter(filters, "amountOfNights");
+            Boolean canBeSplit = getBooleanFilter(filters, "canBeSplit");
+            Map.Entry<Integer, Integer> pagination = getPaginationParams(filters);
+            Integer lastId = pagination.getKey();
+            Integer limit = pagination.getValue();
 
-            if (hasActiveFilters(bookingNumberFilter, checkInStatusFilter)) {
-                // Для Employee используем фильтрацию по текущему отелю
-                String roomInfo = "";
-                String tenantInfo = "";
-                String bookingDate = "";
-                String checkInDate = "";
-                String occupiedSpace = "";
-                String amountOfNights = "";
-                Boolean canBeSplit = null;
-
-                rs = Database_functions.callFunction(connection, "get_tenant_history_by_hotel_filtered",
-                        currentHotelId,
-                        bookingNumberFilter,
-                        roomInfo,
-                        tenantInfo,
-                        bookingDate,
-                        checkInDate,
-                        checkInStatusFilter,
-                        occupiedSpace,
-                        amountOfNights,
-                        canBeSplit != null ? canBeSplit : false);
-            } else {
-                rs = Database_functions.callFunction(connection, "get_tenant_history_by_hotel", currentHotelId);
-            }
+            ResultSet rs = Database_functions.callFunctionWithPagination(connection, "get_tenant_history_by_hotel_filtered",
+                    "booking_number", lastId, limit, currentHotelId, bookingNumberFilter, roomInfo, tenantInfo,
+                    bookingDate, checkInDate, checkInStatusFilter, occupiedSpace, amountOfNights, canBeSplit);
 
             while (rs.next()) {
                 TenantHistory booking = new TenantHistory(
                         rs.getString("booking_number"),
                         rs.getInt("room_id"),
                         rs.getInt("tenant_id"),
-                        rs.getDate("booking_date") != null ? rs.getDate("booking_date").toLocalDate() : null,
-                        rs.getDate("check_in_date") != null ? rs.getDate("check_in_date").toLocalDate() : null,
+                        rs.getDate("booking_date").toLocalDate(),
+                        rs.getDate("check_in_date").toLocalDate(),
                         BookingStatus.getBookingStatus(rs.getString("check_in_status")),
                         rs.getInt("occupied_space"),
                         rs.getInt("amount_of_nights"),
@@ -337,8 +333,19 @@ public class EmployeeController {
         ObservableList<Object> invoices = FXCollections.observableArrayList();
         try {
             Connection connection = Session.getConnection();
-            // Пока оставляем без фильтрации, так как нет функции с фильтрацией для счетов
-            ResultSet rs = Database_functions.callFunction(connection, "get_daily_invoices_by_hotel", currentHotelId);
+            
+            String invoiceNumberFilter = getStringFilter(filters, "invoiceNumber");
+            String bookingNumberFilter = getStringFilter(filters, "bookingNumber");
+            String totalAmountFilter = getStringFilter(filters, "totalAmount");
+            String issueDateFilter = getStringFilter(filters, "issueDate");
+            Boolean isPaidFilter = getBooleanFilter(filters, "isPaid");
+            Map.Entry<Integer, Integer> pagination = getPaginationParams(filters);
+            Integer lastId = pagination.getKey();
+            Integer limit = pagination.getValue();
+
+            ResultSet rs = Database_functions.callFunctionWithPagination(connection, "get_daily_invoices_by_hotel_filtered",
+                    "booking_number", lastId, limit, currentHotelId, invoiceNumberFilter, bookingNumberFilter,
+                    totalAmountFilter, issueDateFilter, isPaidFilter);
 
             while (rs.next()) {
                 Invoice invoice = new Invoice(
@@ -360,9 +367,7 @@ public class EmployeeController {
         ObservableList<Object> clients = FXCollections.observableArrayList();
         try {
             Connection connection = Session.getConnection();
-            ResultSet rs;
-
-            // Извлекаем параметры фильтрации для клиентов
+            
             String firstNameFilter = getStringFilter(filters, "firstName");
             String nameFilter = getStringFilter(filters, "name");
             String patronymicFilter = getStringFilter(filters, "patronymic");
@@ -373,16 +378,13 @@ public class EmployeeController {
             String numberFilter = getStringFilter(filters, "number");
             String documentTypeFilter = getStringFilter(filters, "documentType");
             String emailFilter = getStringFilter(filters, "email");
+            Map.Entry<Integer, Integer> pagination = getPaginationParams(filters);
+            Integer lastId = pagination.getKey();
+            Integer limit = pagination.getValue();
 
-            if (hasActiveFilters(firstNameFilter, nameFilter, patronymicFilter, cityNameFilter,
-                    birthDateFilter, socialStatusFilter, seriesFilter, numberFilter,
-                    documentTypeFilter, emailFilter)) {
-                rs = Database_functions.callFunction(connection, "get_all_tenants_filtered",
-                        firstNameFilter, nameFilter, patronymicFilter, cityNameFilter, birthDateFilter,
-                        socialStatusFilter, seriesFilter, numberFilter, documentTypeFilter, emailFilter);
-            } else {
-                rs = Database_functions.callFunction(connection, "get_tenants_by_hotel", currentHotelId);
-            }
+            ResultSet rs = Database_functions.callFunctionWithPagination(connection, "get_all_tenants_filtered",
+                    "tenant_id", lastId, limit, currentHotelId, firstNameFilter, nameFilter, patronymicFilter,
+                    cityNameFilter, birthDateFilter, socialStatusFilter, seriesFilter, numberFilter, documentTypeFilter, emailFilter);
 
             while (rs.next()) {
                 Tenant tenant = new Tenant(
@@ -411,23 +413,33 @@ public class EmployeeController {
     private ObservableList<Object> loadBookingInfoData(Map<String, Object> filters) {
         ObservableList<Object> bookingInfo = FXCollections.observableArrayList();
         try {
-            String bookingNumber = (String) filters.get("bookingNumber");
-            if (bookingNumber != null && !bookingNumber.isEmpty()) {
-                Connection connection = Session.getConnection();
-                ResultSet rs = Database_functions.callFunction(connection, "get_booking_details", bookingNumber);
+            String bookingNumberFilter = getStringFilter(filters, "bookingNumber");
+            String tenantNameFilter = getStringFilter(filters, "tenantName");
+            String roomNumberFilter = getStringFilter(filters, "roomNumber");
+            String checkInDateFilter = getStringFilter(filters, "checkInDate");
+            String checkOutDateFilter = getStringFilter(filters, "checkOutDate");
+            String statusFilter = getStringFilter(filters, "status");
+            String totalCostFilter = getStringFilter(filters, "totalCost");
+            Map.Entry<Integer, Integer> pagination = getPaginationParams(filters);
+            Integer lastId = pagination.getKey();
+            Integer limit = pagination.getValue();
 
-                while (rs.next()) {
-                    BookingInfo info = new BookingInfo(
-                            rs.getString("booking_number"),
-                            rs.getString("tenant_name"),
-                            rs.getString("room_number"),
-                            rs.getDate("check_in_date").toLocalDate(),
-                            rs.getDate("check_out_date").toLocalDate(),
-                            rs.getString("status"),
-                            rs.getBigDecimal("total_cost")
-                    );
-                    bookingInfo.add(info);
-                }
+            Connection connection = Session.getConnection();
+            ResultSet rs = Database_functions.callFunction(connection, "get_booking_details",
+                    bookingNumberFilter, tenantNameFilter, roomNumberFilter, checkInDateFilter,
+                    checkOutDateFilter, statusFilter, totalCostFilter, lastId, limit);
+
+            while (rs.next()) {
+                BookingInfo info = new BookingInfo(
+                        rs.getString("booking_number"),
+                        rs.getString("tenant_name"),
+                        rs.getString("room_number"),
+                        rs.getDate("check_in_date").toLocalDate(),
+                        rs.getDate("check_out_date").toLocalDate(),
+                        rs.getString("status"),
+                        rs.getBigDecimal("total_cost")
+                );
+                bookingInfo.add(info);
             }
         } catch (Exception e) {
             showError(statusLabel, "Ошибка загрузки информации о бронировании: " + e.getMessage());
@@ -443,29 +455,37 @@ public class EmployeeController {
 
             LocalDate checkInDate = (LocalDate) filters.get("checkInDate");
             LocalDate checkOutDate = (LocalDate) filters.get("checkOutDate");
+            Integer numberOfPeople = (Integer) filters.getOrDefault("numberOfPeople", 1);
 
+            String roomNumberFilter = getStringFilter(filters, "roomNumber");
+            String roomTypeNameFilter = getStringFilter(filters, "roomType"); // Renamed from roomType to roomTypeName for consistency with DB function
+            String maxPeopleFilter = getStringFilter(filters, "maxPeople");
+            String pricePerPersonFilter = getStringFilter(filters, "pricePerNight"); // Mapped to pricePerPerson
+            String statusFilter = getStringFilter(filters, "available"); // Mapped to status
+            String availableSpaceFilter = getStringFilter(filters, "availableSpace");
+            Map.Entry<Integer, Integer> pagination = getPaginationParams(filters);
+            Integer lastId = pagination.getKey();
+            Integer limit = pagination.getValue();
 
             if (checkInDate == null || checkOutDate == null) {
-                // Если даты не указаны, получаем текущий статус комнат
-                rs = Database_functions.callFunction(connection, "get_current_room_statuses_view", currentHotelId);
+                rs = Database_functions.callFunction(connection, "get_current_room_statuses_view_filtered",
+                        currentHotelId, roomNumberFilter, roomTypeNameFilter, maxPeopleFilter, pricePerPersonFilter, statusFilter, availableSpaceFilter, lastId, limit);
             } else {
-                // Иначе получаем статус на заданный период
-                rs = Database_functions.callFunction(connection, "get_rooms_statuses_on_period",
-                        currentHotelId, checkInDate, checkOutDate);
+                rs = Database_functions.callFunction(connection, "get_rooms_statuses_on_period_filtered",
+                        currentHotelId, checkInDate, checkOutDate, numberOfPeople,
+                        roomNumberFilter, roomTypeNameFilter, maxPeopleFilter, pricePerPersonFilter, statusFilter, availableSpaceFilter, lastId, limit);
             }
 
             while (rs.next()) {
-                // Адаптируем данные из запроса к модели AvailableRoom
                 String status = rs.getString("status");
                 boolean isAvailable = !status.equals("занят");
 
-                // В SQL-запросах используется price_per_person, а в модели - pricePerNight. Приводим в соответствие.
                 AvailableRoom room = new AvailableRoom(
                         rs.getInt("room_id"),
                         rs.getInt("room_number"),
                         rs.getString("room_type_name"),
                         rs.getInt("max_people"),
-                        rs.getBigDecimal("price_per_person"), // Используем price_per_person из запроса
+                        rs.getBigDecimal("price_per_person"),
                         isAvailable,
                         rs.getInt("available_space")
                 );
@@ -580,7 +600,7 @@ public class EmployeeController {
     private void refreshActiveTable() {
         UniversalTableController controller = getActiveTableController();
         if (controller != null) {
-            controller.refreshData();
+            controller.handleRefresh();
         }
     }
 
@@ -687,12 +707,14 @@ public class EmployeeController {
         return (value instanceof String) ? (String) value : "";
     }
 
-    private boolean hasActiveFilters(String... filters) {
-        for (String filter : filters) {
-            if (filter != null && !filter.isEmpty()) {
-                return true;
-            }
-        }
-        return false;
+    private Boolean getBooleanFilter(Map<String, Object> filters, String key) {
+        Object value = filters.get(key);
+        return (value instanceof Boolean) ? (Boolean) value : null;
+    }
+
+    private Map.Entry<Integer, Integer> getPaginationParams(Map<String, Object> filters) {
+        Integer lastId = (Integer) filters.getOrDefault("lastId", 0);
+        Integer limit = (Integer) filters.getOrDefault("limit", 30);
+        return new AbstractMap.SimpleEntry<>(lastId, limit);
     }
 }

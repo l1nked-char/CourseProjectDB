@@ -1,34 +1,41 @@
 package app.subd;
 
-import javafx.animation.PauseTransition;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Label;
-import javafx.util.Duration;
 
 public class MessageController {
 
-    private static void showMessage(Label label, String message, String style) {
-        label.setText(message);
-        label.setStyle(style);
-
-        PauseTransition pause = new PauseTransition(Duration.seconds(5));
-        pause.setOnFinished(event -> clearStatus(label));
-        pause.play();
+    public static void showError(String message) {
+        showAlert(AlertType.ERROR, "Ошибка", message);
     }
 
-    public static void showError(Label label, String message) {
-        showMessage(label, message, "-fx-text-fill: #e74c3c; -fx-font-size: 12; -fx-padding: 5 0 0 0;");
+    public static void showSuccess(String message) {
+        showAlert(AlertType.INFORMATION, "Успех", message);
     }
 
-    public static void showSuccess(Label label, String message) {
-        showMessage(label, message, "-fx-text-fill: #27ae60; -fx-font-size: 12; -fx-padding: 5 0 0 0;");
+    public static void showInfo(String message) {
+        showAlert(AlertType.INFORMATION, "Информация", message);
     }
 
-    public static void showInfo(Label label, String message) {
-        showMessage(label, message, "-fx-text-fill: #3498db; -fx-font-size: 12; -fx-padding: 5 0 0 0;");
+    private static void showAlert(AlertType type, String title, String message) {
+        Alert alert = new Alert(type);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+
+        alert.showAndWait();
     }
 
-    public static void clearStatus(Label label) {
-        label.setText("");
-        label.setStyle("");
+    public static void showError(Label ignored, String message) {
+        showError(message);
+    }
+
+    public static void showSuccess(Label ignored, String message) {
+        showSuccess(message);
+    }
+
+    public static void showInfo(Label ignored, String message) {
+        showInfo(message);
     }
 }

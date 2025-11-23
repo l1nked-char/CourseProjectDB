@@ -7,8 +7,7 @@ import app.subd.config.FilterConfig;
 import app.subd.models.User;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.collections.transformation.FilteredList;
-import javafx.collections.transformation.SortedList;
+import app.subd.models.*;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
@@ -24,8 +23,9 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
-import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static app.subd.MessageController.*;
@@ -43,49 +43,71 @@ public class UniversalTableController implements AdminController.RefreshableCont
     @FXML private Button toggleActiveButton;
     @FXML private Label statusLabel;
 
+    @FXML private Button prevPageButton;
+    @FXML private Button nextPageButton;
+    @FXML private Label pageInfoLabel;
+
     private TableConfig currentConfig;
-    private ObservableList<Object> originalData;
-    private SortedList<Object> sortedData;
-    private FilteredList<Object> filteredData;
+    private ObservableList<Object> currentData;
     private final Map<String, Node> activeFilterControls = new HashMap<>();
     private final Map<String, Object> currentFilterValues = new HashMap<>();
     private final Map<String, FilterConfig> filterConfigs = new HashMap<>();
     private final Map<String, Object> columnFilters = new HashMap<>();
 
+    private Integer lastLoadedId = 0;
+    private final int itemsPerPage = 30;
+    private int currentPageIndex = 0;
+    private boolean hasMorePages = true;
+    private final List<Integer> pageLastIds = new ArrayList<>(); // Stores the lastId for each page loaded
 
     @FXML
     public void initialize() {
         setupTable();
         setupEventHandlers();
-        setupPaginationStub();
+        setupPaginationControls();
         setupFilterButton();
+        pageLastIds.add(0); // Initial lastId for the first page
+        updatePaginationButtonsState();
     }
 
-
-    private void setupPaginationStub() {
-        Pagination pagination = new Pagination();
-        pagination.setPageCount(1); // Stub
-        pagination.setCurrentPageIndex(0); // Stub
-        pagination.setMaxPageIndicatorCount(5);
-
-        pagination.currentPageIndexProperty().addListener((obs, oldIndex, newIndex) -> {
-            // TODO: Implement pagination logic. This is a stub.
-            // It should pass the new page index to the data loader.
-            if (statusLabel != null) {
-                showSuccess(statusLabel, "Переход на страницу " + (newIndex.intValue() + 1) + ". Пагинация еще не реализована.");
-            }
-            // In a real implementation, you would call:
-            // refreshData();
-        });
-
-        // Add the pagination control to the layout, typically below the table.
-        Node parentNode = tableView.getParent();
-        if (parentNode instanceof VBox) {
-            ((VBox) parentNode).getChildren().add(pagination);
-        } else if (parentNode != null && parentNode.getParent() instanceof VBox) {
-            ((VBox) parentNode.getParent()).getChildren().add(pagination);
+    private void updatePaginationButtonsState() {
+        if (prevPageButton != null) {
+            prevPageButton.setDisable(currentPageIndex == 0);
+        }
+        if (nextPageButton != null) {
+            nextPageButton.setDisable(!hasMorePages);
+        }
+        if (pageInfoLabel != null) {
+            pageInfoLabel.setText("Страница " + (currentPageIndex + 1));
         }
     }
+
+    private void setupPaginationControls() {
+        // This method will now be called by initialize, assuming the FXML elements are already injected.
+        if (prevPageButton != null) {
+            prevPageButton.setOnAction(event -> handlePreviousPage());
+        }
+        if (nextPageButton != null) {
+            nextPageButton.setOnAction(event -> handleNextPage());
+        }
+        updatePaginationButtonsState();
+    }
+
+    private void handleNextPage() {
+        if (hasMorePages) {
+            currentPageIndex++;
+            refreshData();
+        }
+    }
+
+    private void handlePreviousPage() {
+        if (currentPageIndex > 0) {
+            currentPageIndex--;
+            lastLoadedId = (currentPageIndex == 0) ? 0 : pageLastIds.get(currentPageIndex - 1);
+            refreshData();
+        }
+    }
+
 
     public void configure(TableConfig config) {
         this.currentConfig = config;
@@ -109,14 +131,16 @@ public class UniversalTableController implements AdminController.RefreshableCont
         activeFilterControls.clear();
         currentFilterValues.clear();
         filterConfigs.clear();
+        columnFilters.clear(); // Ensure column filters are also cleared
+        lastLoadedId = 0;
+        currentPageIndex = 0;
+        hasMorePages = true;
+        updatePaginationButtonsState();
     }
 
     private void setupTable() {
-        originalData = FXCollections.observableArrayList();
-        filteredData = new FilteredList<>(originalData, p -> true);
-        sortedData = new SortedList<>(filteredData);
-        tableView.setItems(sortedData);
-        sortedData.comparatorProperty().bind(tableView.comparatorProperty());
+        currentData = FXCollections.observableArrayList();
+        tableView.setItems(currentData);
     }
 
     private void setupTableColumns() {
@@ -256,6 +280,15 @@ public class UniversalTableController implements AdminController.RefreshableCont
         } else {
             currentFilterValues.remove(filterKey);
         }
+        resetPaginationAndRefresh();
+    }
+
+    private void resetPaginationAndRefresh() {
+        lastLoadedId = 0;
+        currentPageIndex = 0;
+        pageLastIds.clear();
+        pageLastIds.add(0);
+        hasMorePages = true;
         refreshData();
     }
 
@@ -378,7 +411,7 @@ public class UniversalTableController implements AdminController.RefreshableCont
 
     @FXML
     public void handleRefresh() {
-        refreshData();
+        resetPaginationAndRefresh();
     }
 
     private void clearFilters() {
@@ -443,53 +476,13 @@ public class UniversalTableController implements AdminController.RefreshableCont
         }
     }
 
-    public void applyColumnFilters(Map<String, Object> filters) {
-        this.columnFilters.clear();
-        this.columnFilters.putAll(filters);
-        refreshData();
-    }
-
-    private void applyColumnFiltering() {
-        showSuccess(statusLabel, "Фильтры применены. Записей: " + sortedData.size());
-    }
-
-    private Object getPropertyValue(Object item, String propertyName) throws Exception {
-        // Используем рефлексию для получения значения свойства
-        Field field = item.getClass().getDeclaredField(propertyName);
-        field.setAccessible(true);
-        return field.get(item);
-    }
-
-    private boolean matchesFilter(Object cellValue, Object filterValue) {
-        if (filterValue == null) return true;
-        if (cellValue == null) return false;
-
-        if (filterValue instanceof String) {
-            String filterString = ((String) filterValue).toLowerCase();
-            String cellString = cellValue.toString().toLowerCase();
-            return cellString.contains(filterString);
-        } else if (filterValue instanceof java.time.LocalDate) {
-            return filterValue.equals(cellValue);
-        } else if (filterValue instanceof Boolean) {
-            return filterValue.equals(cellValue);
-        } else if (filterValue instanceof Number) {
-            // Для числовых значений
-            try {
-                double cellNumber = Double.parseDouble(cellValue.toString());
-                double filterNumber = ((Number) filterValue).doubleValue();
-                return cellNumber == filterNumber;
-            } catch (NumberFormatException e) {
-                return false;
-            }
-        }
-
-        return cellValue.equals(filterValue);
-    }
-
     public void refreshData() {
         Map<String, Object> allFilters = new HashMap<>();
         allFilters.putAll(currentFilterValues);
         allFilters.putAll(columnFilters);
+
+        allFilters.put("lastId", lastLoadedId);
+        allFilters.put("limit", itemsPerPage);
 
         loadData(allFilters);
     }
@@ -499,12 +492,69 @@ public class UniversalTableController implements AdminController.RefreshableCont
         if (currentConfig != null && currentConfig.getDataLoader() != null) {
             try {
                 ObservableList<Object> newData = currentConfig.getDataLoader().apply(allFilters);
-                originalData.clear();
-                originalData.addAll(newData);
+                currentData.clear();
+                currentData.addAll(newData);
 
-                if (statusLabel != null) {
-                    showSuccess(statusLabel, "Загружено записей: " + sortedData.size());
+                if (!newData.isEmpty()) {
+                    Object lastItem = newData.getLast();
+                    if (lastItem instanceof Hotel) {
+                        lastLoadedId = ((Hotel) lastItem).getId();
+                    } else if (lastItem instanceof Room) {
+                        lastLoadedId = ((Room) lastItem).getId();
+                    } else if (lastItem instanceof TypeOfRoom) {
+                        lastLoadedId = ((TypeOfRoom) lastItem).getId();
+                    } else if (lastItem instanceof Convenience) {
+                        lastLoadedId = ((Convenience) lastItem).getId();
+                    } else if (lastItem instanceof City) {
+                        lastLoadedId = ((City) lastItem).getCityId();
+                    } else if (lastItem instanceof RoomConvenience) {
+                        lastLoadedId = ((RoomConvenience) lastItem).getId();
+                    } else if (lastItem instanceof HotelService) {
+                        lastLoadedId = ((HotelService) lastItem).getId();
+                    } else if (lastItem instanceof ServiceHistory) {
+                        lastLoadedId = ((ServiceHistory) lastItem).getId();
+                    } else if (lastItem instanceof SocialStatus) {
+                        lastLoadedId = ((SocialStatus) lastItem).getId();
+                    } else if (lastItem instanceof Service) {
+                        lastLoadedId = ((Service) lastItem).getId();
+                    } else if (lastItem instanceof Tenant) {
+                        lastLoadedId = ((Tenant) lastItem).getId();
+                    } else if (lastItem instanceof User) {
+                        lastLoadedId = ((User) lastItem).getId();
+                    } else if (lastItem instanceof TenantHistory) {
+                        // TenantHistory does not have a simple integer ID for cursor-based pagination
+                        // For TenantHistory, we might need a different cursor logic or assume booking_number is unique and sortable.
+                        // For now, setting to 0, which means no cursor for TenantHistory pagination.
+                        lastLoadedId = 0; 
+                        System.err.println("Warning: TenantHistory does not have a simple integer ID for cursor-based pagination. Pagination might be inaccurate.");
+                    } else if (lastItem instanceof BookingInfo) {
+                        // BookingInfo does not have a simple integer ID for cursor-based pagination
+                        lastLoadedId = 0; 
+                        System.err.println("Warning: BookingInfo does not have a simple integer ID for cursor-based pagination. Pagination might be inaccurate.");
+                    } else if (lastItem instanceof AvailableRoom) {
+                         lastLoadedId = ((AvailableRoom) lastItem).getRoomId();
+                    }
+                    else {
+                        lastLoadedId = 0;
+                        System.err.println("Warning: Last item in data does not implement a known ID method. Pagination might be inaccurate.");
+                    }
+                } else {
+                    lastLoadedId = 0;
                 }
+
+                hasMorePages = newData.size() == itemsPerPage;
+
+                // Update pageLastIds for backward navigation
+                if (currentPageIndex >= pageLastIds.size()) {
+                    pageLastIds.add(lastLoadedId);
+                } else {
+                    // If we go back and then forward, we might overwrite a lastId for a future page.
+                    // This approach assumes we always navigate forward or restart from a previous point.
+                    pageLastIds.set(currentPageIndex, lastLoadedId);
+                }
+
+                updatePaginationButtonsState();
+
             } catch (Exception e) {
                 if (statusLabel != null) {
                     showError(statusLabel, "Ошибка загрузки данных: " + e.getMessage());
@@ -512,6 +562,19 @@ public class UniversalTableController implements AdminController.RefreshableCont
                 e.printStackTrace();
             }
         }
+    }
+
+    public void applyColumnFilters(Map<String, Object> filters) {
+        this.columnFilters.clear();
+        this.columnFilters.putAll(filters);
+        // Reset pagination when filters change
+        resetPaginationAndRefresh();
+    }
+
+    private void applyColumnFiltering() {
+        // Client-side filtering is removed, this method is no longer relevant for applying filters.
+        // The filtering is done directly by the data loader with updated filter values.
+        showSuccess(statusLabel, "Фильтры применены.");
     }
 
     public Object getSelectedItem() {
@@ -546,6 +609,6 @@ public class UniversalTableController implements AdminController.RefreshableCont
     private void handleClearFilters() {
         clearFilters();
         columnFilters.clear();
-        refreshData();
+        resetPaginationAndRefresh();
     }
 }

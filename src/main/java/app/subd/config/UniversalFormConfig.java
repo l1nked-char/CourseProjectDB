@@ -14,19 +14,16 @@ public class UniversalFormConfig<T> {
     private final Class<T> entityClass;
 
     public enum Mode {
-        ADD("Добавление", "успешно добавлен"),
-        EDIT("Редактирование", "успешно обновлен");
+        ADD("Добавление"),
+        EDIT("Редактирование");
 
         private final String title;
-        private final String successMessage;
 
-        Mode(String title, String successMessage) {
+        Mode(String title) {
             this.title = title;
-            this.successMessage = successMessage;
         }
 
         public String getTitle() { return title; }
-        public String getSuccessMessage() { return successMessage; }
     }
 
     public UniversalFormConfig(String formTitle, List<FieldConfig> fields,

@@ -22,7 +22,7 @@ public class ColumnFilterController {
     private TableConfig tableConfig;
     private UniversalTableController parentController;
     private Stage stage;
-    private Map<String, Control> filterControls = new HashMap<>();
+    private final Map<String, Control> filterControls = new HashMap<>();
 
     public void configure(TableConfig config, UniversalTableController parent) {
         this.tableConfig = config;
@@ -163,7 +163,7 @@ public class ColumnFilterController {
         closeWindow();
     }
 
-    private Object getFilterValue(Control control, FieldConfig.FieldType type) {
+    private Object getFilterValue(Control control, FieldConfig.FieldType ignored) {
         if (control instanceof TextField) {
             return ((TextField) control).getText();
         } else if (control instanceof DatePicker) {

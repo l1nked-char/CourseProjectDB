@@ -7,6 +7,7 @@ public class User {
     private String username;
     private String role;
     private String hotelInfo;
+    private int hotelId;
     private boolean userLocked;
 
 
@@ -60,4 +61,7 @@ public class User {
 
     public String getTempPassword() { return tempPassword; }
     public void setTempPassword(String value) { this.tempPassword = value; }
+
+    public int getHotelId() { return hotelId; }
+    public void setHotelId(int value) { this.hotelId = value; }
 }

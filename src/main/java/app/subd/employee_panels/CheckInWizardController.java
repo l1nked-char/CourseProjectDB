@@ -237,7 +237,7 @@ public class CheckInWizardController {
                         DocumentType.getDocumentType(rs.getString("document_type")),
                         rs.getString("email")
                 );
-                tenant.setBirthDate(rs.getDate("birth_date") != null ? rs.getDate("birth_date").toLocalDate() : null);
+                tenant.setBirthDate(rs.getDate("birth_date").toLocalDate());
                 tenant.setSocialStatus(AllDictionaries.getSocialStatusNameMap().get(status_id));
                 clients.add(tenant);
             }
@@ -311,7 +311,7 @@ public class CheckInWizardController {
         UniversalFormConfig<Tenant> formConfig = ConfigFactory.createEmployeeClientFormConfig(
                 this::saveClientInWizard,
                 client -> {
-                    clientsController.refreshData();
+                    clientsController.handleRefresh();
                     showSuccess(statusLabel, "Клиент добавлен. Теперь выберите его из списка.");
                 },
                 UniversalFormConfig.Mode.ADD,
@@ -333,7 +333,7 @@ public class CheckInWizardController {
         UniversalFormConfig<Tenant> formConfig = ConfigFactory.createEmployeeClientFormConfig(
                 this::saveEditedClientInWizard,
                 updatedClient -> {
-                    clientsController.refreshData();
+                    clientsController.handleRefresh();
                     showSuccess(statusLabel, "Данные клиента обновлены");
 
                     // Обновляем клиента в списке, если он был выбран

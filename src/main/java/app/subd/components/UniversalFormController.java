@@ -5,6 +5,7 @@ import app.subd.admin_panels.AdminController;
 import app.subd.config.UniversalFormConfig;
 import app.subd.config.FieldConfig;
 import app.subd.models.*;
+import app.subd.tables.AllDictionaries;
 import javafx.beans.value.ObservableValue;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
@@ -390,6 +391,8 @@ public class UniversalFormController<T> implements FormController<T> {
                 return item;
             } else if (item instanceof ServiceHistory && ((ServiceHistory) item).getServiceId() == id) {
                 return item;
+            } else if (item instanceof User && ((User) item).getId() == id) {
+                return item;
             }
         }
         return null;
@@ -405,15 +408,12 @@ public class UniversalFormController<T> implements FormController<T> {
         try {
             T entity = item != null ? item : createNewInstance();
 
-            populateEntityFromForm(entity);
+            if (!populateEntityFromForm(entity))
+                return;
 
             boolean success = config.getSaveFunction().apply(entity);
 
             if (success) {
-                String successMessage = (controllerMode == FormController.Mode.ADD ?
-                        config.getMode().getSuccessMessage() : "Данные успешно обновлены");
-
-                showSuccess(statusLabel, successMessage);
 
                 if (onSaveSuccess != null) {
                     onSaveSuccess.run();
@@ -425,10 +425,10 @@ public class UniversalFormController<T> implements FormController<T> {
 
                 if (controllerMode == FormController.Mode.ADD) {
                     clearForm();
-                    showSuccess(statusLabel, successMessage);
                 } else {
                     closeWindow();
                 }
+
             } else {
                 showError(statusLabel, "Ошибка сохранения данных");
             }
@@ -444,10 +444,9 @@ public class UniversalFormController<T> implements FormController<T> {
         return (T) entityClass.getConstructor().newInstance();
     }
 
-    private void populateEntityFromForm(T entity) throws Exception {
+    private boolean populateEntityFromForm(T entity) throws Exception {
         if (entity instanceof User) {
-            populateUserFromForm((User) entity);
-            return;
+            return populateUserFromForm((User) entity);
         }
 
         if (entity instanceof Room && controllerMode == FormController.Mode.ADD) {
@@ -466,7 +465,7 @@ public class UniversalFormController<T> implements FormController<T> {
                     ((RoomConvenience) entity).setRoomId(selectedRoom.getId());
                 } else {
                     showError(statusLabel, "Ошибка: Комната не выбрана в фильтре.");
-                    return;
+                    return false;
                 }
             }
         }
@@ -523,9 +522,11 @@ public class UniversalFormController<T> implements FormController<T> {
                 field.set(entity, value);
             }
         }
+
+        return true;
     }
 
-    private void populateUserFromForm(User user) {
+    private boolean populateUserFromForm(User user) {
 
         for (FieldConfig fieldConfig : config.getFields()) {
             Control control = formControls.get(fieldConfig.getPropertyName());
@@ -546,16 +547,21 @@ public class UniversalFormController<T> implements FormController<T> {
                         user.setRole(value != null ? value.toString() : "");
                         break;
                     case "hotelInfo":
-                        user.setHotelInfo(value != null ? value.toString() : "");
+                        user.setHotelId(Integer.parseInt(value.toString()));
+                        user.setHotelInfo(AllDictionaries.getHotelsNameMap().get(user.getHotelId()));
                         break;
                 }
             }
         }
 
-        if (user.getPassword() != null && !user.getPassword().isEmpty() && user.getPassword().equals(user.getConfirmPassword())) {
+        if (controllerMode == Mode.EDIT && (user.getPassword() == null || user.getPassword().isEmpty())) {
+            return true;
+        } else if (user.getPassword().equals(user.getConfirmPassword())) {
             user.setTempPassword(user.getPassword());
+            return true;
         } else {
             showError(statusLabel, "Пароли должны совпадать");
+            return false;
         }
     }
 

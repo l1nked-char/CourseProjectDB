@@ -33,9 +33,6 @@
                 <MenuItem text="Управление социальными статусами" onAction="#showSocialStatusManagement" />
                 <MenuItem text="Управление услугами" onAction="#showServiceManagement" />
             </Menu>
-            <Menu text="Отчеты">
-                <MenuItem text="Общая статистика" onAction="#showGeneralStats" />
-            </Menu>
         </MenuBar>
     </top>
 
