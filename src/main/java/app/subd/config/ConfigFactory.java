@@ -1,6 +1,7 @@
 package app.subd.config;
 
 import app.subd.Database_functions;
+import app.subd.components.ReportService;
 import app.subd.components.Session;
 import app.subd.models.*;
 import app.subd.tables.AllDictionaries;
@@ -928,5 +929,108 @@ public class ConfigFactory {
 
         // Используем onGenerateInvoices как callback для кнопки "Добавить"
         return new TableConfig("Счета на оплату", dataLoader, onGenerateInvoices, onEdit, null, null, columns, null, onToggleStatus);
+    }
+
+    public static TableConfig createDetailedIncomeReportConfig() {
+        List<ColumnConfig> columns = Arrays.asList(
+                new ColumnConfig("hotelAddress", "Адрес отеля", 200),
+                new ColumnConfig("roomNumber", "Номер комнаты", 120),
+                new ColumnConfig("baseRoomIncome", "Доход от номера", 150),
+                new ColumnConfig("conveniencesIncome", "Доход от удобств", 150),
+                new ColumnConfig("servicesIncome", "Доход от услуг", 150),
+                new ColumnConfig("totalIncome", "Общий доход", 150)
+        );
+
+        return new TableConfig("Детализированный отчет о доходах",
+                (filters) -> {
+                    ObservableList<Object> data = FXCollections.observableArrayList();
+                    data.addAll(ReportService.getDetailedIncomeReport());
+                    return data;
+                }, null, null, null, columns, null, null);
+    }
+
+    public static TableConfig createHotelIncomeSummaryConfig() {
+        List<ColumnConfig> columns = Arrays.asList(
+                new ColumnConfig("hotelAddress", "Адрес отеля", 200),
+                new ColumnConfig("baseRoomIncome", "Доход от номеров", 150),
+                new ColumnConfig("conveniencesIncome", "Доход от удобств", 150),
+                new ColumnConfig("servicesIncome", "Доход от услуг", 150),
+                new ColumnConfig("totalIncome", "Общий доход", 150),
+                new ColumnConfig("totalBookings", "Всего бронирований", 120)
+        );
+
+        return new TableConfig("Сводка по доходам отелей",
+                (filters) -> {
+                    ObservableList<Object> data = FXCollections.observableArrayList();
+                    data.addAll(ReportService.getHotelIncomeSummary());
+                    return data;
+                }, null, null, null, columns, null, null);
+    }
+
+    public static TableConfig createIncomeBreakdownConfig() {
+        List<ColumnConfig> columns = Arrays.asList(
+                new ColumnConfig("categoryType", "Категория", 200),
+                new ColumnConfig("subcategory", "Подкатегория", 200),
+                new ColumnConfig("income", "Доход", 150),
+                new ColumnConfig("percentage", "Процент", 100)
+        );
+
+        return new TableConfig("Разбивка доходов по категориям",
+                (filters) -> {
+                    ObservableList<Object> data = FXCollections.observableArrayList();
+                    data.addAll(ReportService.getIncomeBreakdownByCategory());
+                    return data;
+                }, null, null, null, columns, null, null);
+    }
+
+    public static TableConfig createMonthlyIncomeTrendConfig() {
+        List<ColumnConfig> columns = Arrays.asList(
+                new ColumnConfig("yearMonth", "Месяц", 120),
+                new ColumnConfig("baseRoomIncome", "Доход от номеров", 150),
+                new ColumnConfig("conveniencesIncome", "Доход от удобств", 150),
+                new ColumnConfig("servicesIncome", "Доход от услуг", 150),
+                new ColumnConfig("totalIncome", "Общий доход", 150),
+                new ColumnConfig("incomeGrowth", "Рост дохода", 150)
+        );
+
+        return new TableConfig("Тренды доходов по месяцам",
+                (filters) -> {
+                    ObservableList<Object> data = FXCollections.observableArrayList();
+                    data.addAll(ReportService.getMonthlyIncomeTrend());
+                    return data;
+                }, null, null, null, columns, null, null);
+    }
+
+    public static TableConfig createCustomerSegmentationConfig() {
+        List<ColumnConfig> columns = Arrays.asList(
+                new ColumnConfig("customerSegment", "Сегмент клиента", 150),
+                new ColumnConfig("customerCount", "Количество клиентов", 120),
+                new ColumnConfig("avgBaseSpent", "Средние траты на номера", 180),
+                new ColumnConfig("avgConveniencesSpent", "Средние траты на удобства", 180),
+                new ColumnConfig("avgServicesSpent", "Средние траты на услуги", 180),
+                new ColumnConfig("avgTotalSpent", "Средние общие траты", 150)
+        );
+
+        return new TableConfig("Сегментация клиентов",
+                (filters) -> {
+                    ObservableList<Object> data = FXCollections.observableArrayList();
+                    data.addAll(ReportService.getCustomerSegmentation());
+                    return data;
+                }, null, null, null, columns, null, null);
+    }
+
+    public static TableConfig createIncomeSourcesConfig() {
+        List<ColumnConfig> columns = Arrays.asList(
+                new ColumnConfig("incomeSource", "Источник дохода", 250),
+                new ColumnConfig("sourceType", "Тип источника", 150),
+                new ColumnConfig("amount", "Сумма", 150)
+        );
+
+        return new TableConfig("Все источники доходов",
+                (filters) -> {
+                    ObservableList<Object> data = FXCollections.observableArrayList();
+                    data.addAll(ReportService.getCombinedIncomeSources());
+                    return data;
+                }, null, null, null, columns, null, null);
     }
 }
