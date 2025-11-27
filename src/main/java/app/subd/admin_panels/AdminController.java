@@ -26,6 +26,7 @@ import java.lang.reflect.Field;
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.time.LocalDate;
 import java.util.*;
 
 import static app.subd.MessageController.*;
@@ -298,12 +299,13 @@ public class AdminController {
             String pricePerOneFilter = getStringFilter(filters, "pricePerOne");
             String amountFilter = getStringFilter(filters, "amount");
             String startDateFilter = getStringFilter(filters, "startDate");
+            String endDateFilter = getStringFilter(filters, "endDate");
             Map.Entry<Integer, Integer> pagination = getPaginationParams(filters);
             Integer lastId = pagination.getKey();
             Integer limit = pagination.getValue();
 
             ResultSet rs = Database_functions.callFunctionWithPagination(connection, "get_room_conveniences_by_room_filtered",
-                    "conv_id", lastId, limit, roomId, convNameFilter, pricePerOneFilter, amountFilter, startDateFilter);
+                    "conv_id", lastId, limit, roomId, convNameFilter, pricePerOneFilter, amountFilter, startDateFilter, endDateFilter);
 
             while (rs.next()) {
                 roomConveniences.add(new RoomConvenience(
@@ -313,6 +315,7 @@ public class AdminController {
                         rs.getBigDecimal("price_per_one"),
                         rs.getInt("amount"),
                         rs.getDate("start_date").toLocalDate(),
+                        rs.getDate("end_date").toLocalDate(),
                         rs.getString("conv_name")
                 ));
             }
@@ -396,6 +399,7 @@ public class AdminController {
                         bookingNumber,
                         rs.getInt("service_id"),
                         rs.getInt("amount"),
+                        rs.getDate("order_date").toLocalDate(),
                         AllDictionaries.getServicesNameMap().get(service_name_id),
                         service_name_id
                 );
@@ -443,7 +447,7 @@ public class AdminController {
             Integer limit = pagination.getValue();
 
             ResultSet rs = Database_functions.callFunctionWithPagination(connection, "get_all_services_filtered",
-                    "sevice_name_id", lastId, limit, serviceNameFilter);
+                    "service_name_id", lastId, limit, serviceNameFilter);
 
             while (rs.next()) {
                 services.add(new Service(
@@ -890,13 +894,16 @@ public class AdminController {
                 }
             }
 
+            LocalDate orderDate = LocalDate.now();
+
             if (serviceHistory.getId() == 0) {
                 Database_functions.callFunction(connection, "add_service_history",
-                        historyId, serviceHistory.getServiceId(), serviceHistory.getAmount());
+                        historyId, serviceHistory.getServiceId(), serviceHistory.getAmount(), orderDate);
                 showSuccess(statusLabel, "Заказ услуги успешно добавлен");
             } else {
                 Database_functions.callFunction(connection, "edit_service_history",
-                        serviceHistory.getId(), historyId, serviceHistory.getServiceId(), serviceHistory.getAmount());
+                        serviceHistory.getId(), historyId, serviceHistory.getServiceId(), serviceHistory.getAmount(),
+                        serviceHistory.getOrderDate() != null ? serviceHistory.getOrderDate() : orderDate);
                 showSuccess(statusLabel, "Заказ услуги успешно обновлен");
             }
             return true;
@@ -1331,13 +1338,13 @@ public class AdminController {
             if (rc.getId() == 0) {
                 Database_functions.callFunction(connection, "add_room_convenience",
                         rc.getRoomId(), rc.getConvNameId(), rc.getPricePerOne(),
-                        rc.getAmount(), rc.getStartDate());
+                        rc.getAmount(), rc.getStartDate(), rc.getEndDate());
                 showSuccess(statusLabel, "Удобство в комнате успешно добавлено");
             } else {
                 Database_functions.callFunction(connection, "edit_room_convenience",
                         rc.getId(), rc.getConvNameId(), rc.getPricePerOne(),
-                        rc.getAmount(), rc.getStartDate());
-                showSuccess(statusLabel, "Удобство в комнате успешно обновлено");
+                        rc.getAmount(), rc.getStartDate(), rc.getEndDate());
+                showSuccess(statusLabel, "Удобство в комна-те успешно обновлено");
             }
             return true;
         } catch (Exception e) {

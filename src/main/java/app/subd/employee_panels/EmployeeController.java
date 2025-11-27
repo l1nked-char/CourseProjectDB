@@ -119,6 +119,44 @@ public class EmployeeController {
                 this::handleAddAdditionalService,
                 this::handleEditAdditionalService
         ));
+
+        tableConfigs.put("Услуги отеля", ConfigFactory.createHotelServiceTableConfig(
+                this::loadHotelServicesData,
+                null,
+                null
+        ));
+    }
+
+    private ObservableList<Object> loadHotelServicesData(Map<String, Object> filters) {
+        ObservableList<Object> services = FXCollections.observableArrayList();
+        try {
+            Connection connection = Session.getConnection();
+            String serviceNameFilter = getStringFilter(filters, "serviceName");
+            String priceFilter = getStringFilter(filters, "pricePerOne");
+            Map.Entry<Integer, Integer> pagination = getPaginationParams(filters);
+            Integer lastId = pagination.getKey();
+            Integer limit = pagination.getValue();
+
+            ResultSet rs = Database_functions.callFunctionWithPagination(connection, "get_hotel_services_by_hotel_filtered",
+                    "service_id", lastId, limit, currentHotelId, serviceNameFilter, "", "", priceFilter, null);
+
+            while (rs.next()) {
+                int serviceNameId = rs.getInt("service_name_id");
+                services.add(new HotelService(
+                        rs.getInt("service_id"),
+                        currentHotelId,
+                        serviceNameId,
+                        rs.getDate("start_of_period").toLocalDate(),
+                        rs.getDate("end_of_period").toLocalDate(),
+                        rs.getBigDecimal("price_per_one"),
+                        rs.getBoolean("can_be_booked"),
+                        AllDictionaries.getServicesNameMap().get(serviceNameId)
+                ));
+            }
+        } catch (Exception e) {
+            showError(statusLabel, "Ошибка загрузки услуг отеля: " + e.getMessage());
+        }
+        return services;
     }
 
     private ObservableList<Object> loadAdditionalServicesData(Map<String, Object> filters) {
@@ -300,12 +338,12 @@ public class EmployeeController {
             String occupiedSpace = getStringFilter(filters, "occupiedSpace");
             String amountOfNights = getStringFilter(filters, "amountOfNights");
             Boolean canBeSplit = getBooleanFilter(filters, "canBeSplit");
-            Map.Entry<Integer, Integer> pagination = getPaginationParams(filters);
-            Integer lastId = pagination.getKey();
+            Map.Entry<Integer, Integer> pagination = getOffsetLimitParams(filters);
+            Integer offset = pagination.getKey();
             Integer limit = pagination.getValue();
 
             ResultSet rs = Database_functions.callFunctionWithPagination(connection, "get_tenant_history_by_hotel_filtered",
-                    "booking_number", lastId, limit, currentHotelId, bookingNumberFilter, roomInfo, tenantInfo,
+                    offset, limit, currentHotelId, bookingNumberFilter, roomInfo, tenantInfo,
                     bookingDate, checkInDate, checkInStatusFilter, occupiedSpace, amountOfNights, canBeSplit);
 
             while (rs.next()) {
@@ -339,12 +377,12 @@ public class EmployeeController {
             String totalAmountFilter = getStringFilter(filters, "totalAmount");
             String issueDateFilter = getStringFilter(filters, "issueDate");
             Boolean isPaidFilter = getBooleanFilter(filters, "isPaid");
-            Map.Entry<Integer, Integer> pagination = getPaginationParams(filters);
-            Integer lastId = pagination.getKey();
+            Map.Entry<Integer, Integer> pagination = getOffsetLimitParams(filters);
+            Integer offset = pagination.getKey();
             Integer limit = pagination.getValue();
 
             ResultSet rs = Database_functions.callFunctionWithPagination(connection, "get_daily_invoices_by_hotel_filtered",
-                    "booking_number", lastId, limit, currentHotelId, invoiceNumberFilter, bookingNumberFilter,
+                    offset, limit, currentHotelId, invoiceNumberFilter, bookingNumberFilter,
                     totalAmountFilter, issueDateFilter, isPaidFilter);
 
             while (rs.next()) {
@@ -716,5 +754,12 @@ public class EmployeeController {
         Integer lastId = (Integer) filters.getOrDefault("lastId", 0);
         Integer limit = (Integer) filters.getOrDefault("limit", 30);
         return new AbstractMap.SimpleEntry<>(lastId, limit);
+    }
+
+    private Map.Entry<Integer, Integer> getOffsetLimitParams(Map<String, Object> filters) {
+        Integer page = (Integer) filters.getOrDefault("page", 0);
+        Integer limit = (Integer) filters.getOrDefault("limit", 30);
+        Integer offset = page * limit;
+        return new AbstractMap.SimpleEntry<>(offset, limit);
     }
 }

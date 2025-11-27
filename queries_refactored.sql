@@ -43,10 +43,11 @@ RETURNS TABLE(
     price_per_one numeric,
     amount integer,
     start_date date,
+    end_date date,
     conv_name character varying
 ) AS $$
     SELECT rc.conv_id, rc.room_id, rc.conv_name_id, rc.price_per_one,
-           rc.amount, rc.start_date, cd.conv_name
+           rc.amount, rc.start_date, rc.end_date, cd.conv_name
     FROM public.room_conveniences rc
     INNER JOIN public.conveniences_dict cd ON rc.conv_name_id = cd.conv_name_id
     WHERE rc.room_id = room_id_in;
@@ -756,7 +757,7 @@ $$ LANGUAGE plpgsql;
 -- Тип: Запрос на запросе по принципу итогового запроса
 --роль: администратор отеля, владелец отеля
 
-LAG - оконная функция в SQL, которая позволяет извлекать значение столбца из предыдущей строки в результирующем наборе.
+-- LAG - оконная функция в SQL, которая позволяет извлекать значение столбца из предыдущей строки в результирующем наборе.
 
 CREATE OR REPLACE FUNCTION get_monthly_income_trend()
 RETURNS TABLE(
@@ -1107,14 +1108,3 @@ total_cost := room_cost + services_cost;
 RETURN total_cost;
 END;
 $$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE FUNCTION public.count_price_for_room_without_conveniences(price_per_person numeric, occupied_space integer, can_be_split boolean, max_people integer, amount_of_nights integer)
-RETURNS numeric
-LANGUAGE plpgsql
-AS $$
-BEGIN
-    RETURN price_per_person *
-    (occupied_space * can_be_split::int +
-     max_people * (1 - can_be_split::int)) * amount_of_nights
-END;
-$$;

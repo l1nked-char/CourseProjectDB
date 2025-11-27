@@ -1,10 +1,13 @@
 package app.subd.models;
 
+import java.time.LocalDate;
+
 public class ServiceHistory {
     private int id;
     private String historyId;
     private int serviceId;
     private int amount;
+    private LocalDate orderDate;
     private String serviceName;
     private int serviceNameId;
 
@@ -13,15 +16,17 @@ public class ServiceHistory {
         this.historyId = "";
         this.serviceId = 0;
         this.amount = 0;
+        this.orderDate = null;
         this.serviceName = "";
         this.serviceNameId = 0;
     }
 
-    public ServiceHistory(int id, String historyId, int serviceId, int amount,  String serviceName,  int serviceNameId) {
+    public ServiceHistory(int id, String historyId, int serviceId, int amount, LocalDate orderDate, String serviceName,  int serviceNameId) {
         this.id = id;
         this.historyId = historyId;
         this.serviceId = serviceId;
         this.amount = amount;
+        this.orderDate = orderDate;
         this.serviceName = serviceName;
         this.serviceNameId = serviceNameId;
     }
@@ -38,6 +43,8 @@ public class ServiceHistory {
     public void setServiceName(String serviceName) { this.serviceName = serviceName; }
     public int getServiceNameId() { return serviceNameId; }
     public void setServiceNameId(int serviceNameId) { this.serviceNameId = serviceNameId; }
+    public LocalDate getOrderDate() { return orderDate; }
+    public void setOrderDate(LocalDate orderDate) { this.orderDate = orderDate; }
 
     @Override
     public String toString() {return serviceName; }

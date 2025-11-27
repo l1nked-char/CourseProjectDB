@@ -1,7 +1,7 @@
-1. Симметричное внутреннее соединение с условием (по внешнему ключу)
-Запрос 1: Услуги конкретного отеля
-Описание: Получение всех услуг для указанного отеля с фильтрацией по идентификатору отеля
-Тип: Симметричное внутреннее соединение с условием по внешнему ключу
+-- 1. Симметричное внутреннее соединение с условием (по внешнему ключу)
+-- Запрос 1: Услуги конкретного отеля
+-- Описание: Получение всех услуг для указанного отеля с фильтрацией по идентификатору отеля
+-- Тип: Симметричное внутреннее соединение с условием по внешнему ключу
 
 sql
 CREATE OR REPLACE FUNCTION get_hotel_services_by_hotel(hotel_id_in integer)
@@ -21,9 +21,10 @@ BEGIN
     WHERE hs.hotel_id = hotel_id_in;
 END;
 $$ LANGUAGE plpgsql;
-Запрос 2: Удобства конкретного номера
-Описание: Получение всех удобств для указанного номера с фильтрацией по room_id
-Тип: Симметричное внутреннее соединение с условием по внешнему ключу
+
+-- Запрос 2: Удобства конкретного номера
+-- Описание: Получение всех удобств для указанного номера с фильтрацией по room_id
+-- Тип: Симметричное внутреннее соединение с условием по внешнему ключу
 
 sql
 CREATE OR REPLACE FUNCTION get_room_conveniences_by_room(room_id_in integer)
@@ -45,10 +46,11 @@ BEGIN
     WHERE rc.room_id = room_id_in;
 END;
 $$ LANGUAGE plpgsql;
-2. Симметричное внутреннее соединение с условием (по датам)
-Запрос 3: Статусы номеров на период
-Описание: Получение статусов доступности номеров на указанный период дат
-Тип: Симметричное внутреннее соединение с условием по датам
+
+-- 2. Симметричное внутреннее соединение с условием (по датам)
+-- Запрос 3: Статусы номеров на период
+-- Описание: Получение статусов доступности номеров на указанный период дат
+-- Тип: Симметричное внутреннее соединение с условием по датам
 
 sql
 CREATE OR REPLACE FUNCTION get_rooms_statuses_on_period(
@@ -85,9 +87,10 @@ BEGIN
     WHERE hr.hotel_id = hotel_id_in;
 END;
 $$ LANGUAGE plpgsql;
-Запрос 4: Ежедневные счета отеля
-Описание: Получение ежедневных счетов для отеля с фильтрацией по датам
-Тип: Симметричное внутреннее соединение с условием по датам
+
+-- Запрос 4: Ежедневные счета отеля
+-- Описание: Получение ежедневных счетов для отеля с фильтрацией по датам
+-- Тип: Симметричное внутреннее соединение с условием по датам
 
 sql
 CREATE OR REPLACE FUNCTION get_daily_invoices_by_hotel(hotel_id_in integer)
@@ -107,10 +110,11 @@ BEGIN
     ORDER BY v.issue_date DESC, v.booking_number DESC;
 END;
 $$ LANGUAGE plpgsql;
-3. Симметричное внутреннее соединение без условия
-Запрос 5: Все отели с городами
-Описание: Получение полного списка всех отелей с информацией о городах
-Тип: Симметричное внутреннее соединение без условия
+
+-- 3. Симметричное внутреннее соединение без условия
+-- Запрос 5: Все отели с городами
+-- Описание: Получение полного списка всех отелей с информацией о городах
+-- Тип: Симметричное внутреннее соединение без условия
 
 sql
 CREATE OR REPLACE FUNCTION get_all_hotels()
@@ -127,9 +131,10 @@ BEGIN
     INNER JOIN cities c ON h.hotel_city = c.city_id;
 END;
 $$ LANGUAGE plpgsql;
-Запрос 6: Все пользователи системы
-Описание: Получение списка всех пользователей с их ролями и статусами
-Тип: Симметричное внутреннее соединение без условия
+
+-- Запрос 6: Все пользователи системы
+-- Описание: Получение списка всех пользователей с их ролями и статусами
+-- Тип: Симметричное внутреннее соединение без условия
 
 sql
 CREATE OR REPLACE FUNCTION get_all_users()
@@ -152,9 +157,10 @@ BEGIN
     ORDER BY u.username;
 END;
 $$ LANGUAGE plpgsql;
-Запрос 7: Номера с типами и отелями
-Описание: Получение всех номеров с связанной информацией о типах и отелях
-Тип: Симметричное внутреннее соединение без условия
+
+-- Запрос 7: Номера с типами и отелями
+-- Описание: Получение всех номеров с связанной информацией о типах и отелях
+-- Тип: Симметричное внутреннее соединение без условия
 
 sql
 CREATE OR REPLACE FUNCTION get_rooms_with_types_and_hotels()
@@ -174,10 +180,11 @@ BEGIN
     INNER JOIN types_of_room tor ON hr.type_of_room_id = tor.room_type_id;
 END;
 $$ LANGUAGE plpgsql;
-4. Левое внешнее соединение
-Запрос 8: Текущие статусы номеров
-Описание: Получение текущего статуса всех номеров (включая свободные)
-Тип: Левое внешнее соединение
+
+-- 4. Левое внешнее соединение
+-- Запрос 8: Текущие статусы номеров
+-- Описание: Получение текущего статуса всех номеров (включая свободные)
+-- Тип: Левое внешнее соединение
 
 sql
 -- Представление уже существует в базе
@@ -220,10 +227,11 @@ BEGIN
     LEFT JOIN conveniences_dict cd ON rc.conv_name_id = cd.conv_name_id;
 END;
 $$ LANGUAGE plpgsql;
-5. Правое внешнее соединение
-Запрос 10: Все удобства с номерами
-Описание: Получение всех удобств включая те, которые не назначены номерам
-Тип: Правое внешнее соединение
+
+-- 5. Правое внешнее соединение
+-- Запрос 10: Все удобства с номерами
+-- Описание: Получение всех удобств включая те, которые не назначены номерам
+-- Тип: Правое внешнее соединение
 
 sql
 CREATE OR REPLACE FUNCTION get_all_conveniences_with_rooms()
@@ -240,10 +248,10 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-6. Запрос на запросе по принципу левого соединения
-Запрос 11: Детализированный отчет о доходах
-Описание: Детальный анализ доходов по номерам с разделением на проживание и услуги
-Тип: Запрос на запросе по принципу левого соединения
+-- 6. Запрос на запросе по принципу левого соединения
+-- Запрос 11: Детализированный отчет о доходах
+-- Описание: Детальный анализ доходов по номерам с разделением на проживание и услуги
+-- Тип: Запрос на запросе по принципу левого соединения
 
 
 CREATE OR REPLACE FUNCTION get_detailed_income_report()
@@ -256,9 +264,8 @@ RETURNS TABLE(
     total_income numeric
 ) AS $$
 BEGIN
-    RETURN QUERY
+RETURN QUERY
     WITH room_base_income AS (
-        -- Базовая стоимость номеров (без удобств)
         SELECT
             hr.room_id,
             hr.room_number,
@@ -273,18 +280,16 @@ BEGIN
         GROUP BY hr.room_id, hr.room_number, h.hotel_address
     ),
     room_conveniences_income AS (
-        -- Доход от удобств в номерах
         SELECT
             th.room_id,
             SUM(rc.price_per_one * rc.amount * th.amount_of_nights) as conveniences_rev
         FROM tenants_history th
         INNER JOIN room_conveniences rc ON th.room_id = rc.room_id
-            AND rc.start_date <= th.check_in_date
+            AND th.check_in_date BETWEEN rc.start_date AND rc.end_date
         WHERE th.check_in_status = 'занят'
         GROUP BY th.room_id
     ),
     services_income AS (
-        -- Доход от дополнительных услуг
         SELECT
             th.room_id,
             SUM(sh.amount * hs.price_per_one) as services_rev
@@ -292,26 +297,27 @@ BEGIN
         INNER JOIN hotel_services hs ON sh.service_id = hs.service_id
         INNER JOIN tenants_history th ON sh.history_id = th.booking_number
         WHERE th.check_in_status = 'занят'
+          AND sh.order_date BETWEEN hs.start_of_period AND hs.end_of_period
         GROUP BY th.room_id
     )
-    SELECT
-        rbr.hotel_address,
-        rbr.room_number,
-        rbr.base_rev as base_room_income,
-        COALESCE(rcr.conveniences_rev, 0) as conveniences_income,
-        COALESCE(sr.services_rev, 0) as services_income,
-        rbr.base_rev + COALESCE(rcr.conveniences_rev, 0) + COALESCE(sr.services_rev, 0) as total_income
-    FROM room_base_income rbr
-    LEFT JOIN room_conveniences_income rcr ON rbr.room_id = rcr.room_id
-    LEFT JOIN services_income sr ON rbr.room_id = sr.room_id
-    ORDER BY total_income DESC;
+SELECT
+    rbr.hotel_address,
+    rbr.room_number,
+    rbr.base_rev as base_room_income,
+    COALESCE(rcr.conveniences_rev, 0) as conveniences_income,
+    COALESCE(sr.services_rev, 0) as services_income,
+    rbr.base_rev + COALESCE(rcr.conveniences_rev, 0) + COALESCE(sr.services_rev, 0) as total_income
+FROM room_base_income rbr
+         LEFT JOIN room_conveniences_income rcr ON rbr.room_id = rcr.room_id
+         LEFT JOIN services_income sr ON rbr.room_id = sr.room_id
+ORDER BY total_income DESC;
 END;
 $$ LANGUAGE plpgsql;
 
-7. Итоговый запрос без условия
-Запрос 12: Сводка по доходам отелей
-Описание: Общая сводка по доходам всех отелей без дополнительных условий
-Тип: Итоговый запрос без условия
+-- 7. Итоговый запрос без условия
+-- Запрос 12: Сводка по доходам отелей
+-- Описание: Общая сводка по доходам всех отелей без дополнительных условий
+-- Тип: Итоговый запрос без условия
 
 CREATE OR REPLACE FUNCTION get_hotel_income_summary()
 RETURNS TABLE(
@@ -323,33 +329,59 @@ RETURNS TABLE(
     total_bookings bigint
 ) AS $$
 BEGIN
-    RETURN QUERY
-    SELECT
-        h.hotel_address,
-        -- Базовая стоимость номеров
-        SUM(hr.price_per_person *
-            (th.occupied_space * th.can_be_split::int +
-                 hr.max_people * (1 - th.can_be_split::int)) * th.amount_of_nights) as base_room_income,
-        -- Стоимость удобств
-        COALESCE(SUM(rc.price_per_one * rc.amount * th.amount_of_nights), 0) as conveniences_income,
-        -- Стоимость услуг
-        COALESCE(SUM(sh.amount * hs.price_per_one), 0) as services_income,
-        -- Общая выручка
-        SUM(hr.price_per_person *
-            (th.occupied_space * th.can_be_split::int +
-                 hr.max_people * (1 - th.can_be_split::int)) * th.amount_of_nights)
-        + COALESCE(SUM(rc.price_per_one * rc.amount * th.amount_of_nights), 0)
-        + COALESCE(SUM(sh.amount * hs.price_per_one), 0) as total_income,
-        COUNT(*) as total_bookings
-    FROM tenants_history th
-    INNER JOIN hotel_rooms hr ON th.room_id = hr.room_id
-    INNER JOIN hotel h ON hr.hotel_id = h.hotel_id
-    LEFT JOIN room_conveniences rc ON th.room_id = rc.room_id
-        AND rc.start_date <= th.check_in_date
-    LEFT JOIN services_history sh ON th.booking_number = sh.history_id
-    LEFT JOIN hotel_services hs ON sh.service_id = hs.service_id
-    WHERE th.check_in_status = 'занят'
-    GROUP BY h.hotel_address, h.hotel_id;
+RETURN QUERY
+    WITH room_base_income AS (
+        SELECT
+            hr.hotel_id,
+            SUM(hr.price_per_person * (th.occupied_space * th.can_be_split::int + hr.max_people * (1 - th.can_be_split::int)) * th.amount_of_nights) as income
+        FROM tenants_history th
+        JOIN hotel_rooms hr ON th.room_id = hr.room_id
+        WHERE th.check_in_status = 'занят'
+        GROUP BY hr.hotel_id
+    ),
+    conveniences_income AS (
+        SELECT
+            hr.hotel_id,
+            SUM(rc.price_per_one * rc.amount * th.amount_of_nights) as income
+        FROM tenants_history th
+        JOIN hotel_rooms hr ON th.room_id = hr.room_id
+        JOIN room_conveniences rc ON th.room_id = rc.room_id
+            AND th.check_in_date BETWEEN rc.start_date AND rc.end_date
+        WHERE th.check_in_status = 'занят'
+        GROUP BY hr.hotel_id
+    ),
+    services_income AS (
+        SELECT
+            hr.hotel_id,
+            SUM(sh.amount * hs.price_per_one) as income
+        FROM tenants_history th
+        JOIN hotel_rooms hr ON th.room_id = hr.room_id
+        JOIN services_history sh ON th.booking_number = sh.history_id
+        JOIN hotel_services hs ON sh.service_id = hs.service_id
+        WHERE th.check_in_status = 'занят'
+          AND sh.order_date BETWEEN hs.start_of_period AND hs.end_of_period
+        GROUP BY hr.hotel_id
+    ),
+    booking_counts AS (
+        SELECT hr.hotel_id, COUNT(th.booking_number) as bookings
+        FROM tenants_history th
+        JOIN hotel_rooms hr ON th.room_id = hr.room_id
+        WHERE th.check_in_status = 'занят'
+        GROUP BY hr.hotel_id
+    )
+SELECT
+    h.hotel_address,
+    COALESCE(rbi.income, 0) as base_room_income,
+    COALESCE(ci.income, 0) as conveniences_income,
+    COALESCE(si.income, 0) as services_income,
+    COALESCE(rbi.income, 0) + COALESCE(ci.income, 0) + COALESCE(si.income, 0) as total_income,
+    COALESCE(bc.bookings, 0) as total_bookings
+FROM hotel h
+         LEFT JOIN room_base_income rbi ON h.hotel_id = rbi.hotel_id
+         LEFT JOIN conveniences_income ci ON h.hotel_id = ci.hotel_id
+         LEFT JOIN services_income si ON h.hotel_id = si.hotel_id
+         LEFT JOIN booking_counts bc ON h.hotel_id = bc.hotel_id
+ORDER BY total_income DESC;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -366,75 +398,90 @@ RETURNS TABLE(
     percentage numeric
 ) AS $$
 DECLARE
-    total_income numeric;
+total_income_value numeric;
 BEGIN
-    -- Общая выручка
-    SELECT
-        SUM(hr.price_per_person *
-            (th.occupied_space * th.can_be_split::int +
-                 hr.max_people * (1 - th.can_be_split::int)) * th.amount_of_nights)
-        + COALESCE(SUM(rc.price_per_one * rc.amount * th.amount_of_nights), 0)
-        + COALESCE(SUM(sh.amount * hs.price_per_one), 0)
-    INTO total_income
-    FROM tenants_history th
-    INNER JOIN hotel_rooms hr ON th.room_id = hr.room_id
-    LEFT JOIN room_conveniences rc ON th.room_id = rc.room_id
-        AND rc.start_date <= th.check_in_date
-    LEFT JOIN services_history sh ON th.booking_number = sh.history_id
-    LEFT JOIN hotel_services hs ON sh.service_id = hs.service_id
-    WHERE th.check_in_status = 'занят';
+    -- Подсчет общего дохода
+SELECT COALESCE(SUM(total), 0) INTO total_income_value
+FROM (
+         -- Доход от номеров
+         SELECT SUM(hr.price_per_person * (th.occupied_space * th.can_be_split::int + hr.max_people * (1 - th.can_be_split::int)) * th.amount_of_nights) as total
+         FROM tenants_history th
+                  JOIN hotel_rooms hr ON th.room_id = hr.room_id
+         WHERE th.check_in_status = 'занят'
 
-    RETURN QUERY
+         UNION ALL
+
+         -- Доход от удобств
+         SELECT SUM(rc.price_per_one * rc.amount * th.amount_of_nights) as total
+         FROM tenants_history th
+                  JOIN room_conveniences rc ON th.room_id = rc.room_id
+             AND th.check_in_date BETWEEN rc.start_date AND rc.end_date
+         WHERE th.check_in_status = 'занят'
+
+         UNION ALL
+
+         -- Доход от услуг
+         SELECT SUM(sh.amount * hs.price_per_one) as total
+         FROM services_history sh
+                  JOIN hotel_services hs ON sh.service_id = hs.service_id
+                  JOIN tenants_history th ON sh.history_id = th.booking_number
+         WHERE th.check_in_status = 'занят'
+           AND sh.order_date BETWEEN hs.start_of_period AND hs.end_of_period
+     ) all_income;
+
+RETURN QUERY
     WITH income_breakdown AS (
-        -- По типам номеров (только базовая стоимость)
+        -- По типам номеров
         SELECT
-            'По типам номеров' as category_type,
-            tor.room_type_name as subcategory,
-            SUM(hr.price_per_person *
-                (th.occupied_space * th.can_be_split::int +
-                 hr.max_people * (1 - th.can_be_split::int)) * th.amount_of_nights) as income,
-            (SUM(hr.price_per_person *
-                (th.occupied_space * th.can_be_split::int +
-                 hr.max_people * (1 - th.can_be_split::int)) * th.amount_of_nights) / total_income * 100) as percentage
+            'По типам номеров'::varchar as category_type,
+            COALESCE(tor.room_type_name::varchar, 'Всего') as subcategory,
+            SUM(hr.price_per_person * (th.occupied_space * th.can_be_split::int + hr.max_people * (1 - th.can_be_split::int)) * th.amount_of_nights) as income
         FROM tenants_history th
-        INNER JOIN hotel_rooms hr ON th.room_id = hr.room_id
-        INNER JOIN types_of_room tor ON hr.type_of_room_id = tor.room_type_id
+        JOIN hotel_rooms hr ON th.room_id = hr.room_id
+        JOIN types_of_room tor ON hr.type_of_room_id = tor.room_type_id
         WHERE th.check_in_status = 'занят'
-        GROUP BY tor.room_type_name
+        GROUP BY ROLLUP(tor.room_type_name)
 
         UNION ALL
 
         -- По видам удобств
         SELECT
-            'По видам удобств' as category_type,
-            cd.conv_name as subcategory,
-            SUM(rc.price_per_one * rc.amount * th.amount_of_nights) as income,
-            (SUM(rc.price_per_one * rc.amount * th.amount_of_nights) / total_income * 100) as percentage
+            'По видам удобств'::varchar as category_type,
+            COALESCE(cd.conv_name::varchar, 'Всего') as subcategory,
+            SUM(rc.price_per_one * rc.amount * th.amount_of_nights) as income
         FROM tenants_history th
-        INNER JOIN room_conveniences rc ON th.room_id = rc.room_id
-            AND rc.start_date <= th.check_in_date
-        INNER JOIN conveniences_dict cd ON rc.conv_name_id = cd.conv_name_id
+        JOIN room_conveniences rc ON th.room_id = rc.room_id
+            AND th.check_in_date BETWEEN rc.start_date AND rc.end_date
+        JOIN conveniences_dict cd ON rc.conv_name_id = cd.conv_name_id
         WHERE th.check_in_status = 'занят'
-        GROUP BY cd.conv_name
+        GROUP BY ROLLUP(cd.conv_name)
 
         UNION ALL
 
         -- По видам услуг
         SELECT
-            'По видам услуг' as category_type,
-            sd.service_name as subcategory,
-            SUM(sh.amount * hs.price_per_one) as income,
-            (SUM(sh.amount * hs.price_per_one) / total_income * 100) as percentage
+            'По видам услуг'::varchar as category_type,
+            COALESCE(sd.service_name::varchar, 'Всего') as subcategory,
+            SUM(sh.amount * hs.price_per_one) as income
         FROM services_history sh
-        INNER JOIN hotel_services hs ON sh.service_id = hs.service_id
-        INNER JOIN services_dict sd ON hs.service_name_id = sd.service_name_id
-        INNER JOIN tenants_history th ON sh.history_id = th.booking_number
+        JOIN hotel_services hs ON sh.service_id = hs.service_id
+        JOIN services_dict sd ON hs.service_name_id = sd.service_name_id
+        JOIN tenants_history th ON sh.history_id = th.booking_number
         WHERE th.check_in_status = 'занят'
-        GROUP BY sd.service_name
+          AND sh.order_date BETWEEN hs.start_of_period AND hs.end_of_period
+        GROUP BY ROLLUP(sd.service_name)
     )
-    SELECT * FROM income_breakdown
-    WHERE income > 0
-    ORDER BY category_type, income DESC;
+SELECT
+    ib.category_type,
+    ib.subcategory,
+    ib.income,
+    CASE
+        WHEN total_income_value > 0 THEN (ib.income / total_income_value * 100)
+        ELSE 0
+        END as percentage
+FROM income_breakdown ib
+WHERE ib.income > 0
+ORDER BY ib.category_type, ib.income DESC;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -454,34 +501,62 @@ RETURNS TABLE(
 ) AS $$
 BEGIN
 RETURN QUERY
+    WITH all_bookings AS (
+        SELECT th.booking_number, h.hotel_city, th.amount_of_nights
+        FROM tenants_history th
+        JOIN hotel_rooms hr ON th.room_id = hr.room_id
+        JOIN hotel h ON hr.hotel_id = h.hotel_id
+        JOIN cities c ON h.hotel_city = c.city_id
+        WHERE th.check_in_status = 'занят' AND c.city_name ILIKE '%' || city_pattern || '%'
+    ),
+    room_income AS (
+        SELECT
+            h.hotel_city,
+            SUM(hr.price_per_person * (th.occupied_space * th.can_be_split::int + hr.max_people * (1 - th.can_be_split::int)) * th.amount_of_nights) as income
+        FROM tenants_history th
+        JOIN hotel_rooms hr ON th.room_id = hr.room_id
+        JOIN hotel h ON hr.hotel_id = h.hotel_id
+        WHERE th.booking_number IN (SELECT booking_number FROM all_bookings)
+        GROUP BY h.hotel_city
+    ),
+    conveniences_income AS (
+        SELECT
+            h.hotel_city,
+            SUM(rc.price_per_one * rc.amount * th.amount_of_nights) as income
+        FROM tenants_history th
+        JOIN hotel_rooms hr ON th.room_id = hr.room_id
+        JOIN hotel h ON hr.hotel_id = h.hotel_id
+        JOIN room_conveniences rc ON th.room_id = rc.room_id
+            AND th.check_in_date BETWEEN rc.start_date AND rc.end_date
+        WHERE th.booking_number IN (SELECT booking_number FROM all_bookings)
+        GROUP BY h.hotel_city
+    ),
+    services_income AS (
+        SELECT
+            h.hotel_city,
+            SUM(sh.amount * hs.price_per_one) as income
+        FROM tenants_history th
+        JOIN hotel_rooms hr ON th.room_id = hr.room_id
+        JOIN hotel h ON hr.hotel_id = h.hotel_id
+        JOIN services_history sh ON th.booking_number = sh.history_id
+        JOIN hotel_services hs ON sh.service_id = hs.service_id
+        WHERE th.booking_number IN (SELECT booking_number FROM all_bookings)
+          AND sh.order_date BETWEEN hs.start_of_period AND hs.end_of_period
+        GROUP BY h.hotel_city
+    )
 SELECT
     c.city_name,
-    -- Базовая стоимость
-    SUM(hr.price_per_person *
-        (th.occupied_space * th.can_be_split::int +
-                 hr.max_people * (1 - th.can_be_split::int)) * th.amount_of_nights) as base_room_income,
-    -- Удобства
-    COALESCE(SUM(rc.price_per_one * rc.amount * th.amount_of_nights), 0) as conveniences_income,
-    -- Услуги
-    COALESCE(SUM(sh.amount * hs.price_per_one), 0) as services_income,
-    -- Общая
-    SUM(hr.price_per_person *
-        (th.occupied_space * th.can_be_split::int +
-                 hr.max_people * (1 - th.can_be_split::int)) * th.amount_of_nights)
-        + COALESCE(SUM(rc.price_per_one * rc.amount * th.amount_of_nights), 0)
-        + COALESCE(SUM(sh.amount * hs.price_per_one), 0) as total_income,
-    AVG(th.amount_of_nights) as average_stay_duration
-FROM tenants_history th
-         INNER JOIN hotel_rooms hr ON th.room_id = hr.room_id
-         INNER JOIN hotel h ON hr.hotel_id = h.hotel_id
-         INNER JOIN cities c ON h.hotel_city = c.city_id
-         LEFT JOIN room_conveniences rc ON th.room_id = rc.room_id
-    AND rc.start_date <= th.check_in_date
-         LEFT JOIN services_history sh ON th.booking_number = sh.history_id
-         LEFT JOIN hotel_services hs ON sh.service_id = hs.service_id
-WHERE th.check_in_status = 'занят'
-  AND c.city_name ILIKE '%' || city_pattern || '%'
-GROUP BY c.city_name
+    COALESCE(ri.income, 0) as base_room_income,
+    COALESCE(ci.income, 0) as conveniences_income,
+    COALESCE(si.income, 0) as services_income,
+    COALESCE(ri.income, 0) + COALESCE(ci.income, 0) + COALESCE(si.income, 0) as total_income,
+    AVG(ab.amount_of_nights) as average_stay_duration
+FROM cities c
+         JOIN all_bookings ab ON c.city_id = ab.hotel_city
+         LEFT JOIN room_income ri ON c.city_id = ri.hotel_city
+         LEFT JOIN conveniences_income ci ON c.city_id = ci.hotel_city
+         LEFT JOIN services_income si ON c.city_id = si.hotel_city
+GROUP BY c.city_name, ri.income, ci.income, si.income
 ORDER BY total_income DESC;
 END;
 $$ LANGUAGE plpgsql;
@@ -490,7 +565,7 @@ $$ LANGUAGE plpgsql;
 -- Описание: Поиск номеров с доходом выше заданного порога
 -- Тип: Итоговые запросы с условием на данные (по значению)
 
-CREATE OR REPLACE FUNCTION get_high_income_rooms(income numeric)
+CREATE OR REPLACE FUNCTION get_high_income_rooms(total_income_threshold numeric)
 RETURNS TABLE(
     room_number integer,
     room_type varchar,
@@ -502,44 +577,63 @@ RETURNS TABLE(
 ) AS $$
 BEGIN
 RETURN QUERY
+    WITH date_range AS (
+        SELECT
+            (SELECT MIN(check_in_date) FROM tenants_history) as min_date,
+            (SELECT MAX(check_in_date) FROM tenants_history) as max_date
+    ),
+    total_days AS (
+        SELECT GREATEST((max_date - min_date) + 1, 1) as days
+        FROM date_range
+    ),
+    room_stats AS (
+        SELECT
+            hr.room_id,
+            hr.room_number,
+            tor.room_type_name,
+            SUM(hr.price_per_person * (th.occupied_space * th.can_be_split::int + hr.max_people * (1 - th.can_be_split::int)) * th.amount_of_nights) as base_income,
+            COUNT(th.booking_number) as booking_count
+        FROM tenants_history th
+        JOIN hotel_rooms hr ON th.room_id = hr.room_id
+        JOIN types_of_room tor ON hr.type_of_room_id = tor.room_type_id
+        WHERE th.check_in_status = 'занят'
+        GROUP BY hr.room_id, hr.room_number, tor.room_type_name
+    ),
+    conveniences_stats AS (
+        SELECT
+            hr.room_id,
+            SUM(rc.price_per_one * rc.amount * th.amount_of_nights) as conveniences_income
+        FROM tenants_history th
+        JOIN hotel_rooms hr ON th.room_id = hr.room_id
+        JOIN room_conveniences rc ON th.room_id = rc.room_id
+            AND th.check_in_date BETWEEN rc.start_date AND rc.end_date
+        WHERE th.check_in_status = 'занят'
+        GROUP BY hr.room_id
+    ),
+    services_stats AS (
+        SELECT
+            hr.room_id,
+            SUM(sh.amount * hs.price_per_one) as services_income
+        FROM tenants_history th
+        JOIN hotel_rooms hr ON th.room_id = hr.room_id
+        JOIN services_history sh ON th.booking_number = sh.history_id
+        JOIN hotel_services hs ON sh.service_id = hs.service_id
+        WHERE th.check_in_status = 'занят'
+          AND sh.order_date BETWEEN hs.start_of_period AND hs.end_of_period
+        GROUP BY hr.room_id
+    )
 SELECT
-    hr.room_number,
-    tor.room_type_name,
-    -- Базовая выручка
-    SUM(hr.price_per_person *
-        (th.occupied_space * th.can_be_split::int +
-                 hr.max_people * (1 - th.can_be_split::int)) * th.amount_of_nights) as base_income,
-    -- Выручка от удобств
-    COALESCE(SUM(rc.price_per_one * rc.amount * th.amount_of_nights), 0) as conveniences_income,
-    -- Выручка от услуг
-    COALESCE(SUM(sh.amount * hs.price_per_one), 0) as services_income,
-    -- Общая выручка
-    SUM(hr.price_per_person *
-        (th.occupied_space * th.can_be_split::int +
-                 hr.max_people * (1 - th.can_be_split::int)) * th.amount_of_nights)
-        + COALESCE(SUM(rc.price_per_one * rc.amount * th.amount_of_nights), 0)
-        + COALESCE(SUM(sh.amount * hs.price_per_one), 0) as total_income,
-    -- Коэффициент занятости
-    (COUNT(*) * 100.0 / (SELECT COUNT(DISTINCT date_series)
-                         FROM generate_series(
-                                      (SELECT MIN(check_in_date) FROM tenants_history),
-                                      (SELECT MAX(check_in_date) FROM tenants_history),
-                                      '1 day'::interval
-                              ) date_series)) as occupancy_rate
-FROM tenants_history th
-         INNER JOIN hotel_rooms hr ON th.room_id = hr.room_id
-         INNER JOIN types_of_room tor ON hr.type_of_room_id = tor.room_type_id
-         LEFT JOIN room_conveniences rc ON th.room_id = rc.room_id
-    AND rc.start_date <= th.check_in_date
-         LEFT JOIN services_history sh ON th.booking_number = sh.history_id
-         LEFT JOIN hotel_services hs ON sh.service_id = hs.service_id
-WHERE th.check_in_status = 'занят'
-GROUP BY hr.room_number, tor.room_type_name, hr.room_id
-HAVING (SUM(hr.price_per_person *
-            (th.occupied_space * th.can_be_split::int +
-                 hr.max_people * (1 - th.can_be_split::int)) * th.amount_of_nights)
-    + COALESCE(SUM(rc.price_per_one * rc.amount * th.amount_of_nights), 0)
-    + COALESCE(SUM(sh.amount * hs.price_per_one), 0)) > threshold
+    rs.room_number,
+    rs.room_type_name,
+    rs.base_income,
+    COALESCE(cs.conveniences_income, 0) as conveniences_income,
+    COALESCE(ss.services_income, 0) as services_income,
+    rs.base_income + COALESCE(cs.conveniences_income, 0) + COALESCE(ss.services_income, 0) as total_income,
+    (rs.booking_count * 100.0 / (SELECT days FROM total_days)) as occupancy_rate
+FROM room_stats rs
+         LEFT JOIN conveniences_stats cs ON rs.room_id = cs.room_id
+         LEFT JOIN services_stats ss ON rs.room_id = ss.room_id
+WHERE (rs.base_income + COALESCE(cs.conveniences_income, 0) + COALESCE(ss.services_income, 0)) > total_income_threshold
 ORDER BY total_income DESC;
 END;
 $$ LANGUAGE plpgsql;
@@ -564,11 +658,12 @@ SELECT
     SUM(sh.amount * hs.price_per_one) as total_income,
     AVG(sh.amount * hs.price_per_one) as avg_income_per_use
 FROM services_history sh
-INNER JOIN hotel_services hs ON sh.service_id = hs.service_id
-INNER JOIN services_dict sd ON hs.service_name_id = sd.service_name_id
+         INNER JOIN hotel_services hs ON sh.service_id = hs.service_id
+         INNER JOIN services_dict sd ON hs.service_name_id = sd.service_name_id
+WHERE sh.order_date BETWEEN hs.start_of_period AND hs.end_of_period
 GROUP BY sd.service_name, sd.service_name_id
 HAVING COUNT(*) >= min_usage_count
-    AND SUM(sh.amount * hs.price_per_one) >= min_income
+   AND SUM(sh.amount * hs.price_per_one) >= min_income
 ORDER BY total_income DESC;
 END;
 $$ LANGUAGE plpgsql;
@@ -592,66 +687,64 @@ RETURNS TABLE(
 ) AS $$
 BEGIN
 RETURN QUERY
-    WITH room_stats AS (
+    WITH date_range AS (
         SELECT
+            (SELECT MIN(check_in_date) FROM tenants_history) as min_date,
+            (SELECT MAX(check_in_date) FROM tenants_history) as max_date
+    ),
+    total_days AS (
+        SELECT GREATEST((max_date - min_date) + 1, 1) as days
+        FROM date_range
+    ),
+    room_stats_raw AS (
+        SELECT
+            hr.room_id,
             hr.room_number,
             tor.room_type_name,
-            -- Базовая выручка
-            SUM(hr.price_per_person *
-                (th.occupied_space * th.can_be_split::int +
-                 hr.max_people * (1 - th.can_be_split::int)) * th.amount_of_nights) as base_income,
-            -- Выручка от удобств
-            COALESCE(SUM(rc.price_per_one * rc.amount * th.amount_of_nights), 0) as conveniences_income,
-            -- Выручка от услуг
-            COALESCE(SUM(sh.amount * hs.price_per_one), 0) as services_income,
-            -- Общая выручка
-            SUM(hr.price_per_person *
-                (th.occupied_space * th.can_be_split::int +
-                 hr.max_people * (1 - th.can_be_split::int)) * th.amount_of_nights)
-            + COALESCE(SUM(rc.price_per_one * rc.amount * th.amount_of_nights), 0)
-            + COALESCE(SUM(sh.amount * hs.price_per_one), 0) as total_income,
-            -- Коэффициент занятости
-            (COUNT(*) * 100.0 / (SELECT COUNT(DISTINCT date_series)
-                               FROM generate_series(
-                                   (SELECT MIN(check_in_date) FROM tenants_history),
-                                   (SELECT MAX(check_in_date) FROM tenants_history),
-                                   '1 day'::interval
-                               ) date_series)) as occupancy_rate
+            SUM(hr.price_per_person * (th.occupied_space * th.can_be_split::int + hr.max_people * (1 - th.can_be_split::int)) * th.amount_of_nights) as base_income,
+            (
+                SELECT COALESCE(SUM(rc.price_per_one * rc.amount * th_inner.amount_of_nights), 0)
+                FROM tenants_history th_inner
+                JOIN room_conveniences rc ON th_inner.room_id = rc.room_id
+                    AND th_inner.check_in_date BETWEEN rc.start_date AND rc.end_date
+                WHERE th_inner.room_id = hr.room_id AND th_inner.check_in_status = 'занят'
+            ) as conveniences_income,
+            (
+                SELECT COALESCE(SUM(sh.amount * hs.price_per_one), 0)
+                FROM services_history sh
+                JOIN hotel_services hs ON sh.service_id = hs.service_id
+                JOIN tenants_history th_inner ON sh.history_id = th_inner.booking_number
+                WHERE th_inner.room_id = hr.room_id AND th_inner.check_in_status = 'занят'
+                  AND sh.order_date BETWEEN hs.start_of_period AND hs.end_of_period
+            ) as services_income,
+            (COUNT(th.booking_number) * 100.0 / (SELECT days FROM total_days)) as occupancy_rate
         FROM tenants_history th
-        INNER JOIN hotel_rooms hr ON th.room_id = hr.room_id
-        INNER JOIN types_of_room tor ON hr.type_of_room_id = tor.room_type_id
-        LEFT JOIN room_conveniences rc ON th.room_id = rc.room_id
-            AND rc.start_date <= th.check_in_date
-        LEFT JOIN services_history sh ON th.booking_number = sh.history_id
-        LEFT JOIN hotel_services hs ON sh.service_id = hs.service_id
+        JOIN hotel_rooms hr ON th.room_id = hr.room_id
+        JOIN types_of_room tor ON hr.type_of_room_id = tor.room_type_id
         WHERE th.check_in_status = 'занят'
-        GROUP BY hr.room_number, tor.room_type_name, hr.room_id
-        HAVING (COUNT(*) * 100.0 / (SELECT COUNT(DISTINCT date_series)
-                                  FROM generate_series(
-                                      (SELECT MIN(check_in_date) FROM tenants_history),
-                                      (SELECT MAX(check_in_date) FROM tenants_history),
-                                      '1 day'::interval
-                                  ) date_series)) > min_occupancy_rate
-           AND (SUM(hr.price_per_person *
-                (th.occupied_space * th.can_be_split::int +
-                 hr.max_people * (1 - th.can_be_split::int)) * th.amount_of_nights)
-            + COALESCE(SUM(rc.price_per_one * rc.amount * th.amount_of_nights), 0)
-            + COALESCE(SUM(sh.amount * hs.price_per_one), 0)) > min_total_income
+        GROUP BY hr.room_id, tor.room_type_name
+    ),
+    room_stats_final AS (
+        SELECT
+            *,
+            (base_income + conveniences_income + services_income) as total_income
+        FROM room_stats_raw
     )
 SELECT
-    room_number,
-    room_type,
-    base_income,
-    conveniences_income,
-    services_income,
-    total_income,
-    occupancy_rate,
+    rsf.room_number,
+    rsf.room_type_name,
+    rsf.base_income,
+    rsf.conveniences_income,
+    rsf.services_income,
+    rsf.total_income,
+    rsf.occupancy_rate,
     CASE
-        WHEN occupancy_rate > 80 AND total_income > 100000 THEN 'Высокая'
-        WHEN occupancy_rate > 60 AND total_income > 50000 THEN 'Средняя'
+        WHEN rsf.occupancy_rate > 80 AND rsf.total_income > 100000 THEN 'Высокая'
+        WHEN rsf.occupancy_rate > 60 AND rsf.total_income > 50000 THEN 'Средняя'
         ELSE 'Низкая'
         END as efficiency_rating
-FROM room_stats
+FROM room_stats_final rsf
+WHERE rsf.occupancy_rate > min_occupancy_rate AND rsf.total_income > min_total_income
 ORDER BY total_income DESC;
 END;
 $$ LANGUAGE plpgsql;
@@ -675,25 +768,35 @@ RETURNS TABLE(
 ) AS $$
 BEGIN
 RETURN QUERY
-    WITH monthly_data AS (
+    WITH monthly_base_income AS (
         SELECT
             TO_CHAR(th.check_in_date, 'YYYY-MM') as year_month,
-            -- Базовая выручка
-            SUM(hr.price_per_person *
-                (th.occupied_space * th.can_be_split::int +
-                 hr.max_people * (1 - th.can_be_split::int)) * th.amount_of_nights) as base_room_income,
-            -- Выручка от удобств
-            COALESCE(SUM(rc.price_per_one * rc.amount * th.amount_of_nights), 0) as conveniences_income,
-            -- Выручка от услуг
-            COALESCE(SUM(sh.amount * hs.price_per_one), 0) as services_income
+            SUM(hr.price_per_person * (th.occupied_space * th.can_be_split::int + hr.max_people * (1 - th.can_be_split::int)) * th.amount_of_nights) as income
         FROM tenants_history th
-        INNER JOIN hotel_rooms hr ON th.room_id = hr.room_id
-        LEFT JOIN room_conveniences rc ON th.room_id = rc.room_id
-            AND rc.start_date <= th.check_in_date
-        LEFT JOIN services_history sh ON th.booking_number = sh.history_id
-        LEFT JOIN hotel_services hs ON sh.service_id = hs.service_id
+        JOIN hotel_rooms hr ON th.room_id = hr.room_id
         WHERE th.check_in_status = 'занят'
-        GROUP BY TO_CHAR(th.check_in_date, 'YYYY-MM')
+        GROUP BY 1
+    ),
+    monthly_conveniences_income AS (
+        SELECT
+            TO_CHAR(th.check_in_date, 'YYYY-MM') as year_month,
+            SUM(rc.price_per_one * rc.amount * th.amount_of_nights) as income
+        FROM tenants_history th
+        JOIN room_conveniences rc ON th.room_id = rc.room_id
+            AND th.check_in_date BETWEEN rc.start_date AND rc.end_date
+        WHERE th.check_in_status = 'занят'
+        GROUP BY 1
+    ),
+    monthly_services_income AS (
+        SELECT
+            TO_CHAR(th.check_in_date, 'YYYY-MM') as year_month,
+            SUM(sh.amount * hs.price_per_one) as income
+        FROM tenants_history th
+        JOIN services_history sh ON th.booking_number = sh.history_id
+        JOIN hotel_services hs ON sh.service_id = hs.service_id
+        WHERE th.check_in_status = 'занят'
+          AND sh.order_date BETWEEN hs.start_of_period AND hs.end_of_period
+        GROUP BY 1
     ),
     with_totals AS (
         SELECT
@@ -702,7 +805,16 @@ RETURN QUERY
             conveniences_income,
             services_income,
             base_room_income + conveniences_income + services_income as total_income
-        FROM monthly_data
+        FROM (
+            SELECT
+                COALESCE(mbi.year_month, mci.year_month, msi.year_month) as year_month,
+                COALESCE(mbi.income, 0) as base_room_income,
+                COALESCE(mci.income, 0) as conveniences_income,
+                COALESCE(msi.income, 0) as services_income
+            FROM monthly_base_income mbi
+            FULL JOIN monthly_conveniences_income mci ON mbi.year_month = mci.year_month
+            FULL JOIN monthly_services_income msi ON COALESCE(mbi.year_month, mci.year_month) = msi.year_month
+        ) combined
     )
 SELECT
     wt.year_month,
@@ -710,7 +822,7 @@ SELECT
     wt.conveniences_income,
     wt.services_income,
     wt.total_income,
-    (wt.total_income - LAG(wt.total_income) OVER (ORDER BY wt.year_month)) as income_growth
+    (wt.total_income - LAG(wt.total_income, 1, 0) OVER (ORDER BY wt.year_month)) as income_growth
 FROM with_totals wt
 ORDER BY wt.year_month;
 END;
@@ -733,9 +845,7 @@ RETURN QUERY
 SELECT
     'Номер ' || hr.room_number || ' (' || tor.room_type_name || ')' as income_source,
     'Базовая стоимость' as source_type,
-    SUM(hr.price_per_person *
-        (th.occupied_space * th.can_be_split::int +
-                 hr.max_people * (1 - th.can_be_split::int)) * th.amount_of_nights) as amount
+    SUM(hr.price_per_person * (th.occupied_space * th.can_be_split::int + hr.max_people * (1 - th.can_be_split::int)) * th.amount_of_nights) as income
 FROM tenants_history th
          INNER JOIN hotel_rooms hr ON th.room_id = hr.room_id
          INNER JOIN types_of_room tor ON hr.type_of_room_id = tor.room_type_id
@@ -748,10 +858,10 @@ UNION ALL
 SELECT
     cd.conv_name || ' (комната ' || hr.room_number || ')' as income_source,
     'Удобства' as source_type,
-    SUM(rc.price_per_one * rc.amount * th.amount_of_nights) as amount
+    SUM(rc.price_per_one * rc.amount * th.amount_of_nights) as income
 FROM tenants_history th
          INNER JOIN room_conveniences rc ON th.room_id = rc.room_id
-    AND rc.start_date <= th.check_in_date
+    AND th.check_in_date BETWEEN rc.start_date AND rc.end_date
          INNER JOIN hotel_rooms hr ON th.room_id = hr.room_id
          INNER JOIN conveniences_dict cd ON rc.conv_name_id = cd.conv_name_id
 WHERE th.check_in_status = 'занят'
@@ -763,16 +873,18 @@ UNION ALL
 SELECT
     sd.service_name as income_source,
     'Доп. услуги' as source_type,
-    SUM(sh.amount * hs.price_per_one) as amount
+    SUM(sh.amount * hs.price_per_one) as income
 FROM services_history sh
          INNER JOIN hotel_services hs ON sh.service_id = hs.service_id
          INNER JOIN services_dict sd ON hs.service_name_id = sd.service_name_id
+         INNER JOIN tenants_history th ON sh.history_id = th.booking_number
+WHERE th.check_in_status = 'занят'
+  AND sh.order_date BETWEEN hs.start_of_period AND hs.end_of_period
 GROUP BY sd.service_name
 
-ORDER BY amount DESC;
+ORDER BY income DESC;
 END;
 $$ LANGUAGE plpgsql;
-
 
 -- 14. ЗАПРОСЫ С ПОДЗАПРОСАМИ
 --
@@ -792,22 +904,28 @@ RETURNS TABLE(
 ) AS $$
 BEGIN
 RETURN QUERY
-    WITH income_stats AS (
+    WITH date_filter AS (
+        SELECT booking_number, room_id
+        FROM tenants_history
+        WHERE check_in_status = 'занят'
+          AND check_in_date >= CURRENT_DATE - INTERVAL '30 days'
+    ),
+    income_stats AS (
         SELECT
-            SUM(hr.price_per_person *
-                (th.occupied_space * th.can_be_split::int +
-                 hr.max_people * (1 - th.can_be_split::int)) * th.amount_of_nights) as total_base_income,
-            COALESCE(SUM(rc.price_per_one * rc.amount * th.amount_of_nights), 0) as total_conveniences_income,
-            COALESCE(SUM(sh.amount * hs.price_per_one), 0) as total_services_income,
-            COUNT(DISTINCT th.room_id) as occupied_rooms_count
-        FROM tenants_history th
-        INNER JOIN hotel_rooms hr ON th.room_id = hr.room_id
-        LEFT JOIN room_conveniences rc ON th.room_id = rc.room_id
-            AND rc.start_date <= th.check_in_date
-        LEFT JOIN services_history sh ON th.booking_number = sh.history_id
-        LEFT JOIN hotel_services hs ON sh.service_id = hs.service_id
-        WHERE th.check_in_status = 'занят'
-          AND th.check_in_date >= CURRENT_DATE - INTERVAL '30 days'
+            (SELECT SUM(hr.price_per_person * (th.occupied_space * th.can_be_split::int + hr.max_people * (1 - th.can_be_split::int)) * th.amount_of_nights)
+             FROM tenants_history th JOIN hotel_rooms hr ON th.room_id = hr.room_id WHERE th.booking_number IN (SELECT booking_number FROM date_filter)) as total_base_income,
+
+            (SELECT SUM(rc.price_per_one * rc.amount * th.amount_of_nights)
+             FROM tenants_history th JOIN room_conveniences rc ON th.room_id = rc.room_id
+                 AND th.check_in_date BETWEEN rc.start_date AND rc.end_date
+                 WHERE th.booking_number IN (SELECT booking_number FROM date_filter)) as total_conveniences_income,
+
+            (SELECT SUM(sh.amount * hs.price_per_one)
+             FROM services_history sh JOIN hotel_services hs ON sh.service_id = hs.service_id
+                 WHERE sh.history_id IN (SELECT booking_number FROM date_filter)
+                 AND sh.order_date BETWEEN hs.start_of_period AND hs.end_of_period) as total_services_income,
+
+            (SELECT COUNT(DISTINCT room_id) FROM date_filter) as occupied_rooms_count
     )
 SELECT
     'Средний доход на номер' as metric_name,
@@ -875,6 +993,37 @@ RETURNS TABLE(
 ) AS $$
 BEGIN
 RETURN QUERY
+    WITH customer_spending AS (
+        SELECT
+            t.tenant_id,
+            SUM(hr.price_per_person * (th.occupied_space * th.can_be_split::int + hr.max_people * (1 - th.can_be_split::int)) * th.amount_of_nights) as base_spent,
+            (
+                SELECT COALESCE(SUM(rc.price_per_one * rc.amount * th_inner.amount_of_nights), 0)
+                FROM tenants_history th_inner
+                JOIN room_conveniences rc ON th_inner.room_id = rc.room_id
+                    AND th_inner.check_in_date BETWEEN rc.start_date AND rc.end_date
+                WHERE th_inner.tenant_id = t.tenant_id AND th_inner.check_in_status = 'занят'
+            ) as conveniences_spent,
+            (
+                SELECT COALESCE(SUM(sh.amount * hs.price_per_one), 0)
+                FROM services_history sh
+                JOIN hotel_services hs ON sh.service_id = hs.service_id
+                JOIN tenants_history th_inner ON sh.history_id = th_inner.booking_number
+                WHERE th_inner.tenant_id = t.tenant_id AND th_inner.check_in_status = 'занят'
+                  AND sh.order_date BETWEEN hs.start_of_period AND hs.end_of_period
+            ) as services_spent
+        FROM tenants t
+        JOIN tenants_history th ON t.tenant_id = th.tenant_id
+        JOIN hotel_rooms hr ON th.room_id = hr.room_id
+        WHERE th.check_in_status = 'занят'
+        GROUP BY t.tenant_id
+    ),
+    customer_total_spending AS (
+        SELECT
+            *,
+            (base_spent + conveniences_spent + services_spent) as total_spent
+        FROM customer_spending
+    )
 SELECT
     CASE
         WHEN total_spent > 50000 THEN 'VIP'
@@ -887,40 +1036,8 @@ SELECT
     AVG(conveniences_spent) as avg_conveniences_spent,
     AVG(services_spent) as avg_services_spent,
     AVG(total_spent) as avg_total_spent
-FROM (
-         SELECT
-             t.tenant_id,
-             -- Базовая стоимость
-             SUM(hr.price_per_person *
-                 (th.occupied_space * th.can_be_split::int +
-                 hr.max_people * (1 - th.can_be_split::int)) * th.amount_of_nights) as base_spent,
-             -- Стоимость удобств
-             COALESCE(SUM(rc.price_per_one * rc.amount * th.amount_of_nights), 0) as conveniences_spent,
-             -- Стоимость услуг
-             COALESCE(SUM(sh.amount * hs.price_per_one), 0) as services_spent,
-             -- Общая стоимость
-             SUM(hr.price_per_person *
-                 (th.occupied_space * th.can_be_split::int +
-                 hr.max_people * (1 - th.can_be_split::int)) * th.amount_of_nights)
-                 + COALESCE(SUM(rc.price_per_one * rc.amount * th.amount_of_nights), 0)
-                 + COALESCE(SUM(sh.amount * hs.price_per_one), 0) as total_spent
-         FROM tenants t
-                  INNER JOIN tenants_history th ON t.tenant_id = th.tenant_id
-                  INNER JOIN hotel_rooms hr ON th.room_id = hr.room_id
-                  LEFT JOIN room_conveniences rc ON th.room_id = rc.room_id
-             AND rc.start_date <= th.check_in_date
-                  LEFT JOIN services_history sh ON th.booking_number = sh.history_id
-                  LEFT JOIN hotel_services hs ON sh.service_id = hs.service_id
-         WHERE th.check_in_status = 'занят'
-         GROUP BY t.tenant_id
-     ) customer_spending
-GROUP BY
-    CASE
-        WHEN total_spent > 50000 THEN 'VIP'
-        WHEN total_spent > 20000 THEN 'Постоянный'
-        WHEN total_spent > 5000 THEN 'Стандартный'
-        ELSE 'Эконом'
-        END
+FROM customer_total_spending
+GROUP BY customer_segment
 ORDER BY avg_total_spent DESC;
 END;
 $$ LANGUAGE plpgsql;

@@ -50,6 +50,30 @@ public class Database_functions {
         return stmt.executeQuery();
     }
 
+    public static ResultSet callFunctionWithPagination(Connection conn,
+                                                       String functionName,
+                                                       int offset,
+                                                       int limit,
+                                                       Object... params) throws SQLException {
+        String sql = String.format("SELECT * FROM public.%s(", functionName);
+        StringBuilder placeholders = new StringBuilder();
+        placeholders.append("?,".repeat(params.length));
+        if (params.length > 0) placeholders.setLength(placeholders.length() - 1);
+        placeholders.append(")").append(" OFFSET ? LIMIT ?;");
+        sql += placeholders;
+
+        PreparedStatement stmt = conn.prepareStatement(sql,
+                ResultSet.TYPE_SCROLL_INSENSITIVE,
+                ResultSet.CONCUR_READ_ONLY);
+        for (int i = 0; i < params.length; i++) {
+            stmt.setObject(i + 1, params[i]);
+        }
+        int l = params.length;
+        stmt.setInt(l + 1, offset);
+        stmt.setInt(l + 2, limit);
+        return stmt.executeQuery();
+    }
+
     public static Connection ConnectToDatabase(String username, String password) {
         Connection conn = null;
         String url = "jdbc:postgresql://192.168.50.82:5432/CourseProject2";

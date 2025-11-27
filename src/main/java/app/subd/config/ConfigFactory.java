@@ -160,7 +160,8 @@ public class ConfigFactory {
                 new ColumnConfig("convName", "Удобство", 150, true, FieldConfig.FieldType.TEXT, "Название удобства"),
                 new ColumnConfig("pricePerOne", "Цена за единицу", 120, true, FieldConfig.FieldType.TEXT, "Цена за единицу"),
                 new ColumnConfig("amount", "Количество", 100, true, FieldConfig.FieldType.TEXT, "Количество"),
-                new ColumnConfig("startDate", "Дата начала действия удобства", 120, true, FieldConfig.FieldType.TEXT, "Дата начала действия удобства")
+                new ColumnConfig("startDate", "Дата начала действия удобства", 120, true, FieldConfig.FieldType.TEXT, "Дата начала действия удобства"),
+                new ColumnConfig("endDate", "Дата конца действия удобства", 120, true, FieldConfig.FieldType.TEXT, "Дата конца действия удобства")
         );
 
         List<FilterConfig> filters = List.of(
@@ -427,7 +428,8 @@ public class ConfigFactory {
                         ConfigFactory::getConveniencesForComboBox, "Выберите удобство", 200),
                 new FieldConfig("pricePerOne", "Цена за единицу", FieldConfig.FieldType.NUMBER, true),
                 new FieldConfig("amount", "Количество", FieldConfig.FieldType.NUMBER, true),
-                new FieldConfig("startDate", "Дата начала", FieldConfig.FieldType.DATE, true)
+                new FieldConfig("startDate", "Дата начала", FieldConfig.FieldType.DATE, true),
+                new FieldConfig("startDate", "Дата окончания", FieldConfig.FieldType.DATE, true)
         );
 
         return new UniversalFormConfig<>("Удобство в комнате", fields, saveFunction, onSuccess, mode, RoomConvenience.class);
@@ -781,7 +783,8 @@ public class ConfigFactory {
             Callback<Object, Void> onEdit) {
         List<ColumnConfig> columns = Arrays.asList(
                 new ColumnConfig("serviceName", "Сервис", 200, true, FieldConfig.FieldType.TEXT, "Название услуги"),
-                new ColumnConfig("amount", "Количество", 100, true, FieldConfig.FieldType.TEXT, "Количество")
+                new ColumnConfig("amount", "Количество", 100, true, FieldConfig.FieldType.TEXT, "Количество"),
+                new ColumnConfig("amount", "Дата заказа", 100, true, FieldConfig.FieldType.DATE, "Дата заказа")
         );
         List<FilterConfig> filters = Arrays.asList(
                 new FilterConfig(

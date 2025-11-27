@@ -481,6 +481,7 @@ public class UniversalTableController implements AdminController.RefreshableCont
         allFilters.putAll(currentFilterValues);
         allFilters.putAll(columnFilters);
 
+        allFilters.put("page", currentPageIndex);
         allFilters.put("lastId", lastLoadedId);
         allFilters.put("limit", itemsPerPage);
 
@@ -522,34 +523,24 @@ public class UniversalTableController implements AdminController.RefreshableCont
                     } else if (lastItem instanceof User) {
                         lastLoadedId = ((User) lastItem).getId();
                     } else if (lastItem instanceof TenantHistory) {
-                        // TenantHistory does not have a simple integer ID for cursor-based pagination
-                        // For TenantHistory, we might need a different cursor logic or assume booking_number is unique and sortable.
-                        // For now, setting to 0, which means no cursor for TenantHistory pagination.
-                        lastLoadedId = 0; 
-                        System.err.println("Warning: TenantHistory does not have a simple integer ID for cursor-based pagination. Pagination might be inaccurate.");
+                        lastLoadedId = 0;
                     } else if (lastItem instanceof BookingInfo) {
-                        // BookingInfo does not have a simple integer ID for cursor-based pagination
-                        lastLoadedId = 0; 
-                        System.err.println("Warning: BookingInfo does not have a simple integer ID for cursor-based pagination. Pagination might be inaccurate.");
+                        lastLoadedId = 0;
                     } else if (lastItem instanceof AvailableRoom) {
                          lastLoadedId = ((AvailableRoom) lastItem).getRoomId();
                     }
                     else {
                         lastLoadedId = 0;
-                        System.err.println("Warning: Last item in data does not implement a known ID method. Pagination might be inaccurate.");
                     }
                 } else {
                     lastLoadedId = 0;
                 }
-
                 hasMorePages = newData.size() == itemsPerPage;
 
                 // Update pageLastIds for backward navigation
                 if (currentPageIndex >= pageLastIds.size()) {
                     pageLastIds.add(lastLoadedId);
                 } else {
-                    // If we go back and then forward, we might overwrite a lastId for a future page.
-                    // This approach assumes we always navigate forward or restart from a previous point.
                     pageLastIds.set(currentPageIndex, lastLoadedId);
                 }
 
