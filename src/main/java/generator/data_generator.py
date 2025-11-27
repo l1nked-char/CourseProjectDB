@@ -5,7 +5,7 @@ from datetime import date, timedelta, datetime
 
 # Настройки подключения к БД
 DB_CONFIG = {
-    'host': 'localhost',
+    'host': '192.168.50.82',
     'database': 'CourseProject2',
     'user': 'postgres',
     'password': '1357920_egor',
@@ -203,22 +203,22 @@ def generate_hotel_services(conn):
 
         cur.execute("SELECT service_name_id FROM services_dict")
         service_ids = [row[0] for row in cur.fetchall()]
+        for every_year in range(1, 6):
+            for hotel_id in hotel_ids:
+                # Добавляем 3-6 услуг для каждого отеля
+                num_services = random.randint(3, 6)
+                hotel_services = random.sample(service_ids, num_services)
 
-        for hotel_id in hotel_ids:
-            # Добавляем 3-6 услуг для каждого отеля
-            num_services = random.randint(3, 6)
-            hotel_services = random.sample(service_ids, num_services)
+                for service_id in hotel_services:
+                    start_date = date(2024 + every_year, 1, 1)
+                    end_date = date(2024 + every_year, 12, 31)
+                    price = random.randint(500, 3000)
+                    can_be_booked = random.choice([True, False])
 
-            for service_id in hotel_services:
-                start_date = date(2024, 1, 1)
-                end_date = date(2024, 12, 31)
-                price = random.randint(500, 3000)
-                can_be_booked = random.choice([True, False])
-
-                cur.execute("""
-                            INSERT INTO hotel_services (hotel_id, service_name_id, start_of_period, end_of_period, price_per_one, can_be_booked)
-                            VALUES (%s, %s, %s, %s, %s, %s)
-                            """, (hotel_id, service_id, start_date, end_date, price, can_be_booked))
+                    cur.execute("""
+                                INSERT INTO hotel_services (hotel_id, service_name_id, start_of_period, end_of_period, price_per_one, can_be_booked)
+                                VALUES (%s, %s, %s, %s, %s, %s)
+                                """, (hotel_id, service_id, start_date, end_date, price, can_be_booked))
 
         conn.commit()
         print(f"Добавлены услуги для {len(hotel_ids)} отелей")
