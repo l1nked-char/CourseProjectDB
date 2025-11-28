@@ -210,8 +210,7 @@ public class CheckInWizardController {
                 ),
                 Arrays.asList(
                         new FilterConfig("checkInDate", "Дата заезда", FilterConfig.FilterType.DATE, true),
-                        new FilterConfig("checkOutDate", "Дата выезда", FilterConfig.FilterType.DATE, true),
-                        new FilterConfig("peopleCount", "Количество людей", FilterConfig.FilterType.NUMBER, false)
+                        new FilterConfig("checkOutDate", "Дата выезда", FilterConfig.FilterType.DATE, true)
                 ),
                 null
         );
@@ -251,10 +250,8 @@ public class CheckInWizardController {
     private ObservableList<Object> loadAvailableRoomsForCheckIn(Map<String, Object> filters) {
         ObservableList<Object> rooms = FXCollections.observableArrayList();
 
-        // Получаем параметры из фильтров
         checkInDate = (LocalDate) filters.get("checkInDate");
         checkOutDate = (LocalDate) filters.get("checkOutDate");
-        peopleCount = (Integer) filters.get("peopleCount");
 
         if (checkInDate == null || checkOutDate == null) {
             showInfo(statusLabel, "Укажите даты заезда и выезда для поиска комнат");
@@ -268,17 +265,8 @@ public class CheckInWizardController {
 
         try {
             Connection connection = Session.getConnection();
-            ResultSet rs;
-
-            if (peopleCount != null) {
-                // Вызываем функцию с фильтрацией по количеству людей
-                rs = Database_functions.callFunction(connection, "get_rooms_statuses_on_period",
-                        currentHotelId, checkInDate, checkOutDate, peopleCount);
-            } else {
-                // Вызываем функцию без фильтрации по количеству людей
-                rs = Database_functions.callFunction(connection, "get_rooms_statuses_on_period",
-                        currentHotelId, checkInDate, checkOutDate);
-            }
+            ResultSet rs = Database_functions.callFunction(connection, "get_rooms_statuses_on_period",
+                    currentHotelId, checkInDate, checkOutDate);
 
             while (rs.next()) {
                 String status = rs.getString("status");
