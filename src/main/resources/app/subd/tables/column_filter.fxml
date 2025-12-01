@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns="http://javafx.com/javafx/11.0.1"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="app.subd.components.ColumnFilterController"
+      spacing="15.0"
+      prefWidth="400"
+      prefHeight="500"
+      style="-fx-padding: 15;">
+
+    <Label text="Фильтрация по столбцам" style="-fx-font-size: 16; -fx-font-weight: bold;"/>
+
+    <Label text="Заполните поля для фильтрации данных:"/>
+
+    <ScrollPane VBox.vgrow="ALWAYS">
+        <VBox fx:id="filtersContainer" spacing="10"/>
+    </ScrollPane>
+
+    <HBox spacing="10" alignment="CENTER_RIGHT">
+        <Button fx:id="applyButton"
+                onAction="#handleApply"
+                text="Применить"
+                defaultButton="true"
+                style="-fx-font-weight: bold;"/>
+        <Button fx:id="clearButton"
+                onAction="#handleClear"
+                text="Очистить"/>
+        <Button fx:id="cancelButton"
+                onAction="#handleCancel"
+                text="Отмена"
+                cancelButton="true"/>
+    </HBox>
+</VBox>

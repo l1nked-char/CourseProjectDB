@@ -20,14 +20,18 @@
             <Menu text="Таблицы">
                 <MenuItem text="Управление отелями" onAction="#showHotelManagement" />
                 <MenuItem text="Управление комнатами в отелях" onAction="#showRoomManagement" />
-                <MenuItem text="Управление удобствами" onAction="#showRoomConvenienceManagement" />
+                <MenuItem text="Управление удобствами в комнатах" onAction="#showRoomConvenienceManagement" />
+                <MenuItem text="Управление услугами отеля" onAction="#showHotelServiceManagement" />
+                <MenuItem text="Управление историей заказов услуг" onAction="#showServiceHistoryManagement" />
+                <MenuItem text="Управление жильцами" onAction="#showTenantManagement" />
+                <MenuItem text="Управление историей заселений" onAction="#showTenantHistoryManagement" />
             </Menu>
             <Menu text="Справочники">
                 <MenuItem text="Управление типами комнат" onAction="#showTypeOfRoomManagement" />
                 <MenuItem text="Управление удобствами" onAction="#showConveniencesManagement" />
-            </Menu>
-            <Menu text="Отчеты">
-                <MenuItem text="Общая статистика" onAction="#showGeneralStats" />
+                <MenuItem text="Управление городами" onAction="#showCityManagement" />
+                <MenuItem text="Управление социальными статусами" onAction="#showSocialStatusManagement" />
+                <MenuItem text="Управление услугами" onAction="#showServiceManagement" />
             </Menu>
         </MenuBar>
     </top>

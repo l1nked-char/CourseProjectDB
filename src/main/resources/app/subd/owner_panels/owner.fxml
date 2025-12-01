@@ -10,17 +10,66 @@
                 <MenuItem text="Выход" onAction="#handleLogout" />
             </Menu>
             <Menu text="Финансы">
-                <MenuItem text="Отчеты по доходам" onAction="#showRevenueReports" />
+                <MenuItem text="Детализированный отчет о доходах" onAction="#showDetailedIncomeReport" />
+                <MenuItem text="Сводка по доходам отелей" onAction="#showHotelIncomeSummary" />
+                <MenuItem text="Разбивка доходов по категориям" onAction="#showIncomeBreakdown" />
+                <MenuItem text="Тренды доходов по месяцам" onAction="#showMonthlyIncomeTrendWithChart" />
+                <MenuItem text="Все источники доходов" onAction="#showIncomeSources" />
+                <SeparatorMenuItem />
+                <MenuItem text="Доходы по городам" onAction="#showIncomeByCity" />
+                <MenuItem text="Высокодоходные номера" onAction="#showHighIncomeRooms" />
             </Menu>
             <Menu text="Аналитика">
-                <MenuItem text="Статистика отеля" onAction="#showHotelStats" />
+                <MenuItem text="KPI отелей" onAction="#showHotelKPIDashboard" />
+                <MenuItem text="Сегментация клиентов" onAction="#showCustomerSegmentation" />
+                <MenuItem text="Эффективность номеров" onAction="#showRoomEfficiency" />
+                <MenuItem text="Премиальные услуги" onAction="#showPremiumServices" />
             </Menu>
         </MenuBar>
     </top>
     <center>
         <TabPane fx:id="mainTabPane">
             <Tab text="Обзор">
-                <Label text="Панель владельца - финансы и аналитика" />
+                <VBox spacing="20" style="-fx-padding: 20;">
+                    <Label text="Панель аналитики владельца" style="-fx-font-size: 24; -fx-font-weight: bold;"/>
+                    <Label text="Добро пожаловать в систему аналитики отелей" style="-fx-font-size: 14;"/>
+
+                    <GridPane hgap="20" vgap="15" style="-fx-padding: 20 0 0 0;">
+                        <Label text="Быстрый доступ к отчетам:" GridPane.columnIndex="0" GridPane.rowIndex="0"
+                               style="-fx-font-weight: bold; -fx-font-size: 16;"/>
+
+                        <VBox spacing="10" GridPane.columnIndex="0" GridPane.rowIndex="1">
+                            <Label text="Финансовые отчеты:" style="-fx-font-weight: bold;"/>
+                            <Button text="📊 Детализированный отчет" onAction="#showDetailedIncomeReport"
+                                    style="-fx-background-color: #3498db; -fx-text-fill: white; -fx-font-weight: bold;"
+                                    maxWidth="200"/>
+                            <Button text="📈 Тренды доходов" onAction="#showMonthlyIncomeTrendWithChart"
+                                    style="-fx-background-color: #2ecc71; -fx-text-fill: white; -fx-font-weight: bold;"
+                                    maxWidth="200"/>
+                            <Button text="🏨 Сводка по отелям" onAction="#showHotelIncomeSummary"
+                                    style="-fx-background-color: #9b59b6; -fx-text-fill: white; -fx-font-weight: bold;"
+                                    maxWidth="200"/>
+                        </VBox>
+
+                        <VBox spacing="10" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                            <Label text="Аналитика:" style="-fx-font-weight: bold;"/>
+                            <Button text="📊 KPI отелей" onAction="#showHotelKPIDashboard"
+                                    style="-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-font-weight: bold;"
+                                    maxWidth="200"/>
+                            <Button text="👥 Сегментация клиентов" onAction="#showCustomerSegmentation"
+                                    style="-fx-background-color: #f39c12; -fx-text-fill: white; -fx-font-weight: bold;"
+                                    maxWidth="200"/>
+                            <Button text="⚡ Эффективность номеров" onAction="#showRoomEfficiency"
+                                    style="-fx-background-color: #16a085; -fx-text-fill: white; -fx-font-weight: bold;"
+                                    maxWidth="200"/>
+                        </VBox>
+                    </GridPane>
+
+                    <Separator style="-fx-padding: 20 0 0 0;"/>
+
+                    <Label text="Используйте меню выше для доступа ко всем отчетам и аналитике"
+                           style="-fx-font-style: italic; -fx-text-fill: #666;"/>
+                </VBox>
             </Tab>
         </TabPane>
     </center>

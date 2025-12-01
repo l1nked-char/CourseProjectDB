@@ -1,5 +1,6 @@
 package app.subd;
 
+import app.subd.components.Session;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -45,7 +46,7 @@ public class LoginController {
             String role = getUserRole(connection, username);
             
             if (role != null) {
-                Session.setUser(username, role, connection);
+                Session.setUser(username, password, role, connection);
 
                 loadRoleForm(role);
             } else {

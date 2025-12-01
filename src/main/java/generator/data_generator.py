@@ -5,7 +5,7 @@ from datetime import date, timedelta, datetime
 
 # Настройки подключения к БД
 DB_CONFIG = {
-    'host': 'localhost',
+    'host': '192.168.50.82',
     'database': 'CourseProject2',
     'user': 'postgres',
     'password': '1357920_egor',
@@ -184,11 +184,13 @@ def generate_room_conveniences(conn):
                 amount = random.randint(1, 2)
 
                 start_date = datetime.now().date()
+                # Генерируем end_date (от 1 до 3 лет после start_date)
+                end_date = start_date + timedelta(days=random.randint(365, 1095))
 
                 cur.execute("""
-                            INSERT INTO room_conveniences (room_id, conv_name_id, price_per_one, amount, start_date)
-                            VALUES (%s, %s, %s, %s, %s)
-                            """, (room_id, conv_id, price, amount, start_date))
+                            INSERT INTO room_conveniences (room_id, conv_name_id, price_per_one, amount, start_date, end_date)
+                            VALUES (%s, %s, %s, %s, %s, %s)
+                            """, (room_id, conv_id, price, amount, start_date, end_date))
 
         conn.commit()
         print(f"Добавлены удобства для {len(room_ids)} номеров")
@@ -201,22 +203,22 @@ def generate_hotel_services(conn):
 
         cur.execute("SELECT service_name_id FROM services_dict")
         service_ids = [row[0] for row in cur.fetchall()]
+        for every_year in range(1, 6):
+            for hotel_id in hotel_ids:
+                # Добавляем 3-6 услуг для каждого отеля
+                num_services = random.randint(3, 6)
+                hotel_services = random.sample(service_ids, num_services)
 
-        for hotel_id in hotel_ids:
-            # Добавляем 3-6 услуг для каждого отеля
-            num_services = random.randint(3, 6)
-            hotel_services = random.sample(service_ids, num_services)
+                for service_id in hotel_services:
+                    start_date = date(2024 + every_year, 1, 1)
+                    end_date = date(2024 + every_year, 12, 31)
+                    price = random.randint(500, 3000)
+                    can_be_booked = random.choice([True, False])
 
-            for service_id in hotel_services:
-                start_date = date(2024, 1, 1)
-                end_date = date(2024, 12, 31)
-                price = random.randint(500, 3000)
-                can_be_booked = random.choice([True, False])
-
-                cur.execute("""
-                            INSERT INTO hotel_services (hotel_id, service_name_id, start_of_period, end_of_period, price_per_one, can_be_booked)
-                            VALUES (%s, %s, %s, %s, %s, %s)
-                            """, (hotel_id, service_id, start_date, end_date, price, can_be_booked))
+                    cur.execute("""
+                                INSERT INTO hotel_services (hotel_id, service_name_id, start_of_period, end_of_period, price_per_one, can_be_booked)
+                                VALUES (%s, %s, %s, %s, %s, %s)
+                                """, (hotel_id, service_id, start_date, end_date, price, can_be_booked))
 
         conn.commit()
         print(f"Добавлены услуги для {len(hotel_ids)} отелей")
@@ -291,8 +293,8 @@ def generate_tenants_history(conn, count=200):
             tenant_id = random.choice(tenant_ids)
 
             # Определяем возможный диапазон дат для бронирования (последние 2 года)
-            end_date = date.today()
-            start_date = end_date - timedelta(days=730)  # 2 года назад
+            start_date = date.today()
+            end_date = start_date + timedelta(days=730)  # 2 года вперед
 
             # Пытаемся найти свободный интервал для бронирования
             max_attempts = 50
@@ -300,7 +302,7 @@ def generate_tenants_history(conn, count=200):
                 # Генерируем случайную дату заезда
                 check_in_date = fake.date_between_dates(
                     date_start=start_date,
-                    date_end=end_date - timedelta(days=1)
+                    date_end=end_date + timedelta(days=1)
                 )
 
                 # Генерируем количество ночей (от 1 до 14)
@@ -339,12 +341,16 @@ def generate_tenants_history(conn, count=200):
 
                     can_be_split = random.choice([True, False])
 
-                    booking_number = f"BN-{check_in_date.strftime('%Y%m%d')}-{room_id}"
+                    # Генерируем номер бронирования с использованием функции из БД
+                    cur.execute("""
+                                SELECT public.generate_booking_number(%s, %s, %s)
+                                """, (check_in_date, room_id, tenant_id))
+                    booking_number = cur.fetchone()[0]
 
                     cur.execute("""
                                 INSERT INTO tenants_history
                                 (room_id, booking_date, check_in_date, check_in_status,
-                                 occupied_space, amount_of_nights, can_be_split, tenant_id, вooking_number)
+                                 occupied_space, amount_of_nights, can_be_split, tenant_id, booking_number)
                                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                                 """, (room_id, booking_date, check_in_date, status, occupied_space,
                                       nights, can_be_split, tenant_id, booking_number))
@@ -365,21 +371,24 @@ def generate_tenants_history(conn, count=200):
 def generate_services_history(conn, count=300):
     """Генерация истории услуг"""
     with conn.cursor() as cur:
-        cur.execute("SELECT вooking_number FROM tenants_history")
-        booking_numbers = [row[0] for row in cur.fetchall()]
+        cur.execute("SELECT booking_number, check_in_date, amount_of_nights FROM tenants_history")
+        bookings = cur.fetchall()
 
         cur.execute("SELECT service_id FROM hotel_services")
         service_ids = [row[0] for row in cur.fetchall()]
 
         for _ in range(count):
-            booking_number = random.choice(booking_numbers)
+            booking_number, check_in_date, amount_of_nights = random.choice(bookings)
             service_id = random.choice(service_ids)
             amount = random.randint(1, 5)
 
+            # Генерируем дату заказа в пределах периода проживания
+            order_date = check_in_date + timedelta(days=random.randint(0, amount_of_nights - 1))
+
             cur.execute("""
-                        INSERT INTO services_history (history_id, service_id, amount)
-                        VALUES (%s, %s, %s)
-                        """, (booking_number, service_id, amount))
+                        INSERT INTO services_history (history_id, service_id, amount, order_date)
+                        VALUES (%s, %s, %s, %s)
+                        """, (booking_number, service_id, amount, order_date))
 
         conn.commit()
         print(f"Добавлено {count} записей истории услуг")
@@ -425,7 +434,7 @@ def main():
         generate_room_conveniences(conn)
         generate_hotel_services(conn)
         generate_tenants(conn, count=150)
-        generate_tenants_history(conn, count=250)
+        generate_tenants_history(conn, count=1000)
         generate_services_history(conn, count=400)
         generate_users(conn, count=8)
 

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns="http://javafx.com/javafx/11.0.1"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="app.subd.components.UniversalFormController"
+      spacing="10.0"
+      prefWidth="500"
+      prefHeight="600"
+      style="-fx-padding: 15;">
+
+    <Label fx:id="titleLabel" style="-fx-font-size: 18; -fx-font-weight: bold;" />
+
+    <VBox fx:id="formContainer" spacing="10" VBox.vgrow="ALWAYS">
+
+    </VBox>
+
+    <HBox spacing="10" alignment="CENTER_RIGHT">
+        <Button fx:id="saveButton"
+                onAction="#handleSave"
+                mnemonicParsing="false"
+                text="Сохранить"
+                disable="true"
+                defaultButton="true"
+                style="-fx-font-weight: bold;"/>
+        <Button fx:id="cancelButton"
+                onAction="#handleCancel"
+                mnemonicParsing="false"
+                text="Отмена"
+                cancelButton="true"/>
+    </HBox>
+
+    <Label fx:id="statusLabel" style="-fx-text-fill: derive(-fx-text-base-color, -30%);"/>
+</VBox>

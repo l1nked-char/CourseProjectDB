@@ -1,7 +1,7 @@
 package app.subd.tables;
 
 import app.subd.Database_functions;
-import app.subd.Session;
+import app.subd.components.Session;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -133,13 +133,13 @@ public class AllDictionaries {
     public static Map<String, Integer> getSocialStatusIdMap() { return socialStatusIdMap; }
     public static Map<String, Integer> getConveniencesIdMap() { return conveniencesIdMap; }
     public static Map<String, Integer> getTypesOfRoomIdMap() { return typesOfRoomIdMap; }
-    public static Map<String, Integer> getSevicesIdMap() { return servicesIdMap; }
+    public static Map<String, Integer> getServicesIdMap() { return servicesIdMap; }
 
     public static Map<Integer, String> getCitiesNameMap() { return citiesNameMap; }
     public static Map<Integer, String> getSocialStatusNameMap() { return socialStatusNameMap; }
     public static Map<Integer, String> getConveniencesNameMap() { return conveniencesNameMap; }
     public static Map<Integer, String> getTypesOfRoomNameMap() { return typesOfRoomNameMap; }
-    public static Map<Integer, String> getSevicesNameMap() { return servicesNameMap; }
+    public static Map<Integer, String> getServicesNameMap() { return servicesNameMap; }
     public static Map<String, Integer> getHotelsIdMap() { return hotelsIdMap; }
     public static Map<Integer, String> getHotelsNameMap() { return hotelsNameMap; }
 }
