@@ -129,16 +129,25 @@ public class EmployeeController {
         try {
             Connection connection = Session.getConnection();
             String serviceNameFilter = getStringFilter(filters, "serviceName");
-            String priceFilter = getStringFilter(filters, "pricePerOne");
-            String startOfPeriodFilter = getStringFilter(filters, "startOfPeriod");
-            String endOfPeriodFilter = getStringFilter(filters, "endOfPeriod");
-            Boolean canBeBookedFilter = getBooleanFilter(filters, "startOfPeriod");
+            BigDecimal priceFilter = getNumericFilter(filters, "pricePerOne");
+            LocalDate startOfPeriodFilter = getDateFilter(filters, "startOfPeriod");
+            LocalDate endOfPeriodFilter = getDateFilter(filters, "endOfPeriod");
+            Boolean canBeBookedFilter = getBooleanFilter(filters, "canBeBooked");
             Map.Entry<Integer, Integer> pagination = getPaginationParams(filters);
             Integer lastId = pagination.getKey();
             Integer limit = pagination.getValue();
 
+            Integer hotelId = null;
+            ResultSet hotelRs = Database_functions.callFunction(connection, "get_current_hotel_id");
+            if (hotelRs.next()) {
+                hotelId = hotelRs.getInt(1);
+            }
+
+            if (hotelId == null)
+                return services;
+
             ResultSet rs = Database_functions.callFunctionWithPagination(connection, "get_hotel_services_by_hotel_filtered",
-                    "service_id", lastId, limit, currentHotelId, serviceNameFilter, startOfPeriodFilter,
+                    "service_id", lastId, limit, hotelId, serviceNameFilter, startOfPeriodFilter,
                     endOfPeriodFilter, priceFilter, canBeBookedFilter);
 
             while (rs.next()) {
@@ -176,12 +185,13 @@ public class EmployeeController {
                     if (bookingNumber != null) {
                         String serviceNameFilter = getStringFilter(filters, "serviceName");
                         String amountFilter = getStringFilter(filters, "amount");
+                        LocalDate orderDateFilter = getDateFilter(filters, "orderDate");
                         Map.Entry<Integer, Integer> pagination = getPaginationParams(filters);
                         Integer lastId = pagination.getKey();
                         Integer limit = pagination.getValue();
 
                         ResultSet rsServices = Database_functions.callFunctionWithPagination(connection, "get_service_history_by_booking_filtered",
-                                "row_id", lastId, limit, bookingNumber, serviceNameFilter, amountFilter);
+                                "row_id", lastId, limit, bookingNumber, serviceNameFilter, amountFilter, orderDateFilter);
                         while (rsServices.next()) {
                             ServiceHistory service = new ServiceHistory();
                             service.setId(rsServices.getInt("row_id"));
@@ -325,8 +335,9 @@ public class EmployeeController {
 
     private Boolean saveBooking(TenantHistory booking) {
         try {
+            if (booking.getCheckInDate().isBefore(LocalDate.now()))
+                showError(statusLabel, "Бронирование не может быть создано в прошлом");
             Connection connection = Session.getConnection();
-
             // Для бронирования статус уже установлен в форме
             if (booking.getBookingNumber() == null || booking.getBookingNumber().isEmpty()) {
                 Database_functions.callFunction(connection, "add_tenant_history",
@@ -768,6 +779,11 @@ public class EmployeeController {
     private BigDecimal getNumericFilter(Map<String, Object> filters, String key) {
         Object value = filters.get(key);
         return (value instanceof BigDecimal) ? new BigDecimal(value.toString()) : null;
+    }
+
+    private LocalDate getDateFilter(Map<String, Object> filters, String key) {
+        Object value = filters.get(key);
+        return (value instanceof String) ? LocalDate.parse((String) value) : null;
     }
 
     private Boolean getBooleanFilter(Map<String, Object> filters, String key) {

@@ -16,6 +16,21 @@ public class TenantHistory {
     private String tenantInfo;
     private String roomInfo;
 
+    public TenantHistory()
+    {
+        this.bookingNumber = "";
+        this.roomId = 0;
+        this.tenantId = 0;
+        this.bookingDate = null;
+        this.checkInDate = null;
+        this.checkInStatus = null;
+        this.occupiedSpace = 0;
+        this.amountOfNights = 0;
+        this.canBeSplit = false;
+        this.tenantInfo = "";
+        this.roomInfo = "";
+    }
+
     public TenantHistory(String bookingNumber, int roomId, String roomInfo, int tenantId, String tenantInfo, LocalDate bookingDate,
                          LocalDate checkInDate, BookingStatus checkInStatus, int occupiedSpace,
                          int amountOfNights, boolean canBeSplit) {
