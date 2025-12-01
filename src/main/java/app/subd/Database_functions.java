@@ -76,7 +76,7 @@ public class Database_functions {
 
     public static Connection ConnectToDatabase(String username, String password) {
         Connection conn = null;
-        String url = "jdbc:postgresql://localhost:5432/CourseProject2";
+        String url = "jdbc:postgresql://192.168.50.82:5432/CourseProject2";
         Properties props = new Properties();
         props.setProperty("user", username);
         props.setProperty("password", password);

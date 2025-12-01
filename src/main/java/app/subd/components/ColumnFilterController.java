@@ -133,7 +133,6 @@ public class ColumnFilterController {
                 Control control = filterControls.get(column.getPropertyName());
                 Object value = getFilterValue(control, column.getFilterType());
 
-                // Добавляем в фильтры только непустые значения
                 if (value != null) {
                     if (value instanceof String) {
                         String stringValue = ((String) value).trim();

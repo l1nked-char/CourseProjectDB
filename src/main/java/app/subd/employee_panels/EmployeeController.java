@@ -52,6 +52,7 @@ public class EmployeeController {
             AllDictionaries.initialiseTypesOfRoomMaps();
             AllDictionaries.initialiseConveniencesMaps();
             AllDictionaries.initialiseSocialStatusMaps();
+
         } catch (Exception e) {
             System.err.println("Ошибка инициализации словарей: " + e.getMessage());
         }
@@ -116,7 +117,7 @@ public class EmployeeController {
                 this::handleEditAdditionalService
         ));
 
-        tableConfigs.put("Услуги отеля", ConfigFactory.createHotelServiceTableConfig(
+        tableConfigs.put("Услуги отеля", ConfigFactory.createEmployeeHotelServiceTableConfig(
                 this::loadHotelServicesData,
                 null,
                 null
@@ -129,12 +130,16 @@ public class EmployeeController {
             Connection connection = Session.getConnection();
             String serviceNameFilter = getStringFilter(filters, "serviceName");
             String priceFilter = getStringFilter(filters, "pricePerOne");
+            String startOfPeriodFilter = getStringFilter(filters, "startOfPeriod");
+            String endOfPeriodFilter = getStringFilter(filters, "endOfPeriod");
+            Boolean canBeBookedFilter = getBooleanFilter(filters, "startOfPeriod");
             Map.Entry<Integer, Integer> pagination = getPaginationParams(filters);
             Integer lastId = pagination.getKey();
             Integer limit = pagination.getValue();
 
             ResultSet rs = Database_functions.callFunctionWithPagination(connection, "get_hotel_services_by_hotel_filtered",
-                    "service_id", lastId, limit, currentHotelId, serviceNameFilter, "", "", priceFilter, null);
+                    "service_id", lastId, limit, currentHotelId, serviceNameFilter, startOfPeriodFilter,
+                    endOfPeriodFilter, priceFilter, canBeBookedFilter);
 
             while (rs.next()) {
                 int serviceNameId = rs.getInt("service_name_id");
@@ -183,6 +188,7 @@ public class EmployeeController {
                             service.setHistoryId(bookingNumber);
                             service.setServiceId(rsServices.getInt("service_id"));
                             service.setAmount(rsServices.getInt("amount"));
+                            service.setOrderDate(rsServices.getDate("order_date").toLocalDate());
                             int a = rsServices.getInt("service_name_id");
                             service.setServiceNameId(a);
                             service.setServiceName(AllDictionaries.getServicesNameMap().get(a));
@@ -197,6 +203,41 @@ public class EmployeeController {
             }
         }
         return services;
+    }
+
+    public static ObservableList<Object> getTenantsForCurrentHotel(Map<String, Object> ignored) {
+        ObservableList<Object> tenants = FXCollections.observableArrayList();
+
+        try {
+            int hotelId;
+            Connection connection = Session.getConnection();
+            ResultSet hotelRs = Database_functions.callFunction(connection, "get_current_hotel_id");
+            if (hotelRs.next()) {
+                hotelId = hotelRs.getInt(1);
+            }
+            else
+                return tenants;
+            ResultSet rs = Database_functions.callFunction(connection, "get_all_tenants_from_hotel", hotelId);
+            while (rs.next()) {
+                Tenant tenant = new Tenant(
+                        rs.getInt("tenant_id"),
+                        rs.getString("first_name"),
+                        rs.getString("name"),
+                        rs.getString("patronymic"),
+                        rs.getInt("city_id"),
+                        rs.getInt("social_status_id"),
+                        rs.getInt("series"),
+                        rs.getInt("number"),
+                        DocumentType.getDocumentType(rs.getString("document_type")),
+                        rs.getString("email")
+                );
+                tenant.setBirthDate(rs.getDate("birth_date").toLocalDate());
+                tenants.add(tenant);
+            }
+        } catch (Exception e) {
+            System.err.println("Ошибка при загрузке жильцов для ComboBox: " + e.getMessage());
+        }
+        return tenants;
     }
     
     private Void handleAddAdditionalService(Void param) {
@@ -252,13 +293,14 @@ public class EmployeeController {
     private Boolean saveAdditionalService(ServiceHistory service) {
         try {
             Connection connection = Session.getConnection();
-            if (service.getId() == 0) { // Новая услуга
+            LocalDate currentDate = LocalDate.now();
+            if (service.getId() == 0) {
                 Database_functions.callFunction(connection, "add_service_history",
-                        service.getHistoryId(), service.getServiceId(), service.getAmount());
+                        service.getHistoryId(), service.getServiceId(), service.getAmount(), currentDate);
                 showSuccess(statusLabel, "Услуга успешно добавлена.");
-            } else { // Редактирование существующей
+            } else {
                 Database_functions.callFunction(connection, "edit_service_history",
-                        service.getId(), service.getHistoryId(), service.getServiceId(), service.getAmount());
+                        service.getId(), service.getHistoryId(), service.getServiceId(), service.getAmount(), service.getOrderDate());
                 showSuccess(statusLabel, "Услуга успешно обновлена.");
             }
             return true;
@@ -326,7 +368,6 @@ public class EmployeeController {
             
             String bookingNumberFilter = getStringFilter(filters, "bookingNumber");
             String checkInStatusFilter = getStringFilter(filters, "checkInStatus");
-            // For Employee, we always filter by currentHotelId
             String roomInfo = getStringFilter(filters, "roomInfo");
             String tenantInfo = getStringFilter(filters, "tenantInfo");
             String bookingDate = getStringFilter(filters, "bookingDate");
@@ -346,7 +387,9 @@ public class EmployeeController {
                 TenantHistory booking = new TenantHistory(
                         rs.getString("booking_number"),
                         rs.getInt("room_id"),
+                        rs.getString("room_info"),
                         rs.getInt("tenant_id"),
+                        rs.getString("tenant_info"),
                         rs.getDate("booking_date").toLocalDate(),
                         rs.getDate("check_in_date").toLocalDate(),
                         BookingStatus.getBookingStatus(rs.getString("check_in_status")),
@@ -497,12 +540,24 @@ public class EmployeeController {
             showError(statusLabel, "Неверный тип данных для редактирования бронирования");
             return null;
         }
+
         UniversalFormConfig<TenantHistory> formConfig = ConfigFactory.createEmployeeBookingFormConfig(
                 this::saveBooking,
                 b -> refreshActiveTable(),
                 UniversalFormConfig.Mode.EDIT
         );
-        FormManager.showForm(formConfig, FormController.Mode.EDIT, booking, getActiveTableController());
+
+        UniversalTableController tableController = getActiveTableController();
+        if (tableController != null) {
+            // Устанавливаем текущий отель в фильтры
+            Map<String, Object> filters = tableController.getCurrentFilterValues();
+            if (currentHotelId != null) {
+                Hotel hotel = new Hotel(currentHotelId, 0, "");
+                filters.put("hotel", hotel);
+            }
+        }
+
+        FormManager.showForm(formConfig, FormController.Mode.EDIT, booking, tableController);
         return null;
     }
 
@@ -644,7 +699,6 @@ public class EmployeeController {
         }
     }
 
-    // Обработчики меню (уже есть в FXML)
     @FXML
     private void showBookings() {
         openTableTab("Бронирования");
@@ -668,6 +722,11 @@ public class EmployeeController {
     @FXML
     private void showAdditionalServices() {
         openTableTab("Дополнительные услуги");
+    }
+
+    @FXML
+    private void showHotelServices() {
+        openTableTab("Услуги отеля");
     }
 
     // Обработчик выхода (уже есть в FXML)
@@ -698,7 +757,7 @@ public class EmployeeController {
 
     private String getStringFilter(Map<String, Object> filters, String key) {
         Object value = filters.get(key);
-        return (value instanceof String) ? (String) value : "";
+        return value != null ? value.toString() : "";
     }
 
     private Integer getIntFilter(Map<String, Object> filters, String key) {
@@ -708,7 +767,7 @@ public class EmployeeController {
 
     private BigDecimal getNumericFilter(Map<String, Object> filters, String key) {
         Object value = filters.get(key);
-        return (value instanceof BigDecimal) ? new BigDecimal((String) value) : null;
+        return (value instanceof BigDecimal) ? new BigDecimal(value.toString()) : null;
     }
 
     private Boolean getBooleanFilter(Map<String, Object> filters, String key) {

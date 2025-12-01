@@ -26,10 +26,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static app.subd.MessageController.*;
 
@@ -71,7 +68,6 @@ public class CheckInWizardController {
     @FXML private VBox roomTableContainer;
     @FXML private VBox confirmationInfo;
 
-    // Данные процесса заселения
     private WizardMode mode;
     private final List<Tenant> selectedTenants = new ArrayList<>();
     private AvailableRoom selectedRoom;
@@ -81,7 +77,6 @@ public class CheckInWizardController {
     private Integer currentHotelId;
     private CheckBox occupyRoomCheckBox;
 
-    // Контроллеры таблиц
     private UniversalTableController clientsController;
     private UniversalTableController roomsController;
 
@@ -120,7 +115,7 @@ public class CheckInWizardController {
             Parent clientContent = clientLoader.load();
             clientsController = clientLoader.getController();
 
-            TableConfig clientConfig = createClientSelectionConfig();
+            TableConfig clientConfig = ConfigFactory.createEmployeeClientsTableConfig(this::loadClientsData, null, null, true);
             clientsController.configure(clientConfig);
 
             hideTableButtons(clientsController);
@@ -129,7 +124,7 @@ public class CheckInWizardController {
             FXMLLoader roomLoader = new FXMLLoader(getClass().getResource("/app/subd/tables/universal_table.fxml"));
             Parent roomContent = roomLoader.load();
             roomsController = roomLoader.getController();
-            TableConfig roomConfig = createRoomSelectionConfig();
+            TableConfig roomConfig = ConfigFactory.createAvailableRoomsTableConfig(this::loadAvailableRoomsData);
             roomsController.configure(roomConfig);
 
             hideTableButtons(roomsController);
@@ -171,106 +166,82 @@ public class CheckInWizardController {
         }
     }
 
-    private TableConfig createClientSelectionConfig() {
-        return new TableConfig("Клиенты",
-                this::loadClientsForCheckIn,
-                null,
-                null,
-                null,
-                null,
-                Arrays.asList(
-                        new ColumnConfig("firstName", "Фамилия", 120),
-                        new ColumnConfig("name", "Имя", 120),
-                        new ColumnConfig("patronymic", "Отчество", 120),
-                        new ColumnConfig("birthDate", "Дата рождения", 110),
-                        new ColumnConfig("passport", "Паспорт", 120),
-                        new ColumnConfig("socialStatus", "Соц. статус", 120),
-                        new ColumnConfig("email", "Email", 150),
-                        new ColumnConfig("documentType", "Тип документа", 130)
-                ),
-                null,
-                null,
-                true
-        );
-    }
-
-    private TableConfig createRoomSelectionConfig() {
-        return new TableConfig("Доступные комнаты",
-                this::loadAvailableRoomsForCheckIn,
-                null,
-                null,
-                null,
-                Arrays.asList(
-                        new ColumnConfig("roomNumber", "Номер", 80),
-                        new ColumnConfig("roomType", "Тип комнаты", 150),
-                        new ColumnConfig("maxPeople", "Макс. людей", 100),
-                        new ColumnConfig("pricePerNight", "Цена за ночь", 120),
-                        new ColumnConfig("available", "Доступна", 80),
-                        new ColumnConfig("availableSpace", "Свободных мест", 150)
-                ),
-                Arrays.asList(
-                        new FilterConfig("checkInDate", "Дата заезда", FilterConfig.FilterType.DATE, true),
-                        new FilterConfig("checkOutDate", "Дата выезда", FilterConfig.FilterType.DATE, true)
-                ),
-                null
-        );
-    }
-
-    private ObservableList<Object> loadClientsForCheckIn(Map<String, Object> filters) {
+    private ObservableList<Object> loadClientsData(Map<String, Object> filters) {
         ObservableList<Object> clients = FXCollections.observableArrayList();
         try {
             Connection connection = Session.getConnection();
-            ResultSet rs = Database_functions.callFunction(connection, "get_all_tenants");
+
+            String firstNameFilter = getStringFilter(filters, "firstName");
+            String nameFilter = getStringFilter(filters, "name");
+            String patronymicFilter = getStringFilter(filters, "patronymic");
+            String cityNameFilter = getStringFilter(filters, "cityName");
+            String birthDateFilter = getStringFilter(filters, "birthDate");
+            String socialStatusFilter = getStringFilter(filters, "socialStatus");
+            String seriesFilter = getStringFilter(filters, "series");
+            String numberFilter = getStringFilter(filters, "number");
+            String documentTypeFilter = getStringFilter(filters, "documentType");
+            String emailFilter = getStringFilter(filters, "email");
+            Map.Entry<Integer, Integer> pagination = getPaginationParams(filters);
+            Integer lastId = pagination.getKey();
+            Integer limit = pagination.getValue();
+
+            ResultSet rs = Database_functions.callFunctionWithPagination(connection, "get_all_tenants_filtered",
+                    "tenant_id", lastId, limit, firstNameFilter, nameFilter, patronymicFilter,
+                    cityNameFilter, birthDateFilter, socialStatusFilter, seriesFilter, numberFilter, documentTypeFilter, emailFilter);
 
             while (rs.next()) {
-                int status_id = rs.getInt("social_status_id");
                 Tenant tenant = new Tenant(
                         rs.getInt("tenant_id"),
                         rs.getString("first_name"),
                         rs.getString("name"),
                         rs.getString("patronymic"),
                         rs.getInt("city_id"),
-                        status_id,
+                        rs.getInt("social_status_id"),
                         rs.getInt("series"),
                         rs.getInt("number"),
                         DocumentType.getDocumentType(rs.getString("document_type")),
                         rs.getString("email")
                 );
                 tenant.setBirthDate(rs.getDate("birth_date").toLocalDate());
-                tenant.setSocialStatus(AllDictionaries.getSocialStatusNameMap().get(status_id));
+                tenant.setHotelId(currentHotelId);
+                tenant.setSocialStatus(AllDictionaries.getSocialStatusNameMap().get(tenant.getSocialStatusId()));
                 clients.add(tenant);
             }
         } catch (Exception e) {
             showError(statusLabel, "Ошибка загрузки клиентов: " + e.getMessage());
-            e.printStackTrace();
         }
         return clients;
     }
 
-    private ObservableList<Object> loadAvailableRoomsForCheckIn(Map<String, Object> filters) {
-        ObservableList<Object> rooms = FXCollections.observableArrayList();
-
-        checkInDate = (LocalDate) filters.get("checkInDate");
-        checkOutDate = (LocalDate) filters.get("checkOutDate");
-
-        if (checkInDate == null || checkOutDate == null) {
-            showInfo(statusLabel, "Укажите даты заезда и выезда для поиска комнат");
-            return rooms;
-        }
-
-        if (checkInDate.isAfter(checkOutDate)) {
-            showError(statusLabel, "Дата заезда не может быть позже даты выезда");
-            return rooms;
-        }
-
+    private ObservableList<Object> loadAvailableRoomsData(Map<String, Object> filters) {
+        ObservableList<Object> availableRooms = FXCollections.observableArrayList();
         try {
             Connection connection = Session.getConnection();
-            ResultSet rs = Database_functions.callFunction(connection, "get_rooms_statuses_on_period",
-                    currentHotelId, checkInDate, checkOutDate);
+            ResultSet rs;
+
+            LocalDate checkInDate = (LocalDate) filters.get("checkInDate");
+            LocalDate checkOutDate = (LocalDate) filters.get("checkOutDate");
+
+            String roomNumberFilter = getStringFilter(filters, "roomNumber");
+            String roomTypeNameFilter = getStringFilter(filters, "roomType");
+            Integer maxPeopleFilter = getIntFilter(filters, "maxPeople");
+            BigDecimal pricePerPersonFilter = getNumericFilter(filters, "pricePerNight");
+            String statusFilter = getStringFilter(filters, "available");
+            Integer availableSpaceFilter = getIntFilter(filters, "availableSpace");
+
+            if (checkInDate == null || checkOutDate == null) {
+                rs = Database_functions.callFunction(connection, "get_current_room_statuses_view_filtered",
+                        currentHotelId, roomNumberFilter, roomTypeNameFilter, maxPeopleFilter,
+                        pricePerPersonFilter, statusFilter, availableSpaceFilter);
+            } else {
+                rs = Database_functions.callFunction(connection, "get_rooms_statuses_on_period_filtered",
+                        currentHotelId, checkInDate, checkOutDate, roomNumberFilter, roomTypeNameFilter,
+                        maxPeopleFilter, pricePerPersonFilter, statusFilter, availableSpaceFilter);
+            }
 
             while (rs.next()) {
                 String status = rs.getString("status");
-                boolean isAvailable = !"занят".equals(status);
+                boolean isAvailable = !status.equals("занят");
 
                 AvailableRoom room = new AvailableRoom(
                         rs.getInt("room_id"),
@@ -281,16 +252,13 @@ public class CheckInWizardController {
                         isAvailable,
                         rs.getInt("available_space")
                 );
-
-                if (isAvailable) {
-                    rooms.add(room);
-                }
+                availableRooms.add(room);
             }
         } catch (Exception e) {
-            showError(statusLabel, "Ошибка загрузки доступных комнат: " + e.getMessage());
+            showError(statusLabel, "Ошибка загрузки свободных комнат: " + e.getMessage());
             e.printStackTrace();
         }
-        return rooms;
+        return availableRooms;
     }
 
     @FXML
@@ -362,6 +330,40 @@ public class CheckInWizardController {
     private void handleSelectRoom() {
         Object selected = roomsController.getSelectedItem();
         if (selected instanceof AvailableRoom room) {
+            Map<String, Object> filters = roomsController.getCurrentFilterValues();
+            this.checkInDate = (LocalDate) filters.get("checkInDate");
+            this.checkOutDate = (LocalDate) filters.get("checkOutDate");
+
+            if (this.checkInDate == null || this.checkOutDate == null) {
+                showError(statusLabel, "Пожалуйста, выберите дату заезда и выезда в фильтрах.");
+                return;
+            }
+
+            // Проверка на пересечение бронирований
+            List<String> conflictingTenants = new ArrayList<>();
+            for (Tenant tenant : selectedTenants) {
+                try {
+                    Connection connection = Session.getConnection();
+                    ResultSet rs = Database_functions.callFunction(connection, "check_tenant_booking_overlap",
+                            tenant.getId(),
+                            java.sql.Date.valueOf(checkInDate),
+                            java.sql.Date.valueOf(checkOutDate));
+                    if (rs.next()) {
+                        conflictingTenants.add(String.format("%s %s (бронь %s)",
+                                tenant.getFirstName(), tenant.getName(), rs.getString("booking_number")));
+                    }
+                } catch (Exception e) {
+                    showError(statusLabel, "Ошибка проверки пересекающихся бронирований: " + e.getMessage());
+                    e.printStackTrace();
+                    return;
+                }
+            }
+
+            if (!conflictingTenants.isEmpty()) {
+                showError(statusLabel, "У следующих клиентов есть пересекающиеся бронирования: " + String.join(", ", conflictingTenants));
+                return;
+            }
+
             peopleCount = selectedTenants.size();
 
             if (peopleCount > room.getAvailableSpace()) {
@@ -464,7 +466,7 @@ public class CheckInWizardController {
             Label roomNumber = new Label("Номер комнаты: " + selectedRoom.getRoomNumber());
             Label roomType = new Label("Тип комнаты: " + selectedRoom.getRoomType());
             Label maxPeople = new Label("Максимум людей: " + selectedRoom.getMaxPeople());
-            Label pricePerNight = new Label("Цена за ночь (за 1 чел): " + selectedRoom.getPricePerNight() + " руб.");
+            Label pricePerNight = new Label("Базовая цена за ночь (за 1 чел): " + selectedRoom.getPricePerNight() + " руб.");
             detailsBox.getChildren().addAll(roomTitle, roomNumber, roomType, maxPeople, pricePerNight);
         }
 
@@ -645,5 +647,26 @@ public class CheckInWizardController {
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();
+    }
+
+    private String getStringFilter(Map<String, Object> filters, String key) {
+        Object value = filters.get(key);
+        return (value instanceof String) ? (String) value : "";
+    }
+
+    private Integer getIntFilter(Map<String, Object> filters, String key) {
+        Object value = filters.get(key);
+        return (value instanceof String) ? Integer.parseInt((String) value) : null;
+    }
+
+    private BigDecimal getNumericFilter(Map<String, Object> filters, String key) {
+        Object value = filters.get(key);
+        return (value instanceof BigDecimal) ? new BigDecimal((String) value) : null;
+    }
+
+    private Map.Entry<Integer, Integer> getPaginationParams(Map<String, Object> filters) {
+        Integer lastId = (Integer) filters.getOrDefault("lastId", 0);
+        Integer limit = (Integer) filters.getOrDefault("limit", 30);
+        return new AbstractMap.SimpleEntry<>(lastId, limit);
     }
 }

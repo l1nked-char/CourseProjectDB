@@ -99,13 +99,13 @@ public class AdminController {
                 this::handleEditRoomConvenience
         ));
         
-        tableConfigs.put("Сервисы отеля", ConfigFactory.createHotelServiceTableConfig(
+        tableConfigs.put("Услуги отеля", ConfigFactory.createHotelServiceTableConfig(
                 this::loadHotelServicesData,
                 this::handleAddHotelService,
                 this::handleEditHotelService
         ));
 
-        tableConfigs.put("История сервисов", ConfigFactory.createServiceHistoryTableConfig(
+        tableConfigs.put("Бронирование услуг", ConfigFactory.createServiceHistoryTableConfig(
                 this::loadServiceHistoryData,
                 this::handleAddServiceHistory,
                 this::handleEditServiceHistory
@@ -129,7 +129,7 @@ public class AdminController {
                 this::handleEditTenant
         ));
 
-        tableConfigs.put("История заселений", ConfigFactory.createTenantHistoryTableConfig(
+        tableConfigs.put("Бронирование номеров", ConfigFactory.createTenantHistoryTableConfig(
                 this::loadTenantHistoryData,
                 this::handleAddTenantHistory,
                 this::handleEditTenantHistory
@@ -297,8 +297,8 @@ public class AdminController {
             
             String convNameFilter = getStringFilter(filters, "convName");
             String pricePerOneFilter = getStringFilter(filters, "pricePerOne");
-            String amountFilter = getStringFilter(filters, "amount");
-            String startDateFilter = getStringFilter(filters, "startDate");
+            LocalDate amountFilter = getDateFilter(filters, "amount");
+            LocalDate startDateFilter = getDateFilter(filters, "startDate");
             String endDateFilter = getStringFilter(filters, "endDate");
             Map.Entry<Integer, Integer> pagination = getPaginationParams(filters);
             Integer lastId = pagination.getKey();
@@ -341,8 +341,8 @@ public class AdminController {
             Connection connection = Session.getConnection();
 
             String serviceNameFilter = getStringFilter(filters, "serviceName");
-            String startOfPeriodFilter = getStringFilter(filters, "startOfPeriod");
-            String endOfPeriodFilter = getStringFilter(filters, "endOfPeriod");
+            LocalDate startOfPeriodFilter = getDateFilter(filters, "startOfPeriod");
+            LocalDate endOfPeriodFilter = getDateFilter(filters, "endOfPeriod");
             String pricePerOneFilter = getStringFilter(filters, "pricePerOne");
             Boolean canBeBookedFilter = getBooleanFilter(filters, "canBeBooked");
             Map.Entry<Integer, Integer> pagination = getPaginationParams(filters);
@@ -367,7 +367,7 @@ public class AdminController {
             }
 
         } catch (Exception e) {
-            System.err.println("Ошибка загрузки сервисов отеля: " + e.getMessage());
+            System.err.println("Ошибка загрузки услуг отеля: " + e.getMessage());
         }
         return hotelServices;
     }
@@ -385,12 +385,13 @@ public class AdminController {
 
             String serviceNameFilter = getStringFilter(filters, "serviceName");
             String amountFilter = getStringFilter(filters, "amount");
+            LocalDate orderDateFilter = getDateFilter(filters, "orderDate");
             Map.Entry<Integer, Integer> pagination = getPaginationParams(filters);
             Integer lastId = pagination.getKey();
             Integer limit = pagination.getValue();
 
             ResultSet rs = Database_functions.callFunctionWithPagination(connection, "get_service_history_by_booking_filtered",
-                    "row_id", lastId, limit, bookingNumber, serviceNameFilter, amountFilter);
+                    "row_id", lastId, limit, bookingNumber, serviceNameFilter, amountFilter, orderDateFilter);
 
             while (rs.next()) {
                 int service_name_id = rs.getInt("service_name_id");
@@ -406,7 +407,7 @@ public class AdminController {
                 serviceHistory.add(historyItem);
             }
         } catch (Exception e) {
-            showError(statusLabel, "Ошибка загрузки истории услуг: " + e.getMessage());
+            showError(statusLabel, "Ошибка загрузки бронирования услуг: " + e.getMessage());
         }
         return serviceHistory;
     }
@@ -536,12 +537,12 @@ public class AdminController {
             String occupiedSpaceFilter = getStringFilter(filters, "occupiedSpace");
             String amountOfNightsFilter = getStringFilter(filters, "amountOfNights");
             Boolean canBeSplitFilter = getBooleanFilter(filters, "canBeSplit");
-            Map.Entry<Integer, Integer> pagination = getPaginationParams(filters);
-            Integer lastId = pagination.getKey();
+            Map.Entry<Integer, Integer> pagination = getOffsetLimitParams(filters);
+            Integer offset = pagination.getKey();
             Integer limit = pagination.getValue();
 
             ResultSet rs = Database_functions.callFunctionWithPagination(connection, "get_tenant_history_by_hotel_filtered",
-                    "booking_number", lastId, limit, hotelId, bookingNumberFilter, roomInfoFilter,
+                    offset, limit, hotelId, bookingNumberFilter, roomInfoFilter,
                     tenantInfoFilter, bookingDateFilter, checkInDateFilter, checkInStatusFilter, occupiedSpaceFilter,
                     amountOfNightsFilter, canBeSplitFilter);
 
@@ -549,7 +550,9 @@ public class AdminController {
                 TenantHistory th = new TenantHistory(
                         rs.getString("booking_number"),
                         rs.getInt("room_id"),
+                        rs.getString("room_info"),
                         rs.getInt("tenant_id"),
+                        rs.getString("tenant_info"),
                         rs.getDate("booking_date").toLocalDate(),
                         rs.getDate("check_in_date").toLocalDate(),
                         BookingStatus.getBookingStatus(rs.getString("check_in_status")),
@@ -561,7 +564,7 @@ public class AdminController {
                 tenantHistory.add(th);
             }
         } catch (Exception e) {
-            System.err.println("Ошибка загрузки истории заселений: " + e.getMessage());
+            System.err.println("Ошибка загрузки бронирования: " + e.getMessage());
         }
         return tenantHistory;
     }
@@ -650,7 +653,7 @@ public class AdminController {
 
     private Void handleEditHotelService(Object hsObj) {
         if (!(hsObj instanceof HotelService hs)) {
-            showError(statusLabel, "Неверный тип данных для редактирования сервиса отеля");
+            showError(statusLabel, "Неверный тип данных для редактирования услуги отеля");
             return null;
         }
         UniversalFormConfig<HotelService> formConfig = ConfigFactory.createHotelServiceFormConfig(
@@ -679,7 +682,7 @@ public class AdminController {
 
     private Void handleEditServiceHistory(Object shObj) {
         if (!(shObj instanceof ServiceHistory sh)) {
-            showError(statusLabel, "Неверный тип данных для редактирования истории сервиса");
+            showError(statusLabel, "Неверный тип данных для редактирования бронирования услуги");
             return null;
         }
         UniversalFormConfig<ServiceHistory> formConfig = ConfigFactory.createServiceHistoryFormConfig(
@@ -775,7 +778,7 @@ public class AdminController {
 
     private Void handleEditTenantHistory(Object thObj) {
         if (!(thObj instanceof TenantHistory th)) {
-            showError(statusLabel, "Неверный тип данных для редактирования истории заселения");
+            showError(statusLabel, "Неверный тип данных для редактирования бронирования");
             return null;
         }
         UniversalFormConfig<TenantHistory> formConfig = ConfigFactory.createTenantHistoryFormConfig(
@@ -878,7 +881,7 @@ public class AdminController {
             }
             return true;
         } catch (Exception e) {
-            showError(statusLabel, "Ошибка сохранения сервиса отеля: " + e.getMessage());
+            showError(statusLabel, "Ошибка сохранения услуги отеля: " + e.getMessage());
             return false;
         }
     }
@@ -908,7 +911,7 @@ public class AdminController {
             }
             return true;
         } catch (Exception e) {
-            showError(statusLabel, "Ошибка сохранения истории сервиса: " + e.getMessage());
+            showError(statusLabel, "Ошибка сохранения бронирования услуги: " + e.getMessage());
             return false;
         }
     }
@@ -984,17 +987,17 @@ public class AdminController {
                         tenantHistory.getTenantId(), tenantHistory.getRoomId(), tenantHistory.getBookingDate(),
                         tenantHistory.getCheckInDate(), tenantHistory.getCheckInStatus(), tenantHistory.getOccupiedSpace(),
                         tenantHistory.getAmountOfNights(), tenantHistory.isCanBeSplit());
-                showSuccess(statusLabel, "История заселения успешно добавлена");
+                showSuccess(statusLabel, "Бронирование успешно добавлено");
             } else {
                 Database_functions.callFunction(connection, "edit_tenant_history",
                         tenantHistory.getBookingNumber(), tenantHistory.getTenantId(), tenantHistory.getRoomId(),
                         tenantHistory.getBookingDate(), tenantHistory.getCheckInDate(), tenantHistory.getCheckInStatus(),
                         tenantHistory.getOccupiedSpace(), tenantHistory.getAmountOfNights(), tenantHistory.isCanBeSplit());
-                showSuccess(statusLabel, "История заселения успешно обновлена");
+                showSuccess(statusLabel, "Бронирование успешно обновлено");
             }
             return true;
         } catch (Exception e) {
-            showError(statusLabel, "Ошибка сохранения истории заселения: " + e.getMessage());
+            showError(statusLabel, "Ошибка сохранения бронирования: " + e.getMessage());
             return false;
         }
     }
@@ -1068,12 +1071,12 @@ public class AdminController {
     @FXML private void showCityManagement() { openTableTab("Города"); }
     @FXML private void showRoomConvenienceManagement() { openTableTab("Удобства в комнате"); }
     @FXML private void showUserManagement() { openTableTab("Пользователи"); }
-    @FXML private void showHotelServiceManagement() { openTableTab("Сервисы отеля"); }
-    @FXML private void showServiceHistoryManagement() { openTableTab("История сервисов"); }
+    @FXML private void showHotelServiceManagement() { openTableTab("Услуги отеля"); }
+    @FXML private void showServiceHistoryManagement() { openTableTab("Бронирование услуг"); }
     @FXML private void showSocialStatusManagement() { openTableTab("Социальные статусы"); }
     @FXML private void showServiceManagement() { openTableTab("Услуги"); }
     @FXML private void showTenantManagement() { openTableTab("Жильцы"); }
-    @FXML private void showTenantHistoryManagement() { openTableTab("История заселений"); }
+    @FXML private void showTenantHistoryManagement() { openTableTab("Бронирование номеров"); }
 
     @FXML
     private void handleLogout() {
@@ -1368,6 +1371,11 @@ public class AdminController {
         return (value instanceof String) ? (String) value : "";
     }
 
+    private LocalDate getDateFilter(Map<String, Object> filters, String key) {
+        Object value = filters.get(key);
+        return (value instanceof String) ? LocalDate.parse((String) value) : null;
+    }
+
     private Boolean getBooleanFilter(Map<String, Object> filters, String key) {
         Object value = filters.get(key);
         return (value instanceof Boolean) ? (Boolean) value : null;
@@ -1377,5 +1385,12 @@ public class AdminController {
         Integer lastId = (Integer) filters.getOrDefault("lastId", 0);
         Integer limit = (Integer) filters.getOrDefault("limit", 30);
         return new AbstractMap.SimpleEntry<>(lastId, limit);
+    }
+
+    private Map.Entry<Integer, Integer> getOffsetLimitParams(Map<String, Object> filters) {
+        Integer page = (Integer) filters.getOrDefault("page", 0);
+        Integer limit = (Integer) filters.getOrDefault("limit", 30);
+        Integer offset = page * limit;
+        return new AbstractMap.SimpleEntry<>(offset, limit);
     }
 }

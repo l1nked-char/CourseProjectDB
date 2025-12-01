@@ -283,6 +283,8 @@ public class UniversalFormController<T> implements FormController<T> {
     private String getItemDisplayText(Object item) {
         if (item instanceof City) {
             return ((City) item).getCityName();
+        } else if (item instanceof Room room) {
+            return room.toString();
         } else if (item instanceof Hotel hotel) {
             if (hotel.getCityName() != null && !hotel.getCityName().isEmpty()) {
                 return hotel.getCityName() + " - " + hotel.getAddress();
@@ -449,6 +451,19 @@ public class UniversalFormController<T> implements FormController<T> {
             return populateUserFromForm((User) entity);
         }
 
+        if (entity instanceof TenantHistory && controllerMode == FormController.Mode.EDIT) {
+            Field hotelIdField = entity.getClass().getDeclaredField("hotelId");
+            hotelIdField.setAccessible(true);
+            Integer originalHotelId = (Integer) hotelIdField.get(entity);
+
+            if (originalHotelId != null && originalHotelId > 0) {
+                Hotel tempHotel = new Hotel(originalHotelId, 0, "");
+                if (parentController != null) {
+                    parentController.getCurrentFilterValues().put("hotel", tempHotel);
+                }
+            }
+        }
+
         if (entity instanceof Room && controllerMode == FormController.Mode.ADD) {
             Map<String, Object> filters = parentController.getCurrentFilterValues();
             Object hotelObj = filters.get("hotel");
@@ -475,37 +490,6 @@ public class UniversalFormController<T> implements FormController<T> {
                 Map<String, Object> filters = parentController.getCurrentFilterValues();
                 if (filters.get("hotel") instanceof Hotel selectedHotel) {
                     ((HotelService) entity).setHotelId(selectedHotel.getId());
-                }
-            }
-        }
-
-        if (entity instanceof ServiceHistory && controllerMode == Mode.ADD) {
-            if (parentController != null) {
-                Map<String, Object> filters = parentController.getCurrentFilterValues();
-                Object roomObj = filters.get("room");
-                Object clientObj = filters.get("client");
-
-                if (roomObj instanceof Room selectedRoom && clientObj instanceof Tenant selectedClient) {
-                    try {
-                        Connection connection = Session.getConnection();
-                        ResultSet rs = Database_functions.callFunction(connection, "get_active_booking_by_room_and_tenant",
-                                selectedRoom.getId(), selectedClient.getId());
-
-                        if (rs.next()) {
-                            String bookingNumber = rs.getString(1);
-                            if (bookingNumber != null && !bookingNumber.isEmpty()) {
-                                ((ServiceHistory) entity).setHistoryId(bookingNumber);
-                            } else {
-                                throw new Exception("Активное бронирование для данной комнаты и клиента не найдено.");
-                            }
-                        } else {
-                            throw new Exception("Активное бронирование не найдено.");
-                        }
-                    } catch (Exception e) {
-                        showError(statusLabel, "Ошибка: " + e.getMessage());
-                    }
-                } else {
-                    showError(statusLabel, "Ошибка: Комната или клиент не выбраны в фильтре.");
                 }
             }
         }

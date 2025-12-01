@@ -1,6 +1,7 @@
 package app.subd.components;
 
 import app.subd.admin_panels.AdminController;
+import app.subd.config.FieldConfig;
 import app.subd.config.TableConfig;
 import app.subd.config.ColumnConfig;
 import app.subd.config.FilterConfig;
@@ -23,6 +24,8 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -150,6 +153,24 @@ public class UniversalTableController implements AdminController.RefreshableCont
 
             if (columnConfig.getWidth() > 0) {
                 column.setPrefWidth(columnConfig.getWidth());
+            }
+
+            if (columnConfig.getFieldType() == FieldConfig.FieldType.NUMBER) {
+                column.setCellFactory(col -> new TableCell<>() {
+                    @Override
+                    protected void updateItem(Object item, boolean empty) {
+                        super.updateItem(item, empty);
+                        if (empty || item == null) {
+                            setText(null);
+                        } else if (item instanceof Number) {
+                            DecimalFormat df = new DecimalFormat("#,##0.000");
+                            df.setRoundingMode(RoundingMode.HALF_UP);
+                            setText(df.format(item));
+                        } else {
+                            setText(item.toString());
+                        }
+                    }
+                });
             }
 
             tableView.getColumns().add(column);
@@ -558,7 +579,6 @@ public class UniversalTableController implements AdminController.RefreshableCont
     public void applyColumnFilters(Map<String, Object> filters) {
         this.columnFilters.clear();
         this.columnFilters.putAll(filters);
-        // Reset pagination when filters change
         resetPaginationAndRefresh();
     }
 

@@ -13,8 +13,10 @@ public class TenantHistory {
     private int amountOfNights;
     private boolean canBeSplit;
     private int hotelId;
+    private String tenantInfo;
+    private String roomInfo;
 
-    public TenantHistory(String bookingNumber, int roomId, int tenantId, LocalDate bookingDate,
+    public TenantHistory(String bookingNumber, int roomId, String roomInfo, int tenantId, String tenantInfo, LocalDate bookingDate,
                          LocalDate checkInDate, BookingStatus checkInStatus, int occupiedSpace,
                          int amountOfNights, boolean canBeSplit) {
         this.bookingNumber = bookingNumber;
@@ -26,6 +28,8 @@ public class TenantHistory {
         this.occupiedSpace = occupiedSpace;
         this.amountOfNights = amountOfNights;
         this.canBeSplit = canBeSplit;
+        this.tenantInfo = tenantInfo;
+        this.roomInfo = roomInfo;
     }
 
     public void setHotelId(int hotelId) {
@@ -106,5 +110,26 @@ public class TenantHistory {
 
     public void setCanBeSplit(boolean canBeSplit) {
         this.canBeSplit = canBeSplit;
+    }
+
+    public String getTenantInfo() {
+        return tenantInfo;
+    }
+
+    public void setTenantInfo(String tenantInfo) {
+        this.tenantInfo = tenantInfo;
+    }
+
+    public String getRoomInfo() {
+        return roomInfo;
+    }
+
+    public void setRoomInfo(String roomInfo) {
+        this.roomInfo = roomInfo;
+    }
+
+    @Override
+    public String toString() {
+        return bookingNumber;
     }
 }

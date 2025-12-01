@@ -46,7 +46,7 @@ public class LoginController {
             String role = getUserRole(connection, username);
             
             if (role != null) {
-                Session.setUser(username, role, connection);
+                Session.setUser(username, password, role, connection);
 
                 loadRoleForm(role);
             } else {

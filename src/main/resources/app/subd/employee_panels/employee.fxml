@@ -17,6 +17,7 @@
             </Menu>
             <Menu text="Информация">
                 <MenuItem text="О свободных комнатах" onAction="#showRoomsStatus"/>
+                <MenuItem text="Услуги отеля" onAction="#showHotelServices"/>
             </Menu>
         </MenuBar>
     </top>

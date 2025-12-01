@@ -9,6 +9,7 @@ import javafx.collections.ObservableList;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.time.LocalDate;
 
 public class ReportService {
 
@@ -147,11 +148,11 @@ public class ReportService {
         return services;
     }
 
-    public static ObservableList<RoomEfficiency> getRoomEfficiencyAnalysis(Double minOccupancy, BigDecimal minIncome) {
+    public static ObservableList<RoomEfficiency> getRoomEfficiencyAnalysis(BigDecimal minOccupancy, BigDecimal minIncome, LocalDate startDate, LocalDate endDate) {
         ObservableList<RoomEfficiency> efficiencies = FXCollections.observableArrayList();
         try {
             Connection connection = app.subd.components.Session.getConnection();
-            ResultSet rs = Database_functions.callFunction(connection, "get_room_efficiency_analysis", minOccupancy, minIncome);
+            ResultSet rs = Database_functions.callFunction(connection, "get_room_efficiency_analysis", minOccupancy, minIncome,  startDate, endDate);
 
             while (rs.next()) {
                 RoomEfficiency efficiency = new RoomEfficiency(
