@@ -171,6 +171,19 @@ public class UniversalTableController implements AdminController.RefreshableCont
                         }
                     }
                 });
+            } else if (columnConfig.getFieldType() == FieldConfig.FieldType.CHECKBOX ||
+                       columnConfig.getFilterType() == FieldConfig.FieldType.CHECKBOX) {
+                column.setCellFactory(col -> new TableCell<>() {
+                    @Override
+                    protected void updateItem(Object item, boolean empty) {
+                        super.updateItem(item, empty);
+                        if (empty || item == null) {
+                            setText(null);
+                            setGraphic(null);
+                        } else if (item instanceof Boolean bool)
+                                setText(bool ? "Да" : "Нет");
+                    }
+                });
             }
 
             tableView.getColumns().add(column);

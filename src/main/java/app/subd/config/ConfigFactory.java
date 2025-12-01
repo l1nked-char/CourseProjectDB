@@ -464,7 +464,7 @@ public class ConfigFactory {
                 new ColumnConfig("checkInStatus", "Статус заезда", 120, true, FieldConfig.FieldType.TEXT, "Статус заезда"),
                 new ColumnConfig("occupiedSpace", "Занято мест", 100, true, FieldConfig.FieldType.NUMBER, "Занято мест"),
                 new ColumnConfig("amountOfNights", "Кол-во ночей", 100, true, FieldConfig.FieldType.NUMBER, "Количество ночей"),
-                new ColumnConfig("canBeSplit", "Разделяемая", 100, true, FieldConfig.FieldType.CHECKBOX, "Разделяемое бронирование")
+                new ColumnConfig("canBeSplit", "Разделяемая", 100, false, FieldConfig.FieldType.CHECKBOX, "Разделяемое бронирование")
         );
 
         List<FilterConfig> filters = List.of(
