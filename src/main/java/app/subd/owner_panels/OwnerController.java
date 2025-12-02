@@ -1,12 +1,14 @@
 // app/subd/owner_panels/OwnerController.java
 package app.subd.owner_panels;
 
+import app.subd.components.CSVExportUtil;
 import app.subd.components.Session;
 import app.subd.models.ReportModels.*;
 import app.subd.components.ReportService;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Insets;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.chart.*;
@@ -27,6 +29,16 @@ public class OwnerController {
     @FXML
     public void initialize() {
         statusLabel.setText("Владелец: " + Session.getUsername());
+    }
+
+    private <T> VBox createTableWithExportVBox(TableView<T> tableView, String title) {
+        Button exportButton = new Button("Экспорт в CSV");
+        exportButton.setOnAction(e -> CSVExportUtil.exportTableToCSV(tableView, title, (Stage) exportButton.getScene().getWindow()));
+
+        VBox vbox = new VBox(10, tableView, exportButton);
+        vbox.setPadding(new Insets(10));
+        VBox.setVgrow(tableView, Priority.ALWAYS);
+        return vbox;
     }
 
     private <T, N extends Number> void setNumericCellFactory(TableColumn<T, N> column) {
@@ -89,7 +101,7 @@ public class OwnerController {
         setNumericCellFactory(totalIncomeCol);
 
         tableView.getColumns().addAll(hotelCol, roomCol, baseIncomeCol, convIncomeCol, servIncomeCol, totalIncomeCol);
-        openWindow(new VBox(tableView), "Детализированный отчет о доходах", 1000, 600);
+        openWindow(createTableWithExportVBox(tableView, "Детализированный отчет о доходах"), "Детализированный отчет о доходах", 1000, 600);
     }
 
     @FXML
@@ -115,7 +127,7 @@ public class OwnerController {
         bookingsCol.setCellValueFactory(new PropertyValueFactory<>("totalBookings"));
 
         tableView.getColumns().addAll(hotelCol, baseIncomeCol, convIncomeCol, servIncomeCol, totalIncomeCol, bookingsCol);
-        openWindow(new VBox(tableView), "Сводка по доходам отелей", 1000, 600);
+        openWindow(createTableWithExportVBox(tableView, "Сводка по доходам отелей"), "Сводка по доходам отелей", 1000, 600);
     }
 
     @FXML
@@ -135,7 +147,7 @@ public class OwnerController {
         setNumericCellFactory(percentCol);
 
         tableView.getColumns().addAll(catCol, subcatCol, incomeCol, percentCol);
-        openWindow(new VBox(tableView), "Разбивка доходов по категориям", 800, 600);
+        openWindow(createTableWithExportVBox(tableView, "Разбивка доходов по категориям"), "Разбивка доходов по категориям", 800, 600);
     }
 
     // Отчеты с графиками
@@ -173,7 +185,8 @@ public class OwnerController {
             }
             lineChart.getData().addAll(totalSeries, baseSeries);
 
-            SplitPane splitPane = new SplitPane(tableView, lineChart);
+            VBox tableVBox = createTableWithExportVBox(tableView, "Тренды доходов по месяцам");
+            SplitPane splitPane = new SplitPane(tableVBox, lineChart);
             splitPane.setDividerPositions(0.5);
             openWindow(splitPane, "Тренды доходов по месяцам", 1000, 600);
         } catch (Exception e) {
@@ -276,7 +289,7 @@ public class OwnerController {
         setNumericCellFactory(avgTotalCol);
 
         tableView.getColumns().addAll(segmentCol, countCol, avgBaseCol, avgConvCol, avgServCol, avgTotalCol);
-        openWindow(new VBox(tableView), "Сегментация клиентов", 1100, 600);
+        openWindow(createTableWithExportVBox(tableView, "Сегментация клиентов"), "Сегментация клиентов", 1100, 600);
     }
 
     @FXML
@@ -310,9 +323,11 @@ public class OwnerController {
                 data.forEach(room -> series.getData().add(new XYChart.Data<>("Комн. " + room.getRoomNumber(), room.getTotalIncome())));
                 chart.getData().add(series);
 
-                SplitPane splitPane = new SplitPane(tableView, chart);
+                String title = "Высокодоходные номера (порог: " + threshold + ")";
+                VBox tableVBox = createTableWithExportVBox(tableView, title);
+                SplitPane splitPane = new SplitPane(tableVBox, chart);
                 splitPane.setDividerPositions(0.5);
-                openWindow(splitPane, "Высокодоходные номера (порог: " + threshold + ")", 900, 600);
+                openWindow(splitPane, title, 900, 600);
             } catch (NumberFormatException e) {
                 showAlert("Ошибка", "Введите корректное числовое значение для порога дохода");
             }
@@ -341,7 +356,7 @@ public class OwnerController {
             ratingCol.setCellValueFactory(new PropertyValueFactory<>("efficiencyRating"));
 
             tableView.getColumns().addAll(roomCol, typeCol, totalCol, occupancyCol, ratingCol);
-            openWindow(new VBox(tableView), "Анализ эффективности номеров", 800, 600);
+            openWindow(createTableWithExportVBox(tableView, "Анализ эффективности номеров"), "Анализ эффективности номеров", 800, 600);
         });
     }
 
@@ -443,7 +458,8 @@ public class OwnerController {
             setNumericCellFactory(avgStayCol);
 
             tableView.getColumns().addAll(cityCol, totalCol, baseCol, convCol, servCol, avgStayCol);
-            openWindow(new VBox(tableView), "Доходы по городам: " + cityPattern, 1000, 600);
+            String title = "Доходы по городам: " + cityPattern;
+            openWindow(createTableWithExportVBox(tableView, title), title, 1000, 600);
         });
     }
 
@@ -466,7 +482,7 @@ public class OwnerController {
             setNumericCellFactory(avgCol);
 
             tableView.getColumns().addAll(serviceCol, usageCol, totalCol, avgCol);
-            openWindow(new VBox(tableView), "Премиальные услуги", 800, 600);
+            openWindow(createTableWithExportVBox(tableView, "Премиальные услуги"), "Премиальные услуги", 800, 600);
         });
     }
 

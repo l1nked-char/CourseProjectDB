@@ -765,7 +765,7 @@ public class ConfigFactory {
                 new ColumnConfig("roomType", "Тип комнаты", 150, true, FieldConfig.FieldType.TEXT, "Тип комнаты"),
                 new ColumnConfig("maxPeople", "Макс. людей", 100, true, FieldConfig.FieldType.NUMBER, "Максимальное количество людей"),
                 new ColumnConfig("pricePerNight", "Цена за ночь", 120, true, FieldConfig.FieldType.NUMBER, "Цена за ночь"),
-                new ColumnConfig("available", "Доступна", 100),
+                new ColumnConfig("available", "Доступна", 100, false, FieldConfig.FieldType.CHECKBOX, "Доступна"),
                 new ColumnConfig("availableSpace", "Свободных мест", 150, true, FieldConfig.FieldType.NUMBER, "Свободных мест")
         );
 
