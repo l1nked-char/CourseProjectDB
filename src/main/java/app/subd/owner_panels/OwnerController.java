@@ -525,6 +525,18 @@ public class OwnerController {
 
     @FXML
     private void showIncomeSources() {
+        ObservableList<IncomeSource> data = ReportService.getCombinedIncomeSources();
+        TableView<IncomeSource> tableView = new TableView<>(data);
 
+        TableColumn<IncomeSource, String> sourceCol = new TableColumn<>("Источник дохода");
+        sourceCol.setCellValueFactory(new PropertyValueFactory<>("incomeSource"));
+        TableColumn<IncomeSource, String> typeCol = new TableColumn<>("Тип источника");
+        typeCol.setCellValueFactory(new PropertyValueFactory<>("sourceType"));
+        TableColumn<IncomeSource, BigDecimal> amountCol = new TableColumn<>("Сумма");
+        amountCol.setCellValueFactory(new PropertyValueFactory<>("amount"));
+        setNumericCellFactory(amountCol);
+
+        tableView.getColumns().addAll(sourceCol, typeCol, amountCol);
+        openWindow(createTableWithExportVBox(tableView, "Все источники дохода"), "Все источники дохода", 800, 600);
     }
 }
